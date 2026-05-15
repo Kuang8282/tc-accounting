@@ -353,20 +353,34 @@ canvas{max-width:100%;}
 
   <!-- ====== DASHBOARD ====== -->
   <div id="section-dashboard" class="section">
-    <div class="stat-grid" id="dash-stat-cards"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
-      <div class="card">
-        <div class="card-title">📊 รายรับ-รายจ่าย 6 เดือนล่าสุด</div>
-        <canvas id="dash-trend-chart" height="220"></canvas>
-      </div>
-      <div class="card">
-        <div class="card-title">🏢 รายรับตามอาคารเดือนนี้</div>
-        <canvas id="dash-building-chart" height="220"></canvas>
+    <div class="card" style="padding:8px 16px;margin-bottom:12px">
+      <div class="sub-tabs" style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="sub-tab active" data-dash="overview" style="padding:6px 14px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-weight:600;color:#3949ab;background:#fff">📋 สรุปเดือนนี้</button>
+        <button class="sub-tab" data-dash="trend" style="padding:6px 14px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-weight:600;color:#3949ab;background:#fff">📈 แนวโน้ม 6 เดือน</button>
+        <button class="sub-tab" data-dash="building" style="padding:6px 14px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-weight:600;color:#3949ab;background:#fff">🏢 แยกตามอาคาร</button>
+        <button class="sub-tab" data-dash="occupancy" style="padding:6px 14px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-weight:600;color:#3949ab;background:#fff">🏠 อัตราครอบครอง</button>
       </div>
     </div>
-    <div class="card">
-      <div class="card-title">🏠 อัตราครอบครองห้องพัก</div>
-      <div id="dash-occupancy"></div>
+    <div id="dash-overview">
+      <div class="stat-grid" id="dash-stat-cards"></div>
+    </div>
+    <div id="dash-trend" style="display:none">
+      <div class="card">
+        <div class="card-title">📈 รายรับ-รายจ่าย 6 เดือนล่าสุด</div>
+        <canvas id="dash-trend-chart" height="260"></canvas>
+      </div>
+    </div>
+    <div id="dash-building-panel" style="display:none">
+      <div class="card">
+        <div class="card-title">🏢 รายรับตามอาคารเดือนนี้</div>
+        <canvas id="dash-building-chart" height="300" style="max-width:400px;margin:0 auto;display:block"></canvas>
+      </div>
+    </div>
+    <div id="dash-occupancy-panel" style="display:none">
+      <div class="card">
+        <div class="card-title">🏠 อัตราครอบครองห้องพัก</div>
+        <div id="dash-occupancy"></div>
+      </div>
     </div>
   </div>
 
@@ -1316,11 +1330,24 @@ async function deleteBill(id) {
 // OVERDUE
 // ============================================================
 function renderOverdue() {
-  const overdue = S.bills.filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ');
+  // Deduplicate: keep one entry per room+month+building, sort by building+room+month
+  const seen = new Set();
+  const overdue = S.bills
+    .filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ')
+    .filter(b => {
+      const key = `${b['อาคาร']}-${b['ห้อง']}-${b['เดือน']}`;
+      if(seen.has(key)) return false;
+      seen.add(key); return true;
+    })
+    .sort((a,b) => {
+      const k1 = `${a['อาคาร']}-${String(a['ห้อง']).padStart(6,'0')}-${a['เดือน']}`;
+      const k2 = `${b['อาคาร']}-${String(b['ห้อง']).padStart(6,'0')}-${b['เดือน']}`;
+      return k1.localeCompare(k2);
+    });
   const total = overdue.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
 
   $('overdue-summary').innerHTML = `
-    <div class="stat-card expense"><div class="label">จำนวนห้องค้าง</div><div class="value">${overdue.length} ห้อง</div></div>
+    <div class="stat-card expense"><div class="label">จำนวนบิลค้าง</div><div class="value">${overdue.length} รายการ</div></div>
     <div class="stat-card expense"><div class="label">ยอดค้างรวม</div><div class="value">${fmt(total)} ฿</div></div>`;
 
   $('overdue-tbody').innerHTML = overdue.map(b => `<tr>
@@ -1796,17 +1823,37 @@ $('btn-add-extra').addEventListener('click', () => addExtraRow());
 // ============================================================
 let _dashCharts = {};
 
+let _dashData = null;
+
 async function renderDashboard() {
   showLoading(true);
   try {
-    const d = await gsRun('getDashboardData');
-    renderDashStats(d);
-    renderDashTrend(d.trend);
-    renderDashBuilding(d.byBuilding);
-    renderDashOccupancy(d.occupancy);
+    _dashData = await gsRun('getDashboardData');
+    renderDashStats(_dashData);
+    renderDashTrend(_dashData.trend);
+    renderDashBuilding(_dashData.byBuilding);
+    renderDashOccupancy(_dashData.occupancy);
   } catch(e) { showAlert('โหลด Dashboard ล้มเหลว: '+e,'error'); }
   showLoading(false);
 }
+
+document.querySelectorAll('.sub-tab[data-dash]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sub-tab[data-dash]').forEach(b => {
+      b.style.background = '#fff'; b.style.color = '#3949ab'; b.style.borderColor = '#c5cae9';
+    });
+    btn.style.background = '#1a237e'; btn.style.color = '#fff'; btn.style.borderColor = '#1a237e';
+    const panels = { overview:'dash-overview', trend:'dash-trend', building:'dash-building-panel', occupancy:'dash-occupancy-panel' };
+    Object.values(panels).forEach(id => { const el=document.getElementById(id); if(el) el.style.display='none'; });
+    const show = panels[btn.dataset.dash];
+    if(show) document.getElementById(show).style.display = '';
+    // Lazy render charts when tab becomes visible
+    if(_dashData) {
+      if(btn.dataset.dash === 'trend') renderDashTrend(_dashData.trend);
+      if(btn.dataset.dash === 'building') renderDashBuilding(_dashData.byBuilding);
+    }
+  });
+});
 
 function renderDashStats(d) {
   const fmt2 = n => Number(n||0).toLocaleString('th-TH', {maximumFractionDigits:0});
