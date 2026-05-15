@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TC Accounting System</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --primary:#1a237e;--primary-light:#3949ab;--secondary:#0d47a1;
@@ -101,6 +102,7 @@ tbody td{padding:7px 10px;vertical-align:middle;}
 .print-list-item:hover{background:#f5f5f5;}
 /* MISC */
 .divider{height:1px;background:var(--border);margin:12px 0;}
+canvas{max-width:100%;}
 .text-muted{color:var(--muted);}
 .text-success{color:var(--success);}
 .text-danger{color:var(--danger);}
@@ -134,6 +136,7 @@ tbody td{padding:7px 10px;vertical-align:middle;}
     <button class="nav-tab" data-section="expenses">💸 รายจ่าย</button>
     <button class="nav-tab" data-section="reports">📊 รายงาน</button>
     <button class="nav-tab" data-section="print-select">🖨️ พิมพ์เอกสาร</button>
+    <button class="nav-tab" data-section="dashboard">📈 Dashboard</button>
   </div>
 </nav>
 
@@ -348,6 +351,25 @@ tbody td{padding:7px 10px;vertical-align:middle;}
     </div>
   </div>
 
+  <!-- ====== DASHBOARD ====== -->
+  <div id="section-dashboard" class="section">
+    <div class="stat-grid" id="dash-stat-cards"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="card">
+        <div class="card-title">📊 รายรับ-รายจ่าย 6 เดือนล่าสุด</div>
+        <canvas id="dash-trend-chart" height="220"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-title">🏢 รายรับตามอาคารเดือนนี้</div>
+        <canvas id="dash-building-chart" height="220"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">🏠 อัตราครอบครองห้องพัก</div>
+      <div id="dash-occupancy"></div>
+    </div>
+  </div>
+
   <!-- ====== PRINT SELECTOR ====== -->
   <div id="section-print-select" class="section">
     <div class="card">
@@ -439,6 +461,21 @@ tbody td{padding:7px 10px;vertical-align:middle;}
   </div>
 </div>
 
+<!-- Print Preview Modal -->
+<div class="modal-overlay" id="modal-print-preview">
+  <div class="modal" style="max-width:860px;width:98%">
+    <div class="modal-header">
+      <span class="modal-title">🖨️ ตัวอย่างก่อนพิมพ์</span>
+      <button class="modal-close" data-close="modal-print-preview">×</button>
+    </div>
+    <div id="print-preview-content" style="max-height:70vh;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:12px;background:#fafafa;"></div>
+    <div class="modal-footer" style="gap:8px">
+      <button class="btn btn-outline btn-primary" data-close="modal-print-preview">ปิด</button>
+      <button class="btn btn-primary" id="btn-print-confirm">🖨️ พิมพ์จริง</button>
+    </div>
+  </div>
+</div>
+
 <!-- Bill Modal -->
 <div class="modal-overlay" id="modal-bill">
   <div class="modal" style="max-width:720px">
@@ -466,7 +503,7 @@ tbody td{padding:7px 10px;vertical-align:middle;}
     </div>
 
     <div class="bill-section" id="bill-info-box" style="display:none">
-      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
         <div class="form-group">
           <label>ผู้เช่า</label>
           <input class="form-control" id="bill-tenant" readonly style="background:#f5f5f5">
@@ -475,11 +512,14 @@ tbody td{padding:7px 10px;vertical-align:middle;}
           <label>ค่าห้อง (บาท)</label>
           <input class="form-control" id="bill-rent" type="number">
         </div>
-        <div class="form-group">
-          <label>ค่าอื่นๆ (บาท)</label>
-          <input class="form-control" id="bill-other" type="number" value="0">
-        </div>
       </div>
+
+      <!-- EXTRA INCOME ITEMS -->
+      <div class="divider"></div>
+      <div style="font-weight:700;color:#6a1b9a;margin-bottom:8px;">🧾 รายรับอื่นๆ (เพิ่มเติม)</div>
+      <div id="bill-extra-list"></div>
+      <button class="btn btn-sm btn-outline btn-primary" id="btn-add-extra" style="margin-bottom:4px">+ เพิ่มรายการ</button>
+      <div style="text-align:right;font-size:13px;color:#6a1b9a">รวมรายรับอื่นๆ: <strong id="bill-extra-total">0</strong> บาท</div>
 
       <!-- WATER -->
       <div class="divider"></div>
@@ -774,7 +814,7 @@ window.addEventListener('load', async () => {
 function setDefaultDates() {
   const today = todayStr();
   const month = currentMonth();
-  ['bill-filter-month','print-filter-month'].forEach(id => { const el=$(id); if(el) el.value=month; });
+  const billFilterEl = $('bill-filter-month'); if(billFilterEl) billFilterEl.value = month;
   ['inc-date','exp-date','pay-date'].forEach(id => { const el=$(id); if(el) el.value=today; });
   ['bill-water-curr-date','bill-elec-curr-date'].forEach(id => { const el=$(id); if(el) el.value=today; });
   $('bill-month').value = month;
@@ -806,6 +846,7 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
     document.getElementById(sec).classList.add('active');
     if(btn.dataset.section === 'overdue') renderOverdue();
     if(btn.dataset.section === 'print-select') renderPrintList();
+    if(btn.dataset.section === 'dashboard') renderDashboard();
   });
 });
 
@@ -1043,7 +1084,8 @@ function openBillModal(roomNo, building) {
   $('bill-room').innerHTML = '<option value="">-- เลือกอาคารก่อน --</option>';
   $('bill-rent').value = '';
   $('bill-tenant').value = '';
-  $('bill-other').value = '0';
+  $('bill-extra-list').innerHTML = '';
+  $('bill-extra-total').textContent = '0';
   $('bill-water-prev').value = '';
   $('bill-water-curr').value = '';
   $('bill-water-rate').value = '';
@@ -1103,19 +1145,24 @@ function calcBill() {
   const eTotal = eUsed * eRate;
 
   const rent  = parseFloat($('bill-rent').value)||0;
-  const other = parseFloat($('bill-other').value)||0;
+  const other = calcExtraTotal();
   const grand = rent + wTotal + eTotal + other;
 
-  $('bill-water-used').value       = wUsed;
-  $('bill-water-total').textContent = fmt(wTotal);
-  $('bill-elec-used').value        = eUsed;
-  $('bill-elec-total').textContent = fmt(eTotal);
-  $('bill-grand-total').textContent = fmt(grand);
+  $('bill-water-used').value        = wUsed;
+  $('bill-water-total').textContent  = fmt(wTotal);
+  $('bill-elec-used').value         = eUsed;
+  $('bill-elec-total').textContent   = fmt(eTotal);
+  $('bill-extra-total').textContent  = fmt(other);
+  $('bill-grand-total').textContent  = fmt(grand);
+}
+
+function calcExtraTotal() {
+  return [...document.querySelectorAll('.extra-amt')].reduce((s, el) => s + (parseFloat(el.value)||0), 0);
 }
 
 ['bill-water-prev','bill-water-curr','bill-water-rate',
  'bill-elec-prev','bill-elec-curr','bill-elec-rate',
- 'bill-rent','bill-other'].forEach(id => {
+ 'bill-rent'].forEach(id => {
   const el = $(id);
   if(el) el.addEventListener('input', calcBill);
 });
@@ -1126,6 +1173,10 @@ $('btn-save-bill').addEventListener('click', async () => {
   const room   = $('bill-room').value;
   if(!month||!bld||!room) { showAlert('กรุณาเลือกเดือน อาคาร และห้อง','error'); return; }
 
+  // Explicit duplicate check in UI before sending to server
+  const dup = S.bills.find(b => b['เดือน']===month && b['ห้อง']===room && b['อาคาร']===bld);
+  if(dup) { showAlert(`มีบิลห้อง ${room} (${bld}) ในเดือน ${month} แล้ว (เลขที่: ${dup['เลขที่ใบกำกับ']||dup['ID']})`, 'error'); return; }
+
   const wPrev  = parseFloat($('bill-water-prev').value)||0;
   const wCurr  = parseFloat($('bill-water-curr').value)||0;
   const wRate  = parseFloat($('bill-water-rate').value)||0;
@@ -1135,7 +1186,16 @@ $('btn-save-bill').addEventListener('click', async () => {
   const eRate  = parseFloat($('bill-elec-rate').value)||0;
   const eUsed  = Math.max(0, eCurr - ePrev);
   const rent   = parseFloat($('bill-rent').value)||0;
-  const other  = parseFloat($('bill-other').value)||0;
+
+  // Collect extra income items
+  const extraItems = [];
+  document.querySelectorAll('#bill-extra-list .extra-row').forEach(row => {
+    const cat = row.querySelector('.extra-cat').value;
+    const desc = row.querySelector('.extra-desc').value;
+    const amt = parseFloat(row.querySelector('.extra-amt').value)||0;
+    if(amt > 0) extraItems.push({ cat, desc, amt });
+  });
+  const other  = extraItems.reduce((s,i) => s + i.amt, 0);
   const grand  = rent + wUsed*wRate + eUsed*eRate + other;
 
   const data = {
@@ -1159,7 +1219,7 @@ $('btn-save-bill').addEventListener('click', async () => {
     'อัตราไฟ':            eRate,
     'ค่าไฟ':              eUsed * eRate,
     'ค่าอื่นๆ':           other,
-    'หมายเหตุบิล':        $('bill-note').value,
+    'หมายเหตุบิล':        (extraItems.length ? JSON.stringify(extraItems) + ' ' : '') + $('bill-note').value,
     'รวม':                grand,
     'สถานะ':              'รอชำระ',
     'วันที่ชำระ':         '',
@@ -1587,12 +1647,146 @@ $('btn-deselect-all').addEventListener('click', ()=>{
   document.querySelectorAll('.print-check').forEach(c=>c.checked=false);
 });
 
+// Print preview & print confirm
+let _printIds = [];
 $('btn-do-print').addEventListener('click', ()=>{
-  const ids = [...document.querySelectorAll('.print-check:checked')].map(c=>c.dataset.id);
-  if(!ids.length) { showAlert('กรุณาเลือกห้องที่จะพิมพ์','error'); return; }
-  const url = '?page=print&ids=' + ids.join(',');
-  window.open(url, '_blank');
+  _printIds = [...document.querySelectorAll('.print-check:checked')].map(c=>c.dataset.id);
+  if(!_printIds.length) { showAlert('กรุณาเลือกห้องที่จะพิมพ์','error'); return; }
+  renderPrintPreview(_printIds);
+  openModal('modal-print-preview');
 });
+
+$('btn-print-confirm').addEventListener('click', ()=>{
+  if(!_printIds.length) return;
+  window.open('?page=print&ids=' + _printIds.join(','), '_blank');
+  closeModal('modal-print-preview');
+});
+
+function renderPrintPreview(ids) {
+  const selected = S.bills.filter(b => ids.includes(String(b['ID'])));
+  const html = selected.map(b => {
+    const co = S.companies[b['อาคาร']] || {};
+    return `<div style="border:1px solid #ddd;border-radius:6px;padding:12px;margin-bottom:10px;background:#fff">
+      <div style="font-weight:700;font-size:15px;margin-bottom:6px">${co.name||b['อาคาร']} — ใบแจ้งหนี้</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:13px">
+        <div>ห้อง: <strong>${b['ห้อง']}</strong> (${b['อาคาร']})</div>
+        <div>เดือน: <strong>${b['เดือน']}</strong></div>
+        <div>ผู้เช่า: ${b['ผู้เช่า']||'-'}</div>
+        <div>สถานะ: <span class="status ${b['สถานะ']==='ชำระแล้ว'?'status-paid':'status-pending'}">${b['สถานะ']}</span></div>
+        <div>ค่าห้อง: ${fmt(b['ค่าห้อง'])} ฿</div>
+        <div>ค่าน้ำ: ${fmt(b['ค่าน้ำ'])} ฿</div>
+        <div>ค่าไฟ: ${fmt(b['ค่าไฟ'])} ฿</div>
+        <div>ค่าอื่นๆ: ${fmt(b['ค่าอื่นๆ'])} ฿</div>
+      </div>
+      <div style="text-align:right;font-weight:700;font-size:16px;margin-top:8px;color:#1a237e">รวม ${fmt(b['รวม'])} ฿</div>
+      <div style="font-size:11px;color:#999;margin-top:4px">เลขที่: ${b['เลขที่ใบกำกับ']||b['ID']}</div>
+    </div>`;
+  }).join('');
+  $('print-preview-content').innerHTML = html || '<p class="text-muted">ไม่มีข้อมูล</p>';
+}
+
+// ============================================================
+// EXTRA INCOME ITEMS in Bill Modal
+// ============================================================
+function buildExtraCatOptions() {
+  return S.incomeCategories.filter(c=>c!=='ค่าห้อง'&&c!=='ค่าน้ำ'&&c!=='ค่าไฟ').map(c=>`<option>${c}</option>`).join('');
+}
+
+function addExtraRow(cat, desc, amt) {
+  const div = document.createElement('div');
+  div.className = 'extra-row';
+  div.style.cssText = 'display:grid;grid-template-columns:160px 1fr 100px 32px;gap:6px;margin-bottom:6px;align-items:center';
+  div.innerHTML = `
+    <select class="form-control extra-cat"><option value="">-- หมวด --</option>${buildExtraCatOptions()}</select>
+    <input class="form-control extra-desc" placeholder="รายละเอียด" value="${desc||''}">
+    <input class="form-control extra-amt" type="number" min="0" step="0.01" placeholder="จำนวน" value="${amt||''}">
+    <button class="btn btn-sm btn-danger extra-del" title="ลบ">✕</button>`;
+  if(cat) div.querySelector('.extra-cat').value = cat;
+  div.querySelector('.extra-amt').addEventListener('input', calcBill);
+  div.querySelector('.extra-del').addEventListener('click', () => { div.remove(); calcBill(); });
+  $('bill-extra-list').appendChild(div);
+  calcBill();
+}
+
+$('btn-add-extra').addEventListener('click', () => addExtraRow());
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+let _dashCharts = {};
+
+async function renderDashboard() {
+  showLoading(true);
+  try {
+    const d = await gsRun('getDashboardData');
+    renderDashStats(d);
+    renderDashTrend(d.trend);
+    renderDashBuilding(d.byBuilding);
+    renderDashOccupancy(d.occupancy);
+  } catch(e) { showAlert('โหลด Dashboard ล้มเหลว: '+e,'error'); }
+  showLoading(false);
+}
+
+function renderDashStats(d) {
+  const fmt2 = n => Number(n||0).toLocaleString('th-TH', {maximumFractionDigits:0});
+  $('dash-stat-cards').innerHTML = `
+    <div class="stat-card income"><div class="label">💰 รายรับเดือนนี้</div><div class="value">${fmt2(d.monthIncome)}</div></div>
+    <div class="stat-card expense"><div class="label">💸 รายจ่ายเดือนนี้</div><div class="value">${fmt2(d.monthExpense)}</div></div>
+    <div class="stat-card profit"><div class="label">📈 กำไรเดือนนี้</div><div class="value">${fmt2(d.monthProfit)}</div></div>
+    <div class="stat-card"><div class="label">⚠️ ค้างชำระ</div><div class="value">${d.overdueCount} ห้อง</div></div>
+    <div class="stat-card"><div class="label">🏠 ห้องทั้งหมด</div><div class="value">${d.occupancy.all.total}</div></div>
+    <div class="stat-card income"><div class="label">✅ ห้องมีผู้เช่า</div><div class="value">${d.occupancy.all.rented}</div></div>`;
+}
+
+function renderDashTrend(trend) {
+  const ctx = document.getElementById('dash-trend-chart');
+  if(!ctx) return;
+  if(_dashCharts.trend) _dashCharts.trend.destroy();
+  _dashCharts.trend = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: trend.map(t=>t.month),
+      datasets: [
+        { label: 'รายรับ', data: trend.map(t=>t.income), backgroundColor: 'rgba(46,125,50,0.7)', borderColor:'#2e7d32', borderWidth:1 },
+        { label: 'รายจ่าย', data: trend.map(t=>t.expense), backgroundColor: 'rgba(198,40,40,0.6)', borderColor:'#c62828', borderWidth:1 }
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+  });
+}
+
+function renderDashBuilding(byBuilding) {
+  const ctx = document.getElementById('dash-building-chart');
+  if(!ctx) return;
+  if(_dashCharts.building) _dashCharts.building.destroy();
+  _dashCharts.building = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: byBuilding.map(b=>b.building),
+      datasets: [{ data: byBuilding.map(b=>b.income), backgroundColor:['#1a237e','#1565c0','#0277bd','#01579b'], borderWidth:2 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+  });
+}
+
+function renderDashOccupancy(occ) {
+  const el = $('dash-occupancy');
+  if(!el) return;
+  const rows = ['V1','V2','V3','V4'].map(v => {
+    const o = occ[v]||{total:0,rented:0};
+    const pct = o.total ? Math.round(o.rented/o.total*100) : 0;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px">
+        <span><strong>${v}</strong> — ${o.rented}/${o.total} ห้อง</span><span>${pct}%</span>
+      </div>
+      <div style="background:#e0e0e0;border-radius:4px;height:12px">
+        <div style="background:${pct>=80?'#2e7d32':pct>=50?'#f57f17':'#c62828'};width:${pct}%;height:12px;border-radius:4px;transition:.4s"></div>
+      </div>
+    </div>`;
+  }).join('');
+  el.innerHTML = rows;
+}
+
 </script>
 </body>
 </html>

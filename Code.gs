@@ -744,7 +744,17 @@ function _autoSaveIncomeFromBill(bill) {
     { cat: 'ค่าน้ำ',  amt: parseFloat(bill['ค่าน้ำ'])  || 0 },
     { cat: 'ค่าไฟ',   amt: parseFloat(bill['ค่าไฟ'])   || 0 }
   ];
-  if (parseFloat(bill['ค่าอื่นๆ']) > 0) {
+  // Parse extra items stored as JSON prefix in หมายเหตุบิล
+  const note = bill['หมายเหตุบิล'] || '';
+  const jsonMatch = note.match(/^(\[.*?\])/);
+  if (jsonMatch) {
+    try {
+      const extras = JSON.parse(jsonMatch[1]);
+      extras.forEach(ex => { if (parseFloat(ex.amt) > 0) entries.push({ cat: ex.cat || 'อื่นๆ', amt: parseFloat(ex.amt) }); });
+    } catch(e) {
+      if (parseFloat(bill['ค่าอื่นๆ']) > 0) entries.push({ cat: 'อื่นๆ', amt: parseFloat(bill['ค่าอื่นๆ']) });
+    }
+  } else if (parseFloat(bill['ค่าอื่นๆ']) > 0) {
     entries.push({ cat: 'อื่นๆ', amt: parseFloat(bill['ค่าอื่นๆ']) });
   }
   const sh = getSheet(SHEETS.OTHER_INCOME);
@@ -955,4 +965,73 @@ function getAvailableMonths() {
     const months = [...new Set(bills.map(b => b['เดือน']).filter(Boolean))].sort().reverse();
     return months.length ? months : [Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM')];
   } catch (err) { return []; }
+}
+
+// ============================================================
+// Dashboard Data
+// ============================================================
+function getDashboardData() {
+  try {
+    const rooms    = getRooms();
+    const bills    = getBills();
+    const income   = getOtherIncome();
+    const expenses = getExpenses();
+
+    // Occupancy
+    const occ = { V1:{total:0,rented:0}, V2:{total:0,rented:0}, V3:{total:0,rented:0}, V4:{total:0,rented:0}, all:{total:0,rented:0} };
+    rooms.forEach(r => {
+      const b = r['อาคาร'];
+      if (!occ[b]) return;
+      occ[b].total++;
+      occ.all.total++;
+      if (r['สถานะ'] === 'ทำสัญญา') { occ[b].rented++; occ.all.rented++; }
+    });
+
+    // Last 6 months income/expense trend
+    const now = new Date();
+    const months6 = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months6.push(Utilities.formatDate(d, 'Asia/Bangkok', 'yyyy-MM'));
+    }
+
+    const trend = months6.map(m => {
+      const mBills   = bills.filter(b => b['เดือน'] === m && b['สถานะ'] === 'ชำระแล้ว');
+      const mInc     = income.filter(i => { const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
+      const mExp     = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
+      const billInc  = mBills.reduce((s,b) => s+(parseFloat(b['รวม'])||0), 0);
+      const otherInc = mInc.reduce((s,i) => s+(parseFloat(i['จำนวนเงิน'])||0), 0);
+      const exp      = mExp.reduce((s,e) => s+(parseFloat(e['จำนวนเงิน'])||0), 0);
+      return { month: m, income: billInc + otherInc, expense: exp };
+    });
+
+    // Current month summary
+    const curMonth = Utilities.formatDate(now, 'Asia/Bangkok', 'yyyy-MM');
+    const curBills = bills.filter(b => b['เดือน'] === curMonth);
+    const paidBills = curBills.filter(b => b['สถานะ'] === 'ชำระแล้ว');
+    const overdueBills = bills.filter(b => b['สถานะ'] === 'รอชำระ' || b['สถานะ'] === 'ค้างชำระ');
+    const curInc  = income.filter(i => { const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
+    const curExp  = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
+
+    const monthIncome  = paidBills.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0) + curInc.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
+    const monthExpense = curExp.reduce((s,e)=>s+(parseFloat(e['จำนวนเงิน'])||0),0);
+
+    // Building breakdown for current month
+    const byBuilding = ['V1','V2','V3','V4'].map(v => {
+      const vb = paidBills.filter(b=>b['อาคาร']===v);
+      return { building: v, income: vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0), count: vb.length };
+    });
+
+    return {
+      occupancy: occ,
+      trend,
+      curMonth,
+      monthIncome,
+      monthExpense,
+      monthProfit: monthIncome - monthExpense,
+      overdueCount: overdueBills.length,
+      overdueTotal: overdueBills.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0),
+      byBuilding
+    };
+  } catch (err) { return { occupancy:{all:{total:0,rented:0}}, trend:[], byBuilding:[], monthIncome:0, monthExpense:0, monthProfit:0, overdueCount:0, overdueTotal:0 }; }
 }
