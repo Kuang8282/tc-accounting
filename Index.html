@@ -701,8 +701,10 @@ function currentMonth() {
 
 function showAlert(msg, type='success') {
   const el = $('alert-area');
-  el.innerHTML = `<div class="alert alert-${type}"><span>${type==='success'?'✓':'✕'}</span> ${msg}</div>`;
-  setTimeout(() => { el.innerHTML = ''; }, 4000);
+  const icon = type==='success' ? '✓' : type==='info' ? 'ℹ' : '✕';
+  const duration = type==='info' ? 6000 : 4000;
+  el.innerHTML = `<div class="alert alert-${type}"><span>${icon}</span> ${msg}</div>`;
+  setTimeout(() => { if(el.innerHTML) el.innerHTML = ''; }, duration);
 }
 
 function showLoading(v) { $('loading').classList.toggle('show', v); }
@@ -722,30 +724,49 @@ function gsRun(fn, ...args) {
 // ============================================================
 window.addEventListener('load', async () => {
   showLoading(true);
+  let data = {};
   try {
-    const data = await gsRun('getAllData');
-    S.rooms    = data.rooms    || [];
-    S.bills    = data.bills    || [];
-    S.income   = data.otherIncome || [];
-    S.expenses = data.expenses || [];
-    S.companies         = data.companies || {};
-    S.incomeCategories  = data.incomeCategories  || [];
-    S.expenseCategories = data.expenseCategories || [];
-
-    populateDropdowns();
-    renderRooms();
-    renderBills();
-    renderIncome();
-    renderExpenses();
-    renderOverdue();
-    updateOverdueBadge();
-    setDefaultDates();
+    data = await gsRun('getAllData');
   } catch(e) {
-    showAlert('โหลดข้อมูลล้มเหลว: ' + e, 'error');
+    showAlert('เชื่อมต่อ Google Apps Script ล้มเหลว: ' + e, 'error');
+    showLoading(false);
+    return;
   }
-  showLoading(false);
 
-  // Set report month default
+  // แสดง error จาก backend ถ้ามี
+  if (data.error) {
+    showAlert('Backend error: ' + data.error, 'error');
+  }
+
+  S.rooms    = Array.isArray(data.rooms)    ? data.rooms    : [];
+  S.bills    = Array.isArray(data.bills)    ? data.bills    : [];
+  S.income   = Array.isArray(data.otherIncome) ? data.otherIncome : [];
+  S.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+  S.companies         = data.companies         || {};
+  S.incomeCategories  = data.incomeCategories  || [];
+  S.expenseCategories = data.expenseCategories || [];
+
+  // แสดง Spreadsheet URL ถ้ามี
+  if (data.ssUrl) {
+    const nav = document.querySelector('nav h1');
+    if (nav) nav.innerHTML = `🏢 TC Accounting <a href="${data.ssUrl}" target="_blank" style="font-size:11px;color:#ffca28;margin-left:8px;font-weight:400">📊 เปิด Sheet</a>`;
+  }
+
+  populateDropdowns();
+  renderRooms();
+  renderBills();
+  renderIncome();
+  renderExpenses();
+  renderOverdue();
+  updateOverdueBadge();
+  setDefaultDates();
+
+  // แจ้งถ้าไม่มีห้อง
+  if (S.rooms.length === 0) {
+    showAlert('ยังไม่มีข้อมูลห้อง กรุณากดปุ่ม "⚙️ โหลดข้อมูล 312 ห้อง"', 'info');
+  }
+
+  showLoading(false);
   const rm = $('report-month');
   if(rm) rm.value = currentMonth();
 });
@@ -872,19 +893,37 @@ document.getElementById('rooms-tbody').addEventListener('click', e => {
 $('btn-add-room').addEventListener('click', () => openRoomModal(null));
 
 $('btn-init-rooms').addEventListener('click', async () => {
-  if(!confirm('โหลดข้อมูลห้อง 312 ห้องลงในระบบ? (จะไม่สามารถย้อนกลับได้)')) return;
   showLoading(true);
   try {
+    // ลองโหลดก่อน ถ้ามีข้อมูลอยู่แล้วให้ถาม
     const r = await gsRun('initializeRooms');
-    if(r.success) {
-      const data = await gsRun('getRooms');
-      S.rooms = data || [];
+    if (!r.success && r.message && r.message.includes('มีข้อมูลห้องแล้ว')) {
+      showLoading(false);
+      const choice = confirm(
+        'มีข้อมูลห้องอยู่แล้ว ' + S.rooms.length + ' ห้อง\n\n' +
+        'กด OK เพื่อ "ล้างและโหลดใหม่ทั้งหมด 312 ห้อง" (ข้อมูลห้องเดิมจะหายทั้งหมด)\n' +
+        'กด Cancel เพื่อยกเลิก'
+      );
+      if (!choice) return;
+      showLoading(true);
+      const clr = await gsRun('clearRooms');
+      if (!clr.success) { showAlert('ล้างข้อมูลล้มเหลว: ' + clr.message, 'error'); showLoading(false); return; }
+      const r2 = await gsRun('initializeRooms');
+      if (r2.success) {
+        S.rooms = await gsRun('getRooms') || [];
+        renderRooms();
+        showAlert(r2.message);
+      } else {
+        showAlert(r2.message, 'error');
+      }
+    } else if (r.success) {
+      S.rooms = await gsRun('getRooms') || [];
       renderRooms();
       showAlert(r.message);
     } else {
       showAlert(r.message, 'error');
     }
-  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: ' + e, 'error'); }
   showLoading(false);
 });
 

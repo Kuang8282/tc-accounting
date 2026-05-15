@@ -92,15 +92,48 @@ function doGet(e) {
 }
 
 // ============================================================
+// Spreadsheet Access — รองรับทั้ง container-bound และ standalone
+// ============================================================
+function getSpreadsheet_() {
+  const props = PropertiesService.getScriptProperties();
+  const stored = props.getProperty('SS_ID');
+
+  // 1. ลอง ID ที่เก็บไว้
+  if (stored) {
+    try { return SpreadsheetApp.openById(stored); } catch (e) {}
+  }
+
+  // 2. ลอง active spreadsheet (container-bound)
+  try {
+    const active = SpreadsheetApp.getActiveSpreadsheet();
+    if (active) {
+      props.setProperty('SS_ID', active.getId());
+      return active;
+    }
+  } catch (e) {}
+
+  // 3. สร้างใหม่ (standalone web app)
+  const ss = SpreadsheetApp.create('TC Accounting System');
+  props.setProperty('SS_ID', ss.getId());
+
+  // ลบ Sheet1 เริ่มต้น
+  const sheet1 = ss.getSheetByName('Sheet1');
+  if (sheet1 && ss.getSheets().length > 1) ss.deleteSheet(sheet1);
+
+  return ss;
+}
+
+// ============================================================
 // Sheet Helpers
 // ============================================================
 function getSheet(name) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  return ss.getSheetByName(name);
+  try {
+    return getSpreadsheet_().getSheetByName(name);
+  } catch (e) { return null; }
 }
 
 function getOrCreateSheet(name, headers) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   let sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
@@ -114,22 +147,39 @@ function getOrCreateSheet(name, headers) {
   return sh;
 }
 
+// แปลงค่าใน cell: Date → "YYYY-MM-DD", ตัวเลขจำนวนเต็ม → string ถ้าเป็น ID/รหัส
+function cellVal_(v) {
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return '';
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, '0');
+    const d = String(v.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return v === null || v === undefined ? '' : v;
+}
+
 function sheetToObjects(sh, headers) {
+  if (!sh) return [];
   const data = sh.getDataRange().getValues();
   if (data.length <= 1) return [];
   return data.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => { obj[h] = row[i] !== undefined ? row[i] : ''; });
+    headers.forEach((h, i) => { obj[h] = cellVal_(row[i]); });
     return obj;
   });
 }
 
 function nextId(sh) {
+  if (!sh) return 1;
   const last = sh.getLastRow();
   if (last <= 1) return 1;
-  const ids = sh.getRange(2, 1, last - 1, 1).getValues().flat()
-    .map(v => parseInt(v) || 0);
-  return Math.max(...ids) + 1;
+  try {
+    const ids = sh.getRange(2, 1, last - 1, 1).getValues().flat()
+      .map(v => parseInt(v) || 0);
+    const max = Math.max(...ids);
+    return isFinite(max) ? max + 1 : 1;
+  } catch (e) { return last; }
 }
 
 // ============================================================
@@ -137,15 +187,27 @@ function nextId(sh) {
 // ============================================================
 function initializeSystem() {
   try {
-    getOrCreateSheet(SHEETS.ROOMS, ROOM_HEADERS);
-    getOrCreateSheet(SHEETS.BILLS, BILL_HEADERS);
+    const ss = getSpreadsheet_();  // ensure spreadsheet exists first
+    getOrCreateSheet(SHEETS.ROOMS,        ROOM_HEADERS);
+    getOrCreateSheet(SHEETS.BILLS,        BILL_HEADERS);
     getOrCreateSheet(SHEETS.OTHER_INCOME, OTHER_INCOME_HEADERS);
-    getOrCreateSheet(SHEETS.EXPENSES, EXPENSE_HEADERS);
+    getOrCreateSheet(SHEETS.EXPENSES,     EXPENSE_HEADERS);
     getOrCreateSheet(SHEETS.SUMMARY, ['เดือน','อาคาร','รายรับค่าห้อง','รายรับน้ำ','รายรับไฟ','รายรับอื่นๆ','รวมรายรับ','รายจ่าย','กำไร/ขาดทุน']);
-    return { success: true, message: 'ระบบพร้อมใช้งาน' };
+    return { success: true, message: 'ระบบพร้อมใช้งาน — ' + ss.getName() };
   } catch (err) {
-    return { success: false, message: err.message };
+    return { success: false, message: 'initializeSystem error: ' + err.message };
   }
+}
+
+// ล้างข้อมูลห้องทั้งหมด (สำหรับ re-import)
+function clearRooms() {
+  try {
+    const sh = getSheet(SHEETS.ROOMS);
+    if (!sh) return { success: false, message: 'ไม่พบ Sheet ทะเบียนห้อง' };
+    const last = sh.getLastRow();
+    if (last > 1) sh.deleteRows(2, last - 1);
+    return { success: true, message: 'ล้างข้อมูลห้องเรียบร้อย' };
+  } catch (err) { return { success: false, message: err.message }; }
 }
 
 function initializeRooms() {
@@ -515,21 +577,37 @@ function initializeRooms() {
 // ============================================================
 function getAllData() {
   try {
-    initializeSystem();
+    const initResult = initializeSystem();
+    const rooms       = getRooms();
+    const bills       = getBills();
+    const otherIncome = getOtherIncome();
+    const expenses    = getExpenses();
+    let ssUrl = '';
+    try { ssUrl = getSpreadsheet_().getUrl(); } catch(e) {}
     return {
-      rooms:       getRooms(),
-      bills:       getBills(),
-      otherIncome: getOtherIncome(),
-      expenses:    getExpenses(),
-      companies:   COMPANIES,
+      rooms, bills, otherIncome, expenses,
+      companies:         COMPANIES,
       incomeCategories:  INCOME_CATEGORIES,
       expenseCategories: EXPENSE_CATEGORIES,
-      roomHeaders:  ROOM_HEADERS,
-      billHeaders:  BILL_HEADERS
+      roomHeaders:       ROOM_HEADERS,
+      billHeaders:       BILL_HEADERS,
+      ssUrl,
+      initMessage: initResult.message || ''
     };
   } catch (err) {
-    return { rooms:[], bills:[], otherIncome:[], expenses:[], companies:{}, incomeCategories:[], expenseCategories:[] };
+    return {
+      rooms:[], bills:[], otherIncome:[], expenses:[],
+      companies: COMPANIES,
+      incomeCategories:  INCOME_CATEGORIES,
+      expenseCategories: EXPENSE_CATEGORIES,
+      ssUrl: '', error: err.message
+    };
   }
+}
+
+// คืน URL ของ Spreadsheet (ใช้แสดงใน UI)
+function getSpreadsheetUrl() {
+  try { return getSpreadsheet_().getUrl(); } catch(e) { return ''; }
 }
 
 // ============================================================
