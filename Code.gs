@@ -4,10 +4,10 @@
 // ============================================================
 
 const COMPANIES = {
-  V1: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 1 จำกัด', address: '888/1 ถ.พหลโยธิน', taxId: '0135559018014' },
-  V2: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 2 จำกัด', address: '888/6 ถ.พหลโยธิน', taxId: '0135559018022' },
-  V3: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 3 จำกัด', address: '777 ถ.พหลโยธิน',  taxId: '0135559018031' },
-  V4: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 4 จำกัด', address: '777/3 ถ.พหลโยธิน', taxId: '0135559018049' }
+  V1: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 1 จำกัด', address: '888/1 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018014', phone: '02-997-7700', fax: '02-997-7690' },
+  V2: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 2 จำกัด', address: '888/6 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018022', phone: '02-997-7700', fax: '02-997-7690' },
+  V3: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 3 จำกัด', address: '777 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220',   taxId: '0135559018031', phone: '02-997-7700', fax: '02-997-7690' },
+  V4: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 4 จำกัด', address: '777/3 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018049', phone: '02-997-7700', fax: '02-997-7690' }
 };
 
 const SHEETS = {
@@ -782,6 +782,26 @@ function deleteBill(billId) {
   } catch (err) { return { success: false, message: err.message }; }
 }
 
+function updateBill(id, data) {
+  try {
+    const sh = getSheet(SHEETS.BILLS);
+    if (!sh) return { success: false, message: 'ไม่พบ Sheet' };
+    const rows = sh.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] == id) {
+        data['ID'] = id;
+        data['เลขที่ใบกำกับ'] = cellVal_(rows[i][BILL_HEADERS.indexOf('เลขที่ใบกำกับ')]);
+        data['สถานะ'] = cellVal_(rows[i][BILL_HEADERS.indexOf('สถานะ')]);
+        data['วันที่ชำระ'] = cellVal_(rows[i][BILL_HEADERS.indexOf('วันที่ชำระ')]);
+        const row = BILL_HEADERS.map(h => data[h] !== undefined ? data[h] : '');
+        sh.getRange(i + 1, 1, 1, row.length).setValues([row]);
+        return { success: true, message: 'อัปเดตบิลสำเร็จ' };
+      }
+    }
+    return { success: false, message: 'ไม่พบบิล ID: ' + id };
+  } catch (err) { return { success: false, message: err.message }; }
+}
+
 // ============================================================
 // Overdue Bills
 // ============================================================
@@ -864,6 +884,26 @@ function deleteExpense(id) {
       if (rows[i][0] == id) { sh.deleteRow(i + 1); return { success: true }; }
     }
     return { success: false, message: 'ไม่พบรายการ' };
+  } catch (err) { return { success: false, message: err.message }; }
+}
+
+function updateExpense(id, data) {
+  try {
+    const sh = getSheet(SHEETS.EXPENSES);
+    if (!sh) return { success: false, message: 'ไม่พบ Sheet' };
+    const rows = sh.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] == id) {
+        data['ID'] = id;
+        const amt = parseFloat(data['จำนวนเงิน']) || 0;
+        const tax = parseFloat(data['ภาษีหัก ณ ที่จ่าย']) || 0;
+        data['สุทธิ'] = amt - tax;
+        const row = EXPENSE_HEADERS.map(h => data[h] !== undefined ? data[h] : '');
+        sh.getRange(i + 1, 1, 1, row.length).setValues([row]);
+        return { success: true };
+      }
+    }
+    return { success: false, message: 'ไม่พบรายการ ID: ' + id };
   } catch (err) { return { success: false, message: err.message }; }
 }
 

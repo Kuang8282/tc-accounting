@@ -722,7 +722,7 @@ canvas{max-width:100%;}
 const S = {
   rooms: [], bills: [], income: [], expenses: [],
   companies: {}, incomeCategories: [], expenseCategories: [],
-  editingRoom: null, payingBillId: null
+  editingRoom: null, payingBillId: null, editingBillId: null, editingExpenseId: null
 };
 
 // ============================================================
@@ -1056,6 +1056,7 @@ function renderBills() {
       <td class="text-muted" style="font-size:11px">${b['เลขที่ใบกำกับ']||''}</td>
       <td>
         ${b['สถานะ']!=='ชำระแล้ว' ? `<button class="btn btn-sm btn-success" data-action="pay-bill" data-id="${b['ID']}" data-total="${b['รวม']}" data-room="${b['ห้อง']}" data-bld="${b['อาคาร']}" data-tenant="${b['ผู้เช่า']||''}">✓ รับเงิน</button>` : ''}
+        <button class="btn btn-sm btn-warning" data-action="edit-bill" data-id="${b['ID']}">✏️</button>
         <button class="btn btn-sm btn-danger" data-action="del-bill" data-id="${b['ID']}">🗑</button>
       </td>
     </tr>`;
@@ -1072,12 +1073,15 @@ $('bills-tbody').addEventListener('click', e => {
   const btn = e.target.closest('[data-action]');
   if(!btn) return;
   if(btn.dataset.action === 'pay-bill') openPayModal(btn.dataset);
+  if(btn.dataset.action === 'edit-bill') openEditBillModal(btn.dataset.id);
   if(btn.dataset.action === 'del-bill') deleteBill(btn.dataset.id);
 });
 
 $('btn-new-bill').addEventListener('click', () => openBillModal(null, null));
 
 function openBillModal(roomNo, building) {
+  S.editingBillId = null;
+  document.querySelector('#modal-bill .modal-title').textContent = 'สร้าง/แก้ไขบิล';
   $('bill-info-box').style.display = 'none';
   $('bill-month').value = currentMonth();
   $('bill-building').value = building || '';
@@ -1110,6 +1114,49 @@ function openBillModal(roomNo, building) {
 
 $('bill-building').addEventListener('change', () => updateBillRoomDropdown($('bill-building').value));
 $('bill-room').addEventListener('change', onBillRoomSelected);
+
+function openEditBillModal(id) {
+  const bill = S.bills.find(b => String(b['ID']) === String(id));
+  if(!bill) { showAlert('ไม่พบบิล','error'); return; }
+  S.editingBillId = id;
+  $('bill-info-box').style.display = 'block';
+  $('bill-month').value = bill['เดือน'] || '';
+  $('bill-building').value = bill['อาคาร'] || '';
+  $('bill-extra-list').innerHTML = '';
+  $('bill-extra-total').textContent = '0';
+
+  updateBillRoomDropdown(bill['อาคาร']);
+  setTimeout(() => {
+    $('bill-room').value = bill['ห้อง'];
+    $('bill-tenant').value = bill['ผู้เช่า'] || '';
+    $('bill-rent').value = bill['ค่าห้อง'] || '';
+    $('bill-water-prev-date').value = bill['วันจดน้ำก่อน'] || '';
+    $('bill-water-curr-date').value = bill['วันจดน้ำปัจจุบัน'] || '';
+    $('bill-water-prev').value = bill['หน่วยน้ำก่อน'] || '';
+    $('bill-water-curr').value = bill['หน่วยน้ำปัจจุบัน'] || '';
+    $('bill-water-rate').value = bill['อัตราน้ำ'] || '';
+    $('bill-elec-prev-date').value = bill['วันจดไฟก่อน'] || '';
+    $('bill-elec-curr-date').value = bill['วันจดไฟปัจจุบัน'] || '';
+    $('bill-elec-prev').value = bill['หน่วยไฟก่อน'] || '';
+    $('bill-elec-curr').value = bill['หน่วยไฟปัจจุบัน'] || '';
+    $('bill-elec-rate').value = bill['อัตราไฟ'] || '';
+    // Parse extra items from note JSON
+    const note = bill['หมายเหตุบิล'] || '';
+    const jsonMatch = note.match(/^(\[.*?\])/);
+    let plainNote = note;
+    if(jsonMatch) {
+      try {
+        const extras = JSON.parse(jsonMatch[1]);
+        extras.forEach(ex => addExtraRow(ex.cat, ex.desc, ex.amt));
+        plainNote = note.slice(jsonMatch[0].length).trim();
+      } catch(e) {}
+    }
+    $('bill-note').value = plainNote;
+    calcBill();
+  }, 100);
+  document.querySelector('#modal-bill .modal-title').textContent = `แก้ไขบิล — ห้อง ${bill['ห้อง']} (${bill['อาคาร']})`;
+  openModal('modal-bill');
+}
 
 function updateBillRoomDropdown(bld) {
   const rooms = S.rooms.filter(r => r['อาคาร'] === bld && (r['สถานะ']==='ทำสัญญา' || r['สถานะ']==='ว่าง'));
@@ -1173,9 +1220,11 @@ $('btn-save-bill').addEventListener('click', async () => {
   const room   = $('bill-room').value;
   if(!month||!bld||!room) { showAlert('กรุณาเลือกเดือน อาคาร และห้อง','error'); return; }
 
-  // Explicit duplicate check in UI before sending to server
-  const dup = S.bills.find(b => b['เดือน']===month && b['ห้อง']===room && b['อาคาร']===bld);
-  if(dup) { showAlert(`มีบิลห้อง ${room} (${bld}) ในเดือน ${month} แล้ว (เลขที่: ${dup['เลขที่ใบกำกับ']||dup['ID']})`, 'error'); return; }
+  // Explicit duplicate check in UI before sending to server (skip for edit mode)
+  if(!S.editingBillId) {
+    const dup = S.bills.find(b => b['เดือน']===month && b['ห้อง']===room && b['อาคาร']===bld);
+    if(dup) { showAlert(`มีบิลห้อง ${room} (${bld}) ในเดือน ${month} แล้ว (เลขที่: ${dup['เลขที่ใบกำกับ']||dup['ID']})`, 'error'); return; }
+  }
 
   const wPrev  = parseFloat($('bill-water-prev').value)||0;
   const wCurr  = parseFloat($('bill-water-curr').value)||0;
@@ -1226,16 +1275,24 @@ $('btn-save-bill').addEventListener('click', async () => {
     'เลขที่ใบกำกับ':      ''
   };
 
+  const wasEditing = S.editingBillId;
   showLoading(true);
   try {
-    const res = await gsRun('saveBill', data);
+    let res;
+    if(S.editingBillId) {
+      res = await gsRun('updateBill', S.editingBillId, data);
+    } else {
+      res = await gsRun('saveBill', data);
+    }
     if(res.success) {
       const bills = await gsRun('getBills');
       S.bills = bills || [];
       renderBills();
       updateOverdueBadge();
       closeModal('modal-bill');
-      showAlert(`บันทึกบิล ${room} (${bld}) สำเร็จ เลขที่: ${res.invNo}`);
+      S.editingBillId = null;
+      document.querySelector('#modal-bill .modal-title').textContent = 'สร้าง/แก้ไขบิล';
+      showAlert(wasEditing ? `อัปเดตบิลสำเร็จ` : `บันทึกบิล ${room} (${bld}) สำเร็จ เลขที่: ${res.invNo||''}`);
     } else { showAlert(res.message,'error'); }
   } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
   showLoading(false);
@@ -1433,7 +1490,7 @@ function renderExpenses() {
     <td class="text-right">${fmt(e['ภาษีหัก ณ ที่จ่าย'])}</td>
     <td class="text-right fw-bold text-danger">${fmt(e['สุทธิ'])}</td>
     <td class="text-muted">${e['หมายเหตุ']||''}</td>
-    <td><button class="btn btn-sm btn-danger" data-action="del-exp" data-id="${e['ID']}">🗑</button></td>
+    <td><button class="btn btn-sm btn-warning" data-action="edit-exp" data-id="${e['ID']}" style="margin-right:4px">✏️</button><button class="btn btn-sm btn-danger" data-action="del-exp" data-id="${e['ID']}">🗑</button></td>
   </tr>`).join('');
 }
 
@@ -1444,14 +1501,33 @@ function renderExpenses() {
 $('expense-tbody').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]');
   if(btn && btn.dataset.action==='del-exp') deleteExpense(btn.dataset.id);
+  if(btn && btn.dataset.action==='edit-exp') openEditExpenseModal(btn.dataset.id);
 });
 
 $('btn-add-expense').addEventListener('click', ()=>{
+  S.editingExpenseId = null;
+  document.querySelector('#modal-expense .modal-title').textContent = 'เพิ่มรายจ่าย';
   $('exp-date').value = todayStr();
   $('exp-tax').value  = '0';
   $('exp-net').value  = '';
   openModal('modal-expense');
 });
+
+function openEditExpenseModal(id) {
+  const exp = S.expenses.find(e => String(e['ID']) === String(id));
+  if(!exp) { showAlert('ไม่พบรายการ','error'); return; }
+  S.editingExpenseId = id;
+  $('exp-date').value     = exp['วันที่'] || '';
+  $('exp-building').value = exp['อาคาร'] || '';
+  $('exp-cat').value      = exp['หมวดหมู่'] || '';
+  $('exp-payee').value    = exp['ผู้รับเงิน'] || '';
+  $('exp-amount').value   = exp['จำนวนเงิน'] || '';
+  $('exp-tax').value      = exp['ภาษีหัก ณ ที่จ่าย'] || '0';
+  $('exp-net').value      = exp['สุทธิ'] || '';
+  $('exp-note').value     = exp['หมายเหตุ'] || '';
+  document.querySelector('#modal-expense .modal-title').textContent = 'แก้ไขรายจ่าย';
+  openModal('modal-expense');
+}
 
 ['exp-amount','exp-tax'].forEach(id=>{
   const el=$(id);
@@ -1475,15 +1551,20 @@ $('btn-save-expense').addEventListener('click', async ()=>{
   if(!data['วันที่']||!data['หมวดหมู่']||!data['จำนวนเงิน']) {
     showAlert('กรุณากรอกข้อมูลที่จำเป็น','error'); return;
   }
+  const wasEditing = S.editingExpenseId;
   showLoading(true);
   try {
-    const r = await gsRun('saveExpense', data);
-    if(r.success){
-      S.expenses = await gsRun('getExpenses') || [];
-      renderExpenses();
-      closeModal('modal-expense');
-      showAlert('บันทึกรายจ่ายสำเร็จ');
-    } else showAlert(r.message,'error');
+    if(S.editingExpenseId) {
+      await gsRun('updateExpense', S.editingExpenseId, data);
+    } else {
+      await gsRun('saveExpense', data);
+    }
+    S.expenses = await gsRun('getExpenses') || [];
+    renderExpenses();
+    closeModal('modal-expense');
+    S.editingExpenseId = null;
+    document.querySelector('#modal-expense .modal-title').textContent = 'เพิ่มรายจ่าย';
+    showAlert(wasEditing ? 'อัปเดตรายจ่ายสำเร็จ' : 'บันทึกรายจ่ายสำเร็จ');
   } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
   showLoading(false);
 });
