@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC Accounting System</title>
+<style>
+:root{
+  --primary:#1a237e;--primary-light:#3949ab;--secondary:#0d47a1;
+  --success:#2e7d32;--danger:#c62828;--warning:#f57f17;--info:#01579b;
+  --bg:#f5f5f5;--card:#fff;--border:#e0e0e0;--text:#212121;--muted:#757575;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;font-size:14px;background:var(--bg);color:var(--text);}
+/* NAV */
+nav{background:var(--primary);color:#fff;display:flex;align-items:center;padding:0 16px;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 4px rgba(0,0,0,.3);}
+nav h1{font-size:18px;font-weight:700;margin-right:24px;white-space:nowrap;}
+.nav-tabs{display:flex;gap:2px;overflow-x:auto;flex:1;}
+.nav-tab{background:transparent;border:none;color:rgba(255,255,255,.7);padding:8px 14px;cursor:pointer;border-radius:4px 4px 0 0;font-size:13px;white-space:nowrap;position:relative;transition:.2s;}
+.nav-tab:hover{background:rgba(255,255,255,.1);color:#fff;}
+.nav-tab.active{background:rgba(255,255,255,.2);color:#fff;font-weight:700;border-bottom:3px solid #ffca28;}
+.badge{background:#ef5350;color:#fff;border-radius:10px;padding:1px 6px;font-size:11px;margin-left:4px;vertical-align:middle;}
+/* LAYOUT */
+#app{padding:16px;}
+.section{display:none;}
+.section.active{display:block;}
+/* CARDS */
+.card{background:var(--card);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.12);padding:16px;margin-bottom:16px;}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;color:var(--primary);display:flex;align-items:center;gap:8px;}
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-group label{font-size:12px;font-weight:600;color:var(--muted);}
+.form-control{border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:14px;font-family:inherit;width:100%;transition:.2s;}
+.form-control:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 2px rgba(57,73,171,.2);}
+select.form-control{appearance:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23666'/%3E%3C/svg%3E") no-repeat right 10px center / 10px;padding-right:28px;}
+/* BUTTONS */
+.btn{border:none;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;transition:.2s;display:inline-flex;align-items:center;gap:6px;}
+.btn:hover{opacity:.88;transform:translateY(-1px);}
+.btn:active{transform:translateY(0);}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-success{background:var(--success);color:#fff;}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-warning{background:var(--warning);color:#fff;}
+.btn-info{background:var(--info);color:#fff;}
+.btn-sm{padding:4px 10px;font-size:12px;}
+.btn-outline{background:transparent;border:1px solid currentColor;}
+.btn-outline.btn-primary{color:var(--primary);}
+/* TABLE */
+.table-wrap{overflow-x:auto;border-radius:6px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{background:var(--primary);color:#fff;padding:8px 10px;text-align:left;white-space:nowrap;position:sticky;top:0;}
+tbody tr{border-bottom:1px solid var(--border);transition:.15s;}
+tbody tr:hover{background:#f3f4fa;}
+tbody td{padding:7px 10px;vertical-align:middle;}
+.text-right{text-align:right;}
+.text-center{text-align:center;}
+/* STATUS BADGES */
+.status{display:inline-block;border-radius:12px;padding:2px 10px;font-size:11px;font-weight:700;}
+.status-vacant{background:#e8f5e9;color:#2e7d32;}
+.status-rented{background:#e3f2fd;color:#1565c0;}
+.status-moved{background:#fce4ec;color:#ad1457;}
+.status-pending{background:#fff3e0;color:#e65100;}
+.status-paid{background:#e8f5e9;color:#2e7d32;}
+/* SEARCH */
+.search-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+.search-bar .form-control{max-width:220px;}
+/* SUMMARY CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:16px;}
+.stat-card{background:var(--card);border-radius:8px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.1);border-left:4px solid var(--primary);}
+.stat-card.income{border-color:var(--success);}
+.stat-card.expense{border-color:var(--danger);}
+.stat-card.profit{border-color:var(--warning);}
+.stat-card .label{font-size:12px;color:var(--muted);margin-bottom:4px;}
+.stat-card .value{font-size:20px;font-weight:700;color:var(--text);}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:8px;padding:24px;max-width:640px;width:95%;max-height:90vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.25);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.modal-title{font-size:18px;font-weight:700;color:var(--primary);}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+/* BILL CALC */
+.bill-section{background:#f8f9ff;border:1px solid #c5cae9;border-radius:6px;padding:12px;margin:8px 0;}
+.bill-total{font-size:18px;font-weight:700;color:var(--primary);text-align:right;padding:8px 0;border-top:2px solid var(--primary);}
+/* ALERT */
+.alert{border-radius:6px;padding:10px 14px;margin-bottom:12px;font-size:13px;display:flex;align-items:center;gap:8px;}
+.alert-success{background:#e8f5e9;border:1px solid #a5d6a7;color:#1b5e20;}
+.alert-error{background:#ffebee;border:1px solid #ef9a9a;color:#b71c1c;}
+.alert-info{background:#e3f2fd;border:1px solid #90caf9;color:#0d47a1;}
+/* TABS (sub) */
+.sub-tabs{display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:16px;}
+.sub-tab{background:none;border:none;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:.2s;}
+.sub-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.sub-content{display:none;}
+.sub-content.active{display:block;}
+/* PRINT SELECTOR */
+.print-list{max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;}
+.print-list-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);transition:.15s;}
+.print-list-item:hover{background:#f5f5f5;}
+/* MISC */
+.divider{height:1px;background:var(--border);margin:12px 0;}
+.text-muted{color:var(--muted);}
+.text-success{color:var(--success);}
+.text-danger{color:var(--danger);}
+.fw-bold{font-weight:700;}
+.mb-1{margin-bottom:8px;}
+.mb-2{margin-bottom:16px;}
+.flex-end{display:flex;justify-content:flex-end;gap:8px;}
+.spinner{width:24px;height:24px;border:3px solid #ddd;border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;margin:auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading{display:none;position:fixed;inset:0;background:rgba(255,255,255,.85);z-index:9999;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-weight:600;color:var(--primary);}
+#loading.show{display:flex;}
+/* RESPONSIVE */
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  nav h1{font-size:15px;}
+}
+</style>
+</head>
+<body>
+
+<div id="loading"><div class="spinner"></div><span>กำลังโหลด...</span></div>
+
+<nav>
+  <h1>🏢 TC Accounting</h1>
+  <div class="nav-tabs">
+    <button class="nav-tab active" data-section="rooms">🏠 ทะเบียนห้อง</button>
+    <button class="nav-tab" data-section="bills">📋 บิลรายห้อง</button>
+    <button class="nav-tab" data-section="overdue">⚠️ ค้างชำระ<span class="badge" id="overdue-badge" style="display:none">0</span></button>
+    <button class="nav-tab" data-section="income">💰 รายรับอื่นๆ</button>
+    <button class="nav-tab" data-section="expenses">💸 รายจ่าย</button>
+    <button class="nav-tab" data-section="reports">📊 รายงาน</button>
+    <button class="nav-tab" data-section="print-select">🖨️ พิมพ์เอกสาร</button>
+  </div>
+</nav>
+
+<div id="app">
+  <div id="alert-area"></div>
+
+  <!-- ====== ROOMS ====== -->
+  <div id="section-rooms" class="section active">
+    <div class="card">
+      <div class="card-title">🏠 ทะเบียนห้อง
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" id="btn-add-room">+ เพิ่มห้อง</button>
+          <button class="btn btn-outline btn-primary btn-sm" id="btn-init-rooms">⚙️ โหลดข้อมูล 312 ห้อง</button>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="text" class="form-control" id="room-search" placeholder="ค้นหาห้อง / ชื่อผู้เช่า...">
+        <select class="form-control" id="room-filter-building">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <select class="form-control" id="room-filter-status">
+          <option value="">ทุกสถานะ</option>
+          <option>ว่าง</option><option>ทำสัญญา</option><option>ย้ายออก</option>
+        </select>
+        <select class="form-control" id="room-filter-type">
+          <option value="">ทุกประเภท</option>
+          <option>สตูดิโอ</option><option>1 ห้องนอน</option><option>2 ห้องนอน</option><option>ร้านค้า</option>
+        </select>
+        <span id="room-count" class="text-muted" style="white-space:nowrap;"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="rooms-table">
+          <thead>
+            <tr>
+              <th>ห้อง</th><th>อาคาร</th><th>ประเภท</th><th>ผู้เช่า</th>
+              <th class="text-right">ราคา/เดือน</th><th>อัตราน้ำ</th><th>อัตราไฟ</th>
+              <th>สถานะ</th><th>วันสัญญา</th><th>หมายเหตุ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="rooms-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== BILLS ====== -->
+  <div id="section-bills" class="section">
+    <div class="card">
+      <div class="card-title">📋 บิลรายห้อง
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" id="btn-new-bill">+ สร้างบิลใหม่</button>
+        </div>
+      </div>
+      <div class="search-bar">
+        <input type="month" class="form-control" id="bill-filter-month">
+        <select class="form-control" id="bill-filter-building">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <select class="form-control" id="bill-filter-status">
+          <option value="">ทุกสถานะ</option>
+          <option value="รอชำระ">รอชำระ</option>
+          <option value="ชำระแล้ว">ชำระแล้ว</option>
+        </select>
+        <input type="text" class="form-control" id="bill-search" placeholder="ค้นหาห้อง/ผู้เช่า...">
+        <span id="bill-count" class="text-muted" style="white-space:nowrap;"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="bills-table">
+          <thead>
+            <tr>
+              <th>เดือน</th><th>ห้อง</th><th>อาคาร</th><th>ผู้เช่า</th>
+              <th class="text-right">ค่าห้อง</th>
+              <th class="text-right">น้ำ(หน่วย)</th><th class="text-right">ค่าน้ำ</th>
+              <th class="text-right">ไฟ(หน่วย)</th><th class="text-right">ค่าไฟ</th>
+              <th class="text-right">อื่นๆ</th><th class="text-right">รวม</th>
+              <th>สถานะ</th><th>เลขที่ใบกำกับ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="bills-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== OVERDUE ====== -->
+  <div id="section-overdue" class="section">
+    <div class="card">
+      <div class="card-title">⚠️ แจ้งเตือนค้างชำระ</div>
+      <div id="overdue-summary" class="stat-grid"></div>
+      <div class="table-wrap">
+        <table id="overdue-table">
+          <thead>
+            <tr>
+              <th>เดือน</th><th>ห้อง</th><th>อาคาร</th><th>ผู้เช่า</th>
+              <th class="text-right">ยอดค้าง</th><th>สถานะ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="overdue-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== OTHER INCOME ====== -->
+  <div id="section-income" class="section">
+    <div class="card">
+      <div class="card-title">💰 รายรับอื่นๆ
+        <button class="btn btn-success btn-sm" id="btn-add-income" style="margin-left:auto">+ เพิ่มรายรับ</button>
+      </div>
+      <div class="search-bar">
+        <input type="month" class="form-control" id="income-filter-month">
+        <select class="form-control" id="income-filter-building">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <select class="form-control" id="income-filter-cat">
+          <option value="">ทุกหมวด</option>
+        </select>
+        <span id="income-total" class="fw-bold text-success" style="white-space:nowrap;margin-left:auto"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="income-table">
+          <thead>
+            <tr>
+              <th>วันที่</th><th>อาคาร</th><th>ห้อง</th><th>ผู้เกี่ยวข้อง</th>
+              <th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th><th>หมายเหตุ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="income-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== EXPENSES ====== -->
+  <div id="section-expenses" class="section">
+    <div class="card">
+      <div class="card-title">💸 รายจ่าย
+        <button class="btn btn-danger btn-sm" id="btn-add-expense" style="margin-left:auto">+ เพิ่มรายจ่าย</button>
+      </div>
+      <div class="search-bar">
+        <input type="month" class="form-control" id="expense-filter-month">
+        <select class="form-control" id="expense-filter-building">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <select class="form-control" id="expense-filter-cat">
+          <option value="">ทุกหมวด</option>
+        </select>
+        <span id="expense-total" class="fw-bold text-danger" style="white-space:nowrap;margin-left:auto"></span>
+      </div>
+      <div class="table-wrap">
+        <table id="expense-table">
+          <thead>
+            <tr>
+              <th>วันที่</th><th>อาคาร</th><th>หมวดหมู่</th><th>ผู้รับเงิน</th>
+              <th class="text-right">จำนวนเงิน</th><th class="text-right">หัก ณ ที่จ่าย</th>
+              <th class="text-right">สุทธิ</th><th>หมายเหตุ</th><th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="expense-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== REPORTS ====== -->
+  <div id="section-reports" class="section">
+    <div class="card">
+      <div class="card-title">📊 รายงาน</div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-sub="report-monthly">สรุปรายเดือน</button>
+        <button class="sub-tab" data-sub="report-rooms">สรุปรายห้อง</button>
+        <button class="sub-tab" data-sub="report-buildings">แยกตามอาคาร</button>
+        <button class="sub-tab" data-sub="report-all">รายการทั้งหมด</button>
+      </div>
+
+      <div id="report-monthly" class="sub-content active">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <input type="month" class="form-control" id="report-month" style="max-width:180px">
+          <button class="btn btn-primary btn-sm" id="btn-load-report">โหลดรายงาน</button>
+        </div>
+        <div id="report-monthly-content"></div>
+      </div>
+
+      <div id="report-rooms" class="sub-content">
+        <div id="report-rooms-content"></div>
+      </div>
+
+      <div id="report-buildings" class="sub-content">
+        <div id="report-buildings-content"></div>
+      </div>
+
+      <div id="report-all" class="sub-content">
+        <div class="search-bar">
+          <input type="text" class="form-control" id="report-all-search" placeholder="ค้นหา...">
+          <select class="form-control" id="report-all-building">
+            <option value="">ทุกอาคาร</option>
+            <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+          </select>
+          <select class="form-control" id="report-all-type">
+            <option value="">ทุกประเภท</option>
+            <option value="bills">บิลห้อง</option>
+            <option value="income">รายรับอื่นๆ</option>
+            <option value="expenses">รายจ่าย</option>
+          </select>
+        </div>
+        <div id="report-all-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== PRINT SELECTOR ====== -->
+  <div id="section-print-select" class="section">
+    <div class="card">
+      <div class="card-title">🖨️ เลือกห้องที่จะพิมพ์เอกสาร</div>
+      <div class="search-bar">
+        <input type="month" class="form-control" id="print-filter-month">
+        <select class="form-control" id="print-filter-building">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <button class="btn btn-sm btn-outline btn-primary" id="btn-select-all">เลือกทั้งหมด</button>
+        <button class="btn btn-sm btn-outline btn-primary" id="btn-deselect-all">ยกเลิกทั้งหมด</button>
+        <button class="btn btn-primary" id="btn-do-print" style="margin-left:auto">🖨️ พิมพ์เอกสาร</button>
+      </div>
+      <div class="print-list" id="print-bill-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== MODALS ====== -->
+
+<!-- Room Modal -->
+<div class="modal-overlay" id="modal-room">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="room-modal-title">ข้อมูลห้อง</span>
+      <button class="modal-close" data-close="modal-room">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>เลขห้อง *</label>
+        <input class="form-control" id="rm-no">
+      </div>
+      <div class="form-group">
+        <label>อาคาร *</label>
+        <select class="form-control" id="rm-building">
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ประเภทห้อง</label>
+        <select class="form-control" id="rm-type">
+          <option>สตูดิโอ</option><option>1 ห้องนอน</option><option>2 ห้องนอน</option><option>ร้านค้า</option><option>สำนักงาน</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ชื่อผู้เช่า</label>
+        <input class="form-control" id="rm-tenant">
+      </div>
+      <div class="form-group">
+        <label>ราคา/เดือน (บาท)</label>
+        <input class="form-control" id="rm-price" type="number" step="100">
+      </div>
+      <div class="form-group">
+        <label>เงินประกัน (บาท)</label>
+        <input class="form-control" id="rm-deposit" type="number" step="100">
+      </div>
+      <div class="form-group">
+        <label>อัตราน้ำ (บาท/หน่วย)</label>
+        <input class="form-control" id="rm-water-rate" type="number" step="0.5" value="18">
+      </div>
+      <div class="form-group">
+        <label>อัตราไฟ (บาท/หน่วย)</label>
+        <input class="form-control" id="rm-elec-rate" type="number" step="0.5" value="7">
+      </div>
+      <div class="form-group">
+        <label>สถานะ</label>
+        <select class="form-control" id="rm-status">
+          <option>ว่าง</option><option>ทำสัญญา</option><option>ย้ายออก</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>วันทำสัญญา</label>
+        <input class="form-control" id="rm-contract-date" type="date">
+      </div>
+      <div class="form-group">
+        <label>วันย้ายออก</label>
+        <input class="form-control" id="rm-moveout-date" type="date">
+      </div>
+      <div class="form-group">
+        <label>หมายเหตุ</label>
+        <input class="form-control" id="rm-note">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-room">ยกเลิก</button>
+      <button class="btn btn-primary" id="btn-save-room">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bill Modal -->
+<div class="modal-overlay" id="modal-bill">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <span class="modal-title">สร้าง/แก้ไขบิล</span>
+      <button class="modal-close" data-close="modal-bill">×</button>
+    </div>
+
+    <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="form-group">
+        <label>เดือน *</label>
+        <input class="form-control" id="bill-month" type="month">
+      </div>
+      <div class="form-group">
+        <label>อาคาร *</label>
+        <select class="form-control" id="bill-building">
+          <option value="">-- เลือก --</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ห้อง *</label>
+        <select class="form-control" id="bill-room"><option value="">-- เลือกอาคารก่อน --</option></select>
+      </div>
+    </div>
+
+    <div class="bill-section" id="bill-info-box" style="display:none">
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="form-group">
+          <label>ผู้เช่า</label>
+          <input class="form-control" id="bill-tenant" readonly style="background:#f5f5f5">
+        </div>
+        <div class="form-group">
+          <label>ค่าห้อง (บาท)</label>
+          <input class="form-control" id="bill-rent" type="number">
+        </div>
+        <div class="form-group">
+          <label>ค่าอื่นๆ (บาท)</label>
+          <input class="form-control" id="bill-other" type="number" value="0">
+        </div>
+      </div>
+
+      <!-- WATER -->
+      <div class="divider"></div>
+      <div style="font-weight:700;color:#1565c0;margin-bottom:6px;">💧 ค่าน้ำ</div>
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="form-group">
+          <label>วันจดครั้งก่อน</label>
+          <input class="form-control" id="bill-water-prev-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>วันจดปัจจุบัน</label>
+          <input class="form-control" id="bill-water-curr-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>อัตราน้ำ (บาท/หน่วย)</label>
+          <input class="form-control" id="bill-water-rate" type="number" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>มาตรครั้งก่อน</label>
+          <input class="form-control" id="bill-water-prev" type="number" min="0">
+        </div>
+        <div class="form-group">
+          <label>มาตรปัจจุบัน</label>
+          <input class="form-control" id="bill-water-curr" type="number" min="0">
+        </div>
+        <div class="form-group">
+          <label>หน่วยน้ำใช้</label>
+          <input class="form-control" id="bill-water-used" type="number" readonly style="background:#f5f5f5">
+        </div>
+      </div>
+      <div style="text-align:right;font-weight:600;color:#1565c0">ค่าน้ำรวม: <span id="bill-water-total">0</span> บาท</div>
+
+      <!-- ELEC -->
+      <div class="divider"></div>
+      <div style="font-weight:700;color:#e65100;margin-bottom:6px;">⚡ ค่าไฟ</div>
+      <div class="form-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="form-group">
+          <label>วันจดครั้งก่อน</label>
+          <input class="form-control" id="bill-elec-prev-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>วันจดปัจจุบัน</label>
+          <input class="form-control" id="bill-elec-curr-date" type="date">
+        </div>
+        <div class="form-group">
+          <label>อัตราไฟ (บาท/หน่วย)</label>
+          <input class="form-control" id="bill-elec-rate" type="number" step="0.5">
+        </div>
+        <div class="form-group">
+          <label>มาตรครั้งก่อน</label>
+          <input class="form-control" id="bill-elec-prev" type="number" min="0">
+        </div>
+        <div class="form-group">
+          <label>มาตรปัจจุบัน</label>
+          <input class="form-control" id="bill-elec-curr" type="number" min="0">
+        </div>
+        <div class="form-group">
+          <label>หน่วยไฟใช้</label>
+          <input class="form-control" id="bill-elec-used" type="number" readonly style="background:#f5f5f5">
+        </div>
+      </div>
+      <div style="text-align:right;font-weight:600;color:#e65100">ค่าไฟรวม: <span id="bill-elec-total">0</span> บาท</div>
+
+      <div class="divider"></div>
+      <div class="form-group">
+        <label>หมายเหตุ</label>
+        <input class="form-control" id="bill-note">
+      </div>
+      <div class="bill-total">ยอดรวม: <span id="bill-grand-total">0</span> บาท</div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-bill">ยกเลิก</button>
+      <button class="btn btn-primary" id="btn-save-bill">💾 บันทึกบิล</button>
+    </div>
+  </div>
+</div>
+
+<!-- Income Modal -->
+<div class="modal-overlay" id="modal-income">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">เพิ่มรายรับ</span>
+      <button class="modal-close" data-close="modal-income">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่ *</label>
+        <input class="form-control" id="inc-date" type="date">
+      </div>
+      <div class="form-group">
+        <label>อาคาร *</label>
+        <select class="form-control" id="inc-building">
+          <option value="">-- เลือก --</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ห้อง</label>
+        <input class="form-control" id="inc-room" placeholder="เลขห้อง">
+      </div>
+      <div class="form-group">
+        <label>ผู้เกี่ยวข้อง</label>
+        <input class="form-control" id="inc-person">
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่ *</label>
+        <select class="form-control" id="inc-cat"></select>
+      </div>
+      <div class="form-group">
+        <label>จำนวนเงิน (บาท) *</label>
+        <input class="form-control" id="inc-amount" type="number" step="0.01" min="0">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>หมายเหตุ</label>
+        <input class="form-control" id="inc-note">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-income">ยกเลิก</button>
+      <button class="btn btn-success" id="btn-save-income">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Modal -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">เพิ่มรายจ่าย</span>
+      <button class="modal-close" data-close="modal-expense">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>วันที่ *</label>
+        <input class="form-control" id="exp-date" type="date">
+      </div>
+      <div class="form-group">
+        <label>อาคาร *</label>
+        <select class="form-control" id="exp-building">
+          <option value="">-- ทุกอาคาร --</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>หมวดหมู่ *</label>
+        <select class="form-control" id="exp-cat"></select>
+      </div>
+      <div class="form-group">
+        <label>ผู้รับเงิน</label>
+        <input class="form-control" id="exp-payee">
+      </div>
+      <div class="form-group">
+        <label>จำนวนเงิน (บาท) *</label>
+        <input class="form-control" id="exp-amount" type="number" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>ภาษีหัก ณ ที่จ่าย (บาท)</label>
+        <input class="form-control" id="exp-tax" type="number" step="0.01" value="0">
+      </div>
+      <div class="form-group">
+        <label>สุทธิ (บาท)</label>
+        <input class="form-control" id="exp-net" readonly style="background:#f5f5f5">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>หมายเหตุ</label>
+        <input class="form-control" id="exp-note">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-expense">ยกเลิก</button>
+      <button class="btn btn-danger" id="btn-save-expense">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pay Confirm Modal -->
+<div class="modal-overlay" id="modal-pay">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <span class="modal-title">✓ รับชำระเงิน</span>
+      <button class="modal-close" data-close="modal-pay">×</button>
+    </div>
+    <div id="pay-info" style="margin-bottom:12px;padding:12px;background:#f5f5f5;border-radius:6px;"></div>
+    <div class="form-group">
+      <label>วันที่ชำระ</label>
+      <input class="form-control" id="pay-date" type="date">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-pay">ยกเลิก</button>
+      <button class="btn btn-success" id="btn-confirm-pay">✓ ยืนยันรับชำระ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+const S = {
+  rooms: [], bills: [], income: [], expenses: [],
+  companies: {}, incomeCategories: [], expenseCategories: [],
+  editingRoom: null, payingBillId: null
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+const $ = id => document.getElementById(id);
+const fmt = n => Number(n||0).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+const fmtDate = d => { if(!d) return ''; if(d instanceof Date) return d.toLocaleDateString('th-TH'); return d; };
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+function currentMonth() {
+  return new Date().toISOString().slice(0,7);
+}
+
+function showAlert(msg, type='success') {
+  const el = $('alert-area');
+  el.innerHTML = `<div class="alert alert-${type}"><span>${type==='success'?'✓':'✕'}</span> ${msg}</div>`;
+  setTimeout(() => { el.innerHTML = ''; }, 4000);
+}
+
+function showLoading(v) { $('loading').classList.toggle('show', v); }
+
+function openModal(id) { $(id).classList.add('open'); }
+function closeModal(id) { $(id).classList.remove('open'); }
+
+function gsRun(fn, ...args) {
+  return new Promise((res, rej) => {
+    let call = google.script.run.withSuccessHandler(res).withFailureHandler(rej);
+    call[fn](...args);
+  });
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('load', async () => {
+  showLoading(true);
+  try {
+    const data = await gsRun('getAllData');
+    S.rooms    = data.rooms    || [];
+    S.bills    = data.bills    || [];
+    S.income   = data.otherIncome || [];
+    S.expenses = data.expenses || [];
+    S.companies         = data.companies || {};
+    S.incomeCategories  = data.incomeCategories  || [];
+    S.expenseCategories = data.expenseCategories || [];
+
+    populateDropdowns();
+    renderRooms();
+    renderBills();
+    renderIncome();
+    renderExpenses();
+    renderOverdue();
+    updateOverdueBadge();
+    setDefaultDates();
+  } catch(e) {
+    showAlert('โหลดข้อมูลล้มเหลว: ' + e, 'error');
+  }
+  showLoading(false);
+
+  // Set report month default
+  const rm = $('report-month');
+  if(rm) rm.value = currentMonth();
+});
+
+function setDefaultDates() {
+  const today = todayStr();
+  const month = currentMonth();
+  ['bill-filter-month','print-filter-month'].forEach(id => { const el=$(id); if(el) el.value=month; });
+  ['inc-date','exp-date','pay-date'].forEach(id => { const el=$(id); if(el) el.value=today; });
+  ['bill-water-curr-date','bill-elec-curr-date'].forEach(id => { const el=$(id); if(el) el.value=today; });
+  $('bill-month').value = month;
+}
+
+function populateDropdowns() {
+  // Income categories
+  const incCat = $('inc-cat');
+  incCat.innerHTML = S.incomeCategories.map(c => `<option>${c}</option>`).join('');
+  const incFilter = $('income-filter-cat');
+  incFilter.innerHTML = '<option value="">ทุกหมวด</option>' + S.incomeCategories.map(c=>`<option>${c}</option>`).join('');
+
+  // Expense categories
+  const expCat = $('exp-cat');
+  expCat.innerHTML = S.expenseCategories.map(c => `<option>${c}</option>`).join('');
+  const expFilter = $('expense-filter-cat');
+  expFilter.innerHTML = '<option value="">ทุกหมวด</option>' + S.expenseCategories.map(c=>`<option>${c}</option>`).join('');
+}
+
+// ============================================================
+// NAV - event delegation
+// ============================================================
+document.querySelectorAll('.nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    const sec = 'section-' + btn.dataset.section;
+    document.getElementById(sec).classList.add('active');
+    if(btn.dataset.section === 'overdue') renderOverdue();
+    if(btn.dataset.section === 'print-select') renderPrintList();
+  });
+});
+
+// Sub-tabs (reports)
+document.querySelectorAll('.sub-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.sub-content').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.sub).classList.add('active');
+    if(btn.dataset.sub === 'report-rooms') renderRoomReport();
+    if(btn.dataset.sub === 'report-buildings') renderBuildingReport();
+    if(btn.dataset.sub === 'report-all') renderAllReport();
+  });
+});
+
+// Modal close
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => closeModal(btn.dataset.close));
+});
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if(e.target === overlay) closeModal(overlay.id); });
+});
+
+// ============================================================
+// ROOMS
+// ============================================================
+function renderRooms() {
+  const search   = ($('room-search').value || '').toLowerCase();
+  const building = $('room-filter-building').value;
+  const status   = $('room-filter-status').value;
+  const type     = $('room-filter-type').value;
+
+  const filtered = S.rooms.filter(r =>
+    (!building || r['อาคาร'] === building) &&
+    (!status   || r['สถานะ'] === status) &&
+    (!type     || r['ประเภทห้อง'] === type) &&
+    (!search   || (r['เลขห้อง']+'').includes(search) ||
+                  (r['ชื่อผู้เช่า']||'').toLowerCase().includes(search))
+  );
+
+  $('room-count').textContent = `แสดง ${filtered.length} / ${S.rooms.length} ห้อง`;
+
+  const tbody = $('rooms-tbody');
+  tbody.innerHTML = filtered.map(r => {
+    const stCls = r['สถานะ']==='ว่าง' ? 'status-vacant' : r['สถานะ']==='ทำสัญญา' ? 'status-rented' : 'status-moved';
+    const key = encodeURIComponent(JSON.stringify({no:r['เลขห้อง'],bld:r['อาคาร']}));
+    return `<tr>
+      <td class="fw-bold">${r['เลขห้อง']}</td>
+      <td>${r['อาคาร']}</td>
+      <td>${r['ประเภทห้อง']||''}</td>
+      <td>${r['ชื่อผู้เช่า']||'<span class="text-muted">-</span>'}</td>
+      <td class="text-right">${fmt(r['ราคา/เดือน'])}</td>
+      <td class="text-right">${r['อัตราน้ำ']||''}</td>
+      <td class="text-right">${r['อัตราไฟ']||''}</td>
+      <td><span class="status ${stCls}">${r['สถานะ']||'ว่าง'}</span></td>
+      <td>${fmtDate(r['วันทำสัญญา'])}</td>
+      <td class="text-muted">${r['หมายเหตุ']||''}</td>
+      <td>
+        <button class="btn btn-sm btn-outline btn-primary" data-action="edit-room" data-key="${key}">✏️</button>
+        <button class="btn btn-sm btn-primary" data-action="bill-room" data-no="${r['เลขห้อง']}" data-bld="${r['อาคาร']}">📋</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+['room-search','room-filter-building','room-filter-status','room-filter-type'].forEach(id => {
+  document.getElementById(id).addEventListener('input', renderRooms);
+  document.getElementById(id).addEventListener('change', renderRooms);
+});
+
+document.getElementById('rooms-tbody').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  if(btn.dataset.action === 'edit-room') {
+    const {no, bld} = JSON.parse(decodeURIComponent(btn.dataset.key));
+    const r = S.rooms.find(x => x['เลขห้อง']==no && x['อาคาร']==bld);
+    if(r) openRoomModal(r);
+  }
+  if(btn.dataset.action === 'bill-room') {
+    openBillModal(btn.dataset.no, btn.dataset.bld);
+  }
+});
+
+$('btn-add-room').addEventListener('click', () => openRoomModal(null));
+
+$('btn-init-rooms').addEventListener('click', async () => {
+  if(!confirm('โหลดข้อมูลห้อง 312 ห้องลงในระบบ? (จะไม่สามารถย้อนกลับได้)')) return;
+  showLoading(true);
+  try {
+    const r = await gsRun('initializeRooms');
+    if(r.success) {
+      const data = await gsRun('getRooms');
+      S.rooms = data || [];
+      renderRooms();
+      showAlert(r.message);
+    } else {
+      showAlert(r.message, 'error');
+    }
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+function openRoomModal(r) {
+  S.editingRoom = r ? { no: r['เลขห้อง'], bld: r['อาคาร'] } : null;
+  $('room-modal-title').textContent = r ? `แก้ไขห้อง ${r['เลขห้อง']} (${r['อาคาร']})` : 'เพิ่มห้องใหม่';
+  $('rm-no').value           = r ? r['เลขห้อง'] : '';
+  $('rm-building').value     = r ? r['อาคาร'] : 'V1';
+  $('rm-type').value         = r ? (r['ประเภทห้อง']||'สตูดิโอ') : 'สตูดิโอ';
+  $('rm-tenant').value       = r ? (r['ชื่อผู้เช่า']||'') : '';
+  $('rm-price').value        = r ? (r['ราคา/เดือน']||'') : '';
+  $('rm-deposit').value      = r ? (r['เงินประกัน']||'') : '';
+  $('rm-water-rate').value   = r ? (r['อัตราน้ำ']||18) : 18;
+  $('rm-elec-rate').value    = r ? (r['อัตราไฟ']||7) : 7;
+  $('rm-status').value       = r ? (r['สถานะ']||'ว่าง') : 'ว่าง';
+  $('rm-contract-date').value = r ? (r['วันทำสัญญา']||'') : '';
+  $('rm-moveout-date').value  = r ? (r['วันย้ายออก']||'') : '';
+  $('rm-note').value         = r ? (r['หมายเหตุ']||'') : '';
+  $('rm-no').disabled = !!r;
+  $('rm-building').disabled  = !!r;
+  openModal('modal-room');
+}
+
+$('btn-save-room').addEventListener('click', async () => {
+  const data = {
+    'เลขห้อง':     $('rm-no').value.trim(),
+    'อาคาร':       $('rm-building').value,
+    'ประเภทห้อง':  $('rm-type').value,
+    'ชื่อผู้เช่า': $('rm-tenant').value.trim(),
+    'ราคา/เดือน':  parseFloat($('rm-price').value)||0,
+    'เงินประกัน':  parseFloat($('rm-deposit').value)||0,
+    'อัตราน้ำ':    parseFloat($('rm-water-rate').value)||18,
+    'อัตราไฟ':     parseFloat($('rm-elec-rate').value)||7,
+    'สถานะ':       $('rm-status').value,
+    'วันทำสัญญา':  $('rm-contract-date').value,
+    'วันย้ายออก':  $('rm-moveout-date').value,
+    'หมายเหตุ':    $('rm-note').value.trim()
+  };
+  if(!data['เลขห้อง']) { showAlert('กรุณาระบุเลขห้อง','error'); return; }
+  showLoading(true);
+  try {
+    const r = await gsRun('saveRoom', data);
+    if(r.success) {
+      const rooms = await gsRun('getRooms');
+      S.rooms = rooms || [];
+      renderRooms();
+      closeModal('modal-room');
+      showAlert(r.message);
+    } else { showAlert(r.message,'error'); }
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+// ============================================================
+// BILLS
+// ============================================================
+function renderBills() {
+  const month    = $('bill-filter-month').value;
+  const building = $('bill-filter-building').value;
+  const status   = $('bill-filter-status').value;
+  const search   = ($('bill-search').value||'').toLowerCase();
+
+  const filtered = S.bills.filter(b =>
+    (!month    || b['เดือน'] === month) &&
+    (!building || b['อาคาร'] === building) &&
+    (!status   || b['สถานะ'] === status) &&
+    (!search   || (b['ห้อง']+'').includes(search) ||
+                  (b['ผู้เช่า']||'').toLowerCase().includes(search))
+  );
+
+  $('bill-count').textContent = `แสดง ${filtered.length} รายการ`;
+
+  const tbody = $('bills-tbody');
+  tbody.innerHTML = filtered.map(b => {
+    const stCls = b['สถานะ']==='ชำระแล้ว' ? 'status-paid' : 'status-pending';
+    return `<tr>
+      <td>${b['เดือน']}</td>
+      <td class="fw-bold">${b['ห้อง']}</td>
+      <td>${b['อาคาร']}</td>
+      <td>${b['ผู้เช่า']||''}</td>
+      <td class="text-right">${fmt(b['ค่าห้อง'])}</td>
+      <td class="text-right">${b['หน่วยน้ำใช้']||0}</td>
+      <td class="text-right">${fmt(b['ค่าน้ำ'])}</td>
+      <td class="text-right">${b['หน่วยไฟใช้']||0}</td>
+      <td class="text-right">${fmt(b['ค่าไฟ'])}</td>
+      <td class="text-right">${fmt(b['ค่าอื่นๆ'])}</td>
+      <td class="text-right fw-bold">${fmt(b['รวม'])}</td>
+      <td><span class="status ${stCls}">${b['สถานะ']||'รอชำระ'}</span></td>
+      <td class="text-muted" style="font-size:11px">${b['เลขที่ใบกำกับ']||''}</td>
+      <td>
+        ${b['สถานะ']!=='ชำระแล้ว' ? `<button class="btn btn-sm btn-success" data-action="pay-bill" data-id="${b['ID']}" data-total="${b['รวม']}" data-room="${b['ห้อง']}" data-bld="${b['อาคาร']}" data-tenant="${b['ผู้เช่า']||''}">✓ รับเงิน</button>` : ''}
+        <button class="btn btn-sm btn-danger" data-action="del-bill" data-id="${b['ID']}">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+['bill-filter-month','bill-filter-building','bill-filter-status','bill-search'].forEach(id => {
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', renderBills);
+  if(el) el.addEventListener('input', renderBills);
+});
+
+$('bills-tbody').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  if(btn.dataset.action === 'pay-bill') openPayModal(btn.dataset);
+  if(btn.dataset.action === 'del-bill') deleteBill(btn.dataset.id);
+});
+
+$('btn-new-bill').addEventListener('click', () => openBillModal(null, null));
+
+function openBillModal(roomNo, building) {
+  $('bill-info-box').style.display = 'none';
+  $('bill-month').value = currentMonth();
+  $('bill-building').value = building || '';
+  $('bill-room').innerHTML = '<option value="">-- เลือกอาคารก่อน --</option>';
+  $('bill-rent').value = '';
+  $('bill-tenant').value = '';
+  $('bill-other').value = '0';
+  $('bill-water-prev').value = '';
+  $('bill-water-curr').value = '';
+  $('bill-water-rate').value = '';
+  $('bill-elec-prev').value = '';
+  $('bill-elec-curr').value = '';
+  $('bill-elec-rate').value = '';
+  $('bill-note').value = '';
+  ['bill-water-used','bill-water-total','bill-elec-used','bill-elec-total','bill-grand-total']
+    .forEach(id => { const el=$(id); if(el) el.textContent = '0'; });
+
+  if(building) {
+    updateBillRoomDropdown(building);
+    if(roomNo) {
+      setTimeout(() => {
+        $('bill-room').value = roomNo;
+        onBillRoomSelected();
+      }, 100);
+    }
+  }
+  openModal('modal-bill');
+}
+
+$('bill-building').addEventListener('change', () => updateBillRoomDropdown($('bill-building').value));
+$('bill-room').addEventListener('change', onBillRoomSelected);
+
+function updateBillRoomDropdown(bld) {
+  const rooms = S.rooms.filter(r => r['อาคาร'] === bld && (r['สถานะ']==='ทำสัญญา' || r['สถานะ']==='ว่าง'));
+  $('bill-room').innerHTML = '<option value="">-- เลือกห้อง --</option>' +
+    rooms.map(r => `<option value="${r['เลขห้อง']}">${r['เลขห้อง']} - ${r['ชื่อผู้เช่า']||'ว่าง'}</option>`).join('');
+}
+
+function onBillRoomSelected() {
+  const no  = $('bill-room').value;
+  const bld = $('bill-building').value;
+  if(!no || !bld) { $('bill-info-box').style.display='none'; return; }
+  const r = S.rooms.find(x => x['เลขห้อง']==no && x['อาคาร']==bld);
+  if(!r) return;
+  $('bill-tenant').value     = r['ชื่อผู้เช่า'] || '';
+  $('bill-rent').value       = r['ราคา/เดือน'] || '';
+  $('bill-water-rate').value = r['อัตราน้ำ'] || 18;
+  $('bill-elec-rate').value  = r['อัตราไฟ']  || 7;
+  $('bill-info-box').style.display = 'block';
+  calcBill();
+}
+
+function calcBill() {
+  const wPrev = parseFloat($('bill-water-prev').value)||0;
+  const wCurr = parseFloat($('bill-water-curr').value)||0;
+  const wRate = parseFloat($('bill-water-rate').value)||0;
+  const wUsed = Math.max(0, wCurr - wPrev);
+  const wTotal = wUsed * wRate;
+
+  const ePrev = parseFloat($('bill-elec-prev').value)||0;
+  const eCurr = parseFloat($('bill-elec-curr').value)||0;
+  const eRate = parseFloat($('bill-elec-rate').value)||0;
+  const eUsed = Math.max(0, eCurr - ePrev);
+  const eTotal = eUsed * eRate;
+
+  const rent  = parseFloat($('bill-rent').value)||0;
+  const other = parseFloat($('bill-other').value)||0;
+  const grand = rent + wTotal + eTotal + other;
+
+  $('bill-water-used').value       = wUsed;
+  $('bill-water-total').textContent = fmt(wTotal);
+  $('bill-elec-used').value        = eUsed;
+  $('bill-elec-total').textContent = fmt(eTotal);
+  $('bill-grand-total').textContent = fmt(grand);
+}
+
+['bill-water-prev','bill-water-curr','bill-water-rate',
+ 'bill-elec-prev','bill-elec-curr','bill-elec-rate',
+ 'bill-rent','bill-other'].forEach(id => {
+  const el = $(id);
+  if(el) el.addEventListener('input', calcBill);
+});
+
+$('btn-save-bill').addEventListener('click', async () => {
+  const month  = $('bill-month').value;
+  const bld    = $('bill-building').value;
+  const room   = $('bill-room').value;
+  if(!month||!bld||!room) { showAlert('กรุณาเลือกเดือน อาคาร และห้อง','error'); return; }
+
+  const wPrev  = parseFloat($('bill-water-prev').value)||0;
+  const wCurr  = parseFloat($('bill-water-curr').value)||0;
+  const wRate  = parseFloat($('bill-water-rate').value)||0;
+  const wUsed  = Math.max(0, wCurr - wPrev);
+  const ePrev  = parseFloat($('bill-elec-prev').value)||0;
+  const eCurr  = parseFloat($('bill-elec-curr').value)||0;
+  const eRate  = parseFloat($('bill-elec-rate').value)||0;
+  const eUsed  = Math.max(0, eCurr - ePrev);
+  const rent   = parseFloat($('bill-rent').value)||0;
+  const other  = parseFloat($('bill-other').value)||0;
+  const grand  = rent + wUsed*wRate + eUsed*eRate + other;
+
+  const data = {
+    'เดือน':              month,
+    'ห้อง':               room,
+    'อาคาร':              bld,
+    'ผู้เช่า':            $('bill-tenant').value,
+    'ค่าห้อง':            rent,
+    'วันจดน้ำก่อน':      $('bill-water-prev-date').value,
+    'วันจดน้ำปัจจุบัน':  $('bill-water-curr-date').value,
+    'หน่วยน้ำก่อน':      wPrev,
+    'หน่วยน้ำปัจจุบัน':  wCurr,
+    'หน่วยน้ำใช้':        wUsed,
+    'อัตราน้ำ':           wRate,
+    'ค่าน้ำ':             wUsed * wRate,
+    'วันจดไฟก่อน':       $('bill-elec-prev-date').value,
+    'วันจดไฟปัจจุบัน':   $('bill-elec-curr-date').value,
+    'หน่วยไฟก่อน':       ePrev,
+    'หน่วยไฟปัจจุบัน':   eCurr,
+    'หน่วยไฟใช้':         eUsed,
+    'อัตราไฟ':            eRate,
+    'ค่าไฟ':              eUsed * eRate,
+    'ค่าอื่นๆ':           other,
+    'หมายเหตุบิล':        $('bill-note').value,
+    'รวม':                grand,
+    'สถานะ':              'รอชำระ',
+    'วันที่ชำระ':         '',
+    'เลขที่ใบกำกับ':      ''
+  };
+
+  showLoading(true);
+  try {
+    const res = await gsRun('saveBill', data);
+    if(res.success) {
+      const bills = await gsRun('getBills');
+      S.bills = bills || [];
+      renderBills();
+      updateOverdueBadge();
+      closeModal('modal-bill');
+      showAlert(`บันทึกบิล ${room} (${bld}) สำเร็จ เลขที่: ${res.invNo}`);
+    } else { showAlert(res.message,'error'); }
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+async function deleteBill(id) {
+  if(!confirm('ลบบิลนี้?')) return;
+  showLoading(true);
+  try {
+    await gsRun('deleteBill', id);
+    const bills = await gsRun('getBills');
+    S.bills = bills || [];
+    renderBills();
+    updateOverdueBadge();
+    showAlert('ลบบิลสำเร็จ');
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+}
+
+// ============================================================
+// OVERDUE
+// ============================================================
+function renderOverdue() {
+  const overdue = S.bills.filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ');
+  const total = overdue.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+
+  $('overdue-summary').innerHTML = `
+    <div class="stat-card expense"><div class="label">จำนวนห้องค้าง</div><div class="value">${overdue.length} ห้อง</div></div>
+    <div class="stat-card expense"><div class="label">ยอดค้างรวม</div><div class="value">${fmt(total)} ฿</div></div>`;
+
+  $('overdue-tbody').innerHTML = overdue.map(b => `<tr>
+    <td>${b['เดือน']}</td>
+    <td class="fw-bold">${b['ห้อง']}</td>
+    <td>${b['อาคาร']}</td>
+    <td>${b['ผู้เช่า']||''}</td>
+    <td class="text-right fw-bold text-danger">${fmt(b['รวม'])}</td>
+    <td><span class="status status-pending">${b['สถานะ']}</span></td>
+    <td><button class="btn btn-sm btn-success" data-action="pay-bill"
+        data-id="${b['ID']}" data-total="${b['รวม']}"
+        data-room="${b['ห้อง']}" data-bld="${b['อาคาร']}" data-tenant="${b['ผู้เช่า']||''}">✓ รับเงิน</button></td>
+  </tr>`).join('');
+}
+
+$('overdue-tbody').addEventListener('click', e => {
+  const btn = e.target.closest('[data-action]');
+  if(btn && btn.dataset.action==='pay-bill') openPayModal(btn.dataset);
+});
+
+function updateOverdueBadge() {
+  const cnt = S.bills.filter(b=>b['สถานะ']==='รอชำระ').length;
+  const badge = $('overdue-badge');
+  if(cnt > 0) { badge.textContent = cnt; badge.style.display=''; }
+  else badge.style.display='none';
+}
+
+// ============================================================
+// PAY MODAL
+// ============================================================
+function openPayModal(d) {
+  S.payingBillId = d.id;
+  $('pay-info').innerHTML = `
+    <strong>ห้อง ${d.room} (${d.bld})</strong><br>
+    ผู้เช่า: ${d.tenant||'-'}<br>
+    ยอดชำระ: <strong class="text-success">${fmt(d.total)} บาท</strong>`;
+  $('pay-date').value = todayStr();
+  openModal('modal-pay');
+}
+
+$('btn-confirm-pay').addEventListener('click', async () => {
+  if(!S.payingBillId) return;
+  const payDate = $('pay-date').value;
+  showLoading(true);
+  try {
+    const r = await gsRun('updateBillStatus', S.payingBillId, 'ชำระแล้ว', payDate);
+    if(r.success) {
+      const bills  = await gsRun('getBills');
+      const income = await gsRun('getOtherIncome');
+      S.bills  = bills  || [];
+      S.income = income || [];
+      renderBills();
+      renderIncome();
+      renderOverdue();
+      updateOverdueBadge();
+      closeModal('modal-pay');
+      showAlert('รับชำระเงินสำเร็จ ✓');
+    } else { showAlert(r.message,'error'); }
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+// ============================================================
+// INCOME
+// ============================================================
+function renderIncome() {
+  const month  = $('income-filter-month').value;
+  const bld    = $('income-filter-building').value;
+  const cat    = $('income-filter-cat').value;
+
+  const filtered = S.income.filter(i => {
+    const d = i['วันที่'];
+    const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
+    return (!month||dm===month) && (!bld||i['อาคาร']===bld) && (!cat||i['หมวดหมู่']===cat);
+  });
+
+  const total = filtered.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
+  $('income-total').textContent = `รวม: ${fmt(total)} ฿`;
+
+  $('income-tbody').innerHTML = filtered.map(i=>`<tr>
+    <td>${fmtDate(i['วันที่'])}</td>
+    <td>${i['อาคาร']||''}</td>
+    <td>${i['ห้อง']||''}</td>
+    <td>${i['ผู้เกี่ยวข้อง']||''}</td>
+    <td>${i['หมวดหมู่']||''}</td>
+    <td class="text-right fw-bold text-success">${fmt(i['จำนวนเงิน'])}</td>
+    <td class="text-muted">${i['หมายเหตุ']||''}</td>
+    <td><button class="btn btn-sm btn-danger" data-action="del-income" data-id="${i['ID']}">🗑</button></td>
+  </tr>`).join('');
+}
+
+['income-filter-month','income-filter-building','income-filter-cat'].forEach(id=>{
+  const el=$(id); if(el){ el.addEventListener('change',renderIncome); el.addEventListener('input',renderIncome); }
+});
+
+$('income-tbody').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-action]');
+  if(btn && btn.dataset.action==='del-income') deleteIncome(btn.dataset.id);
+});
+
+$('btn-add-income').addEventListener('click', ()=>{
+  $('inc-date').value = todayStr();
+  openModal('modal-income');
+});
+
+$('btn-save-income').addEventListener('click', async ()=>{
+  const data = {
+    'วันที่':        $('inc-date').value,
+    'อาคาร':         $('inc-building').value,
+    'ห้อง':          $('inc-room').value.trim(),
+    'ผู้เกี่ยวข้อง': $('inc-person').value.trim(),
+    'หมวดหมู่':      $('inc-cat').value,
+    'จำนวนเงิน':     parseFloat($('inc-amount').value)||0,
+    'หมายเหตุ':      $('inc-note').value.trim()
+  };
+  if(!data['วันที่']||!data['หมวดหมู่']||!data['จำนวนเงิน']) {
+    showAlert('กรุณากรอกข้อมูลที่จำเป็น','error'); return;
+  }
+  showLoading(true);
+  try {
+    const r = await gsRun('saveOtherIncome', data);
+    if(r.success){
+      S.income = await gsRun('getOtherIncome') || [];
+      renderIncome();
+      closeModal('modal-income');
+      showAlert('บันทึกรายรับสำเร็จ');
+    } else showAlert(r.message,'error');
+  } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+async function deleteIncome(id){
+  if(!confirm('ลบรายรับนี้?')) return;
+  showLoading(true);
+  try {
+    await gsRun('deleteOtherIncome', id);
+    S.income = await gsRun('getOtherIncome') || [];
+    renderIncome();
+    showAlert('ลบสำเร็จ');
+  } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+}
+
+// ============================================================
+// EXPENSES
+// ============================================================
+function renderExpenses() {
+  const month = $('expense-filter-month').value;
+  const bld   = $('expense-filter-building').value;
+  const cat   = $('expense-filter-cat').value;
+
+  const filtered = S.expenses.filter(e => {
+    const d = e['วันที่'];
+    const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
+    return (!month||dm===month) && (!bld||e['อาคาร']===bld) && (!cat||e['หมวดหมู่']===cat);
+  });
+
+  const total = filtered.reduce((s,e)=>s+(parseFloat(e['จำนวนเงิน'])||0),0);
+  $('expense-total').textContent = `รวม: ${fmt(total)} ฿`;
+
+  $('expense-tbody').innerHTML = filtered.map(e=>`<tr>
+    <td>${fmtDate(e['วันที่'])}</td>
+    <td>${e['อาคาร']||''}</td>
+    <td>${e['หมวดหมู่']||''}</td>
+    <td>${e['ผู้รับเงิน']||''}</td>
+    <td class="text-right">${fmt(e['จำนวนเงิน'])}</td>
+    <td class="text-right">${fmt(e['ภาษีหัก ณ ที่จ่าย'])}</td>
+    <td class="text-right fw-bold text-danger">${fmt(e['สุทธิ'])}</td>
+    <td class="text-muted">${e['หมายเหตุ']||''}</td>
+    <td><button class="btn btn-sm btn-danger" data-action="del-exp" data-id="${e['ID']}">🗑</button></td>
+  </tr>`).join('');
+}
+
+['expense-filter-month','expense-filter-building','expense-filter-cat'].forEach(id=>{
+  const el=$(id); if(el){ el.addEventListener('change',renderExpenses); el.addEventListener('input',renderExpenses); }
+});
+
+$('expense-tbody').addEventListener('click', e=>{
+  const btn = e.target.closest('[data-action]');
+  if(btn && btn.dataset.action==='del-exp') deleteExpense(btn.dataset.id);
+});
+
+$('btn-add-expense').addEventListener('click', ()=>{
+  $('exp-date').value = todayStr();
+  $('exp-tax').value  = '0';
+  $('exp-net').value  = '';
+  openModal('modal-expense');
+});
+
+['exp-amount','exp-tax'].forEach(id=>{
+  const el=$(id);
+  if(el) el.addEventListener('input', ()=>{
+    const amt = parseFloat($('exp-amount').value)||0;
+    const tax = parseFloat($('exp-tax').value)||0;
+    $('exp-net').value = (amt-tax).toFixed(2);
+  });
+});
+
+$('btn-save-expense').addEventListener('click', async ()=>{
+  const data = {
+    'วันที่':               $('exp-date').value,
+    'อาคาร':                $('exp-building').value,
+    'หมวดหมู่':             $('exp-cat').value,
+    'ผู้รับเงิน':           $('exp-payee').value.trim(),
+    'จำนวนเงิน':            parseFloat($('exp-amount').value)||0,
+    'ภาษีหัก ณ ที่จ่าย':   parseFloat($('exp-tax').value)||0,
+    'หมายเหตุ':             $('exp-note').value.trim()
+  };
+  if(!data['วันที่']||!data['หมวดหมู่']||!data['จำนวนเงิน']) {
+    showAlert('กรุณากรอกข้อมูลที่จำเป็น','error'); return;
+  }
+  showLoading(true);
+  try {
+    const r = await gsRun('saveExpense', data);
+    if(r.success){
+      S.expenses = await gsRun('getExpenses') || [];
+      renderExpenses();
+      closeModal('modal-expense');
+      showAlert('บันทึกรายจ่ายสำเร็จ');
+    } else showAlert(r.message,'error');
+  } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+async function deleteExpense(id){
+  if(!confirm('ลบรายจ่ายนี้?')) return;
+  showLoading(true);
+  try {
+    await gsRun('deleteExpense', id);
+    S.expenses = await gsRun('getExpenses') || [];
+    renderExpenses();
+    showAlert('ลบสำเร็จ');
+  } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+$('btn-load-report').addEventListener('click', async ()=>{
+  const month = $('report-month').value;
+  if(!month) { showAlert('กรุณาเลือกเดือน','error'); return; }
+  showLoading(true);
+  try {
+    const rep = await gsRun('getMonthlyReport', month);
+    renderMonthlyReport(rep);
+  } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
+function renderMonthlyReport(rep) {
+  const c = $('report-monthly-content');
+  const blds = ['V1','V2','V3','V4'];
+  let html = `<div class="stat-grid">
+    <div class="stat-card income"><div class="label">รายรับรวม</div><div class="value">${fmt(rep.grandIncome)} ฿</div></div>
+    <div class="stat-card expense"><div class="label">รายจ่ายรวม</div><div class="value">${fmt(rep.totalExpense)} ฿</div></div>
+    <div class="stat-card profit"><div class="label">กำไร/ขาดทุน</div><div class="value ${rep.netProfit>=0?'text-success':'text-danger'}">${fmt(rep.netProfit)} ฿</div></div>
+    <div class="stat-card"><div class="label">บิลค้างชำระ</div><div class="value text-danger">${rep.overdueCount} ห้อง</div></div>
+  </div>`;
+
+  html += `<div class="table-wrap"><table>
+    <thead><tr><th>อาคาร</th><th class="text-right">ค่าห้อง</th><th class="text-right">ค่าน้ำ</th><th class="text-right">ค่าไฟ</th><th class="text-right">อื่นๆ</th><th class="text-right">รวมรายรับ</th></tr></thead>
+    <tbody>
+    ${blds.map(v => {
+      const s = rep.summary[v]||{};
+      return `<tr><td class="fw-bold">${v} (${(S.companies[v]||{}).name||''})</td>
+        <td class="text-right">${fmt(s.rent)}</td><td class="text-right">${fmt(s.water)}</td>
+        <td class="text-right">${fmt(s.elec)}</td><td class="text-right">${fmt(s.other)}</td>
+        <td class="text-right fw-bold">${fmt(s.totalIncome)}</td></tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
+  c.innerHTML = html;
+}
+
+function renderRoomReport() {
+  const billed = {};
+  S.bills.filter(b=>b['สถานะ']==='ชำระแล้ว').forEach(b=>{
+    const k = b['อาคาร']+'-'+b['ห้อง'];
+    if(!billed[k]) billed[k]={room:b['ห้อง'],bld:b['อาคาร'],tenant:b['ผู้เช่า'],total:0,cnt:0};
+    billed[k].total += parseFloat(b['รวม'])||0;
+    billed[k].cnt++;
+  });
+  const rows = Object.values(billed).sort((a,b)=>a.bld.localeCompare(b.bld)||a.room.localeCompare(b.room));
+  $('report-rooms-content').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>อาคาร</th><th>ห้อง</th><th>ผู้เช่า</th><th class="text-right">จำนวนบิล</th><th class="text-right">รายรับรวม</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td>${r.bld}</td><td>${r.room}</td><td>${r.tenant||''}</td>
+      <td class="text-right">${r.cnt}</td><td class="text-right fw-bold">${fmt(r.total)}</td></tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderBuildingReport() {
+  const blds = ['V1','V2','V3','V4'];
+  const stats = {};
+  blds.forEach(v=>{ stats[v]={income:0,expense:0,rooms:0,rented:0}; });
+  S.rooms.forEach(r=>{ if(stats[r['อาคาร']]) { stats[r['อาคาร']].rooms++; if(r['สถานะ']==='ทำสัญญา') stats[r['อาคาร']].rented++; } });
+  S.bills.filter(b=>b['สถานะ']==='ชำระแล้ว').forEach(b=>{ if(stats[b['อาคาร']]) stats[b['อาคาร']].income+=parseFloat(b['รวม'])||0; });
+  S.expenses.forEach(e=>{ if(stats[e['อาคาร']]) stats[e['อาคาร']].expense+=parseFloat(e['จำนวนเงิน'])||0; });
+  $('report-buildings-content').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>อาคาร</th><th>ชื่อบริษัท</th><th class="text-right">ห้องทั้งหมด</th><th class="text-right">ทำสัญญา</th><th class="text-right">รายรับ</th><th class="text-right">รายจ่าย</th><th class="text-right">กำไร</th></tr></thead>
+    <tbody>${blds.map(v=>{
+      const s=stats[v]; const co=S.companies[v]||{};
+      const profit=s.income-s.expense;
+      return `<tr><td class="fw-bold">${v}</td><td>${co.name||''}</td>
+        <td class="text-right">${s.rooms}</td><td class="text-right">${s.rented}</td>
+        <td class="text-right text-success">${fmt(s.income)}</td>
+        <td class="text-right text-danger">${fmt(s.expense)}</td>
+        <td class="text-right fw-bold ${profit>=0?'text-success':'text-danger'}">${fmt(profit)}</td></tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function renderAllReport() {
+  const search = ($('report-all-search').value||'').toLowerCase();
+  const bld    = $('report-all-building').value;
+  const type   = $('report-all-type').value;
+
+  let html = '';
+  if(!type||type==='bills') {
+    let rows = S.bills.filter(b=>(!bld||b['อาคาร']===bld)&&(!search||(b['ห้อง']+'').includes(search)||(b['ผู้เช่า']||'').toLowerCase().includes(search)));
+    html += `<div class="card-title" style="margin-top:8px">📋 บิลห้อง (${rows.length} รายการ)</div>
+    <div class="table-wrap"><table><thead><tr><th>เดือน</th><th>ห้อง</th><th>อาคาร</th><th>ผู้เช่า</th><th class="text-right">รวม</th><th>สถานะ</th></tr></thead>
+    <tbody>${rows.map(b=>`<tr><td>${b['เดือน']}</td><td>${b['ห้อง']}</td><td>${b['อาคาร']}</td><td>${b['ผู้เช่า']||''}</td>
+      <td class="text-right">${fmt(b['รวม'])}</td><td><span class="status ${b['สถานะ']==='ชำระแล้ว'?'status-paid':'status-pending'}">${b['สถานะ']}</span></td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+  if(!type||type==='income') {
+    let rows = S.income.filter(i=>(!bld||i['อาคาร']===bld)&&(!search||(i['หมวดหมู่']||'').toLowerCase().includes(search)||(i['ผู้เกี่ยวข้อง']||'').toLowerCase().includes(search)));
+    html += `<div class="card-title" style="margin-top:16px">💰 รายรับอื่นๆ (${rows.length} รายการ)</div>
+    <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>อาคาร</th><th>ห้อง</th><th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th></tr></thead>
+    <tbody>${rows.map(i=>`<tr><td>${fmtDate(i['วันที่'])}</td><td>${i['อาคาร']||''}</td><td>${i['ห้อง']||''}</td><td>${i['หมวดหมู่']||''}</td>
+      <td class="text-right text-success">${fmt(i['จำนวนเงิน'])}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+  if(!type||type==='expenses') {
+    let rows = S.expenses.filter(e=>(!bld||e['อาคาร']===bld)&&(!search||(e['หมวดหมู่']||'').toLowerCase().includes(search)||(e['ผู้รับเงิน']||'').toLowerCase().includes(search)));
+    html += `<div class="card-title" style="margin-top:16px">💸 รายจ่าย (${rows.length} รายการ)</div>
+    <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>อาคาร</th><th>หมวดหมู่</th><th>ผู้รับเงิน</th><th class="text-right">จำนวนเงิน</th><th class="text-right">สุทธิ</th></tr></thead>
+    <tbody>${rows.map(e=>`<tr><td>${fmtDate(e['วันที่'])}</td><td>${e['อาคาร']||''}</td><td>${e['หมวดหมู่']||''}</td><td>${e['ผู้รับเงิน']||''}</td>
+      <td class="text-right text-danger">${fmt(e['จำนวนเงิน'])}</td><td class="text-right">${fmt(e['สุทธิ'])}</td></tr>`).join('')}
+    </tbody></table></div>`;
+  }
+  $('report-all-content').innerHTML = html || '<p class="text-muted">ไม่มีข้อมูล</p>';
+}
+
+['report-all-search','report-all-building','report-all-type'].forEach(id=>{
+  const el=$(id); if(el){ el.addEventListener('input',renderAllReport); el.addEventListener('change',renderAllReport); }
+});
+
+// ============================================================
+// PRINT SELECTOR
+// ============================================================
+function renderPrintList() {
+  const month = $('print-filter-month').value;
+  const bld   = $('print-filter-building').value;
+
+  const filtered = S.bills.filter(b =>
+    (!month || b['เดือน']===month) &&
+    (!bld   || b['อาคาร']===bld)
+  );
+
+  $('print-bill-list').innerHTML = filtered.length ? filtered.map(b=>`
+    <div class="print-list-item">
+      <input type="checkbox" class="print-check" data-id="${b['ID']}" id="pck-${b['ID']}">
+      <label for="pck-${b['ID']}" style="flex:1;cursor:pointer">
+        <strong>${b['ห้อง']}</strong> (${b['อาคาร']}) — ${b['ผู้เช่า']||'ว่าง'} — ${b['เดือน']}
+        <span class="status ${b['สถานะ']==='ชำระแล้ว'?'status-paid':'status-pending'}" style="margin-left:8px">${b['สถานะ']}</span>
+      </label>
+      <span class="fw-bold">${fmt(b['รวม'])} ฿</span>
+    </div>`).join('') : '<div style="padding:16px;color:#999">ไม่มีบิลในช่วงที่เลือก</div>';
+}
+
+['print-filter-month','print-filter-building'].forEach(id=>{
+  const el=$(id); if(el) el.addEventListener('change', renderPrintList);
+});
+
+$('btn-select-all').addEventListener('click', ()=>{
+  document.querySelectorAll('.print-check').forEach(c=>c.checked=true);
+});
+$('btn-deselect-all').addEventListener('click', ()=>{
+  document.querySelectorAll('.print-check').forEach(c=>c.checked=false);
+});
+
+$('btn-do-print').addEventListener('click', ()=>{
+  const ids = [...document.querySelectorAll('.print-check:checked')].map(c=>c.dataset.id);
+  if(!ids.length) { showAlert('กรุณาเลือกห้องที่จะพิมพ์','error'); return; }
+  const url = '?page=print&ids=' + ids.join(',');
+  window.open(url, '_blank');
+});
+</script>
+</body>
+</html>

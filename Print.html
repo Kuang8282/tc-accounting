@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TC พิมพ์เอกสาร</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#212121;}
+
+/* SCREEN CONTROLS */
+.print-controls{background:#1a237e;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;}
+.print-controls h2{font-size:16px;}
+.btn{border:none;border-radius:4px;padding:7px 16px;cursor:pointer;font-size:13px;font-family:inherit;font-weight:600;}
+.btn-light{background:#fff;color:#1a237e;}
+.btn-success{background:#2e7d32;color:#fff;}
+.doc-selector{margin:16px auto;max-width:900px;background:#fff;border-radius:8px;padding:16px;box-shadow:0 2px 4px rgba(0,0,0,.1);}
+.doc-selector h3{font-weight:700;margin-bottom:10px;color:#1a237e;}
+.doc-tabs{display:flex;gap:8px;margin-bottom:12px;}
+.doc-tab{padding:6px 16px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-weight:600;color:#3949ab;background:#fff;}
+.doc-tab.active{background:#1a237e;color:#fff;border-color:#1a237e;}
+.spinner{width:32px;height:32px;border:4px solid #ddd;border-top-color:#1a237e;border-radius:50%;animation:spin .7s linear infinite;margin:40px auto;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* DOCUMENT PAGE */
+.page-container{max-width:900px;margin:16px auto;display:flex;flex-direction:column;gap:24px;}
+.doc-page{background:#fff;width:210mm;min-height:140mm;margin:0 auto;padding:10mm 12mm;box-shadow:0 2px 8px rgba(0,0,0,.2);position:relative;page-break-after:always;}
+
+/* HEADER */
+.doc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6mm;border-bottom:2px solid #1a237e;padding-bottom:4mm;}
+.company-info h2{font-size:15px;font-weight:700;color:#1a237e;}
+.company-info p{font-size:11px;color:#555;line-height:1.5;}
+.doc-title-box{text-align:right;}
+.doc-title{font-size:17px;font-weight:700;color:#1a237e;border:2px solid #1a237e;padding:3px 12px;border-radius:4px;display:inline-block;}
+.doc-meta{font-size:11px;color:#555;margin-top:4px;line-height:1.5;}
+
+/* INFO GRID */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-bottom:5mm;font-size:12px;}
+.info-row{display:flex;gap:6px;}
+.info-label{color:#666;white-space:nowrap;min-width:80px;}
+.info-value{font-weight:600;}
+
+/* TABLE */
+.doc-table{width:100%;border-collapse:collapse;margin-bottom:5mm;font-size:12px;}
+.doc-table th{background:#1a237e;color:#fff;padding:5px 8px;text-align:left;}
+.doc-table th.text-right,.doc-table td.text-right{text-align:right;}
+.doc-table td{padding:4px 8px;border-bottom:1px solid #e0e0e0;vertical-align:top;}
+.doc-table tr.total-row td{font-weight:700;background:#f5f5f5;border-top:2px solid #1a237e;font-size:13px;}
+.doc-table tr.sub-row td{color:#555;font-size:11px;padding:2px 8px;}
+.doc-table tr.section-row td{background:#e8eaf6;font-weight:700;color:#1a237e;}
+
+/* METER BOX */
+.meter-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin:3mm 0;}
+.meter-box{border:1px solid #c5cae9;border-radius:4px;padding:6px 8px;font-size:11px;}
+.meter-box h4{font-size:12px;font-weight:700;margin-bottom:4px;color:#1a237e;}
+.meter-row{display:flex;justify-content:space-between;line-height:1.6;}
+.meter-label{color:#666;}
+.meter-value{font-weight:600;}
+
+/* TOTALS */
+.total-box{border:2px solid #1a237e;border-radius:6px;padding:8px 12px;margin-bottom:4mm;background:#f8f9ff;}
+.total-row-item{display:flex;justify-content:space-between;padding:2px 0;font-size:13px;}
+.total-row-item.grand{font-size:15px;font-weight:700;color:#1a237e;border-top:1px solid #c5cae9;margin-top:4px;padding-top:4px;}
+
+/* SIGNATURES */
+.sig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:8mm;}
+.sig-box{text-align:center;}
+.sig-line{border-bottom:1px solid #333;margin-bottom:4px;height:24px;}
+.sig-label{font-size:11px;color:#555;line-height:1.4;}
+
+/* STAMP */
+.paid-stamp{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);border:4px solid #2e7d32;color:#2e7d32;font-size:28px;font-weight:700;padding:8px 20px;border-radius:8px;opacity:.3;pointer-events:none;white-space:nowrap;}
+
+/* SEPARATOR */
+.page-separator{text-align:center;color:#999;font-size:11px;padding:6px 0;display:flex;align-items:center;gap:8px;}
+.page-separator::before,.page-separator::after{content:'';flex:1;height:1px;background:#ccc;}
+
+/* TAX INVOICE */
+.inv-tag{display:inline-block;background:#e8f5e9;border:1px solid #a5d6a7;color:#2e7d32;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:700;margin-left:6px;}
+
+/* PRINT STYLES */
+@media print {
+  .print-controls,.doc-selector,.page-separator{display:none!important;}
+  body{background:#fff;}
+  .doc-page{box-shadow:none;margin:0;padding:8mm 10mm;width:100%;page-break-after:always;}
+  .page-container{margin:0;gap:0;}
+}
+</style>
+</head>
+<body>
+
+<div class="print-controls">
+  <h2>🖨️ TC พิมพ์เอกสาร</h2>
+  <button class="btn btn-success" id="btn-print-all" onclick="window.print()">🖨️ พิมพ์ทั้งหมด</button>
+  <button class="btn btn-light" onclick="window.close()">✕ ปิด</button>
+  <span id="print-status" style="margin-left:auto;font-size:13px"></span>
+</div>
+
+<div class="doc-selector" id="doc-type-selector">
+  <h3>เลือกประเภทเอกสาร</h3>
+  <div class="doc-tabs">
+    <div class="doc-tab active" id="tab-invoice">ใบแจ้งหนี้</div>
+    <div class="doc-tab" id="tab-receipt">ใบเสร็จรับเงิน / ใบกำกับภาษี</div>
+    <div class="doc-tab" id="tab-tax-report">รายงานภาษีขาย</div>
+  </div>
+  <small style="color:#666">เลือกประเภทเอกสารก่อนสั่งพิมพ์</small>
+</div>
+
+<div id="loading-box" style="text-align:center;padding:40px"><div class="spinner"></div><p style="color:#666;margin-top:8px">กำลังโหลดข้อมูล...</p></div>
+
+<div class="page-container" id="pages-container"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+let billData = [];
+let docType = 'invoice';
+let companies = {};
+
+const fmt = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtDate = d => {
+  if(!d) return '';
+  try {
+    const dt = (d instanceof Date) ? d : new Date(d);
+    if(isNaN(dt)) return String(d);
+    return dt.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  } catch(e){ return String(d); }
+};
+const thaiMonth = m => {
+  const months=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  if(!m) return '';
+  const parts = String(m).split('-');
+  return `${months[parseInt(parts[1])]} ${parseInt(parts[0])+543}`;
+};
+
+// Tab switching
+$('tab-invoice').addEventListener('click', ()=>{ docType='invoice'; setActiveTab('tab-invoice'); renderPages(); });
+$('tab-receipt').addEventListener('click', ()=>{ docType='receipt'; setActiveTab('tab-receipt'); renderPages(); });
+$('tab-tax-report').addEventListener('click', ()=>{ docType='tax'; setActiveTab('tab-tax-report'); renderPages(); });
+
+function setActiveTab(id){
+  document.querySelectorAll('.doc-tab').forEach(t=>t.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+  const idsStr = params.get('ids');
+  if(!idsStr){ $('loading-box').innerHTML='<p style="color:red;padding:40px">ไม่มีข้อมูล กรุณาเลือกบิลก่อนพิมพ์</p>'; return; }
+  const ids = idsStr.split(',').map(s=>s.trim()).filter(Boolean);
+
+  try {
+    const [data, cfg] = await Promise.all([
+      new Promise((res,rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej).getPrintData(ids)),
+      new Promise((res,rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej).getConfig())
+    ]);
+    billData  = data  || [];
+    companies = cfg.companies || {};
+    $('loading-box').style.display = 'none';
+    $('print-status').textContent = `โหลดแล้ว ${billData.length} รายการ`;
+    renderPages();
+  } catch(e){
+    $('loading-box').innerHTML = `<p style="color:red;padding:40px">เกิดข้อผิดพลาด: ${e}</p>`;
+  }
+});
+
+function renderPages(){
+  const container = $('pages-container');
+  if(!billData.length){ container.innerHTML='<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>'; return; }
+
+  if(docType === 'tax') {
+    renderTaxReport(container);
+    return;
+  }
+
+  let html = '';
+  billData.forEach((bill, i) => {
+    if(i > 0) html += `<div class="page-separator">— หน้าใหม่ —</div>`;
+    if(docType === 'invoice') html += buildInvoicePage(bill);
+    else html += buildReceiptPage(bill);
+  });
+  container.innerHTML = html;
+}
+
+function buildCompanyHeader(bill) {
+  const co = companies[bill['อาคาร']] || bill.company || {};
+  return `
+    <div class="doc-header">
+      <div class="company-info">
+        <h2>${co.name || 'บริษัท วี เรสซิเดนซ์ เพลซ จำกัด'}</h2>
+        <p>ที่อยู่: ${co.address || ''} กรุงเทพฯ<br>
+        เลขประจำตัวผู้เสียภาษี: ${co.taxId || ''}<br>
+        โทรศัพท์: 0-2xxx-xxxx</p>
+      </div>
+    </div>`;
+}
+
+function buildMeterSection(bill) {
+  const hasWater = parseFloat(bill['ค่าน้ำ']) > 0 || bill['หน่วยน้ำก่อน'] || bill['หน่วยน้ำปัจจุบัน'];
+  const hasElec  = parseFloat(bill['ค่าไฟ'])  > 0 || bill['หน่วยไฟก่อน'] || bill['หน่วยไฟปัจจุบัน'];
+  if(!hasWater && !hasElec) return '';
+  return `<div class="meter-grid">
+    ${hasWater ? `<div class="meter-box">
+      <h4>💧 มาตรน้ำ</h4>
+      <div class="meter-row"><span class="meter-label">วันจดครั้งก่อน</span><span class="meter-value">${fmtDate(bill['วันจดน้ำก่อน'])}</span></div>
+      <div class="meter-row"><span class="meter-label">วันจดปัจจุบัน</span><span class="meter-value">${fmtDate(bill['วันจดน้ำปัจจุบัน'])}</span></div>
+      <div class="meter-row"><span class="meter-label">เลขครั้งก่อน</span><span class="meter-value">${bill['หน่วยน้ำก่อน']||0}</span></div>
+      <div class="meter-row"><span class="meter-label">เลขปัจจุบัน</span><span class="meter-value">${bill['หน่วยน้ำปัจจุบัน']||0}</span></div>
+      <div class="meter-row" style="border-top:1px solid #c5cae9;margin-top:3px;padding-top:3px">
+        <span class="meter-label"><strong>หน่วยที่ใช้</strong></span>
+        <span class="meter-value" style="color:#1565c0"><strong>${bill['หน่วยน้ำใช้']||0} หน่วย × ${bill['อัตราน้ำ']||0} ฿</strong></span>
+      </div>
+    </div>` : ''}
+    ${hasElec ? `<div class="meter-box">
+      <h4>⚡ มาตรไฟฟ้า</h4>
+      <div class="meter-row"><span class="meter-label">วันจดครั้งก่อน</span><span class="meter-value">${fmtDate(bill['วันจดไฟก่อน'])}</span></div>
+      <div class="meter-row"><span class="meter-label">วันจดปัจจุบัน</span><span class="meter-value">${fmtDate(bill['วันจดไฟปัจจุบัน'])}</span></div>
+      <div class="meter-row"><span class="meter-label">เลขครั้งก่อน</span><span class="meter-value">${bill['หน่วยไฟก่อน']||0}</span></div>
+      <div class="meter-row"><span class="meter-label">เลขปัจจุบัน</span><span class="meter-value">${bill['หน่วยไฟปัจจุบัน']||0}</span></div>
+      <div class="meter-row" style="border-top:1px solid #c5cae9;margin-top:3px;padding-top:3px">
+        <span class="meter-label"><strong>หน่วยที่ใช้</strong></span>
+        <span class="meter-value" style="color:#e65100"><strong>${bill['หน่วยไฟใช้']||0} หน่วย × ${bill['อัตราไฟ']||0} ฿</strong></span>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+// ============================================================
+// INVOICE PAGE
+// ============================================================
+function buildInvoicePage(bill) {
+  const co = companies[bill['อาคาร']] || bill.company || {};
+  const isPaid = bill['สถานะ'] === 'ชำระแล้ว';
+  const rent  = parseFloat(bill['ค่าห้อง'])||0;
+  const water = parseFloat(bill['ค่าน้ำ'])||0;
+  const elec  = parseFloat(bill['ค่าไฟ'])||0;
+  const other = parseFloat(bill['ค่าอื่นๆ'])||0;
+  const total = parseFloat(bill['รวม'])||0;
+
+  return `<div class="doc-page">
+    ${isPaid ? '<div class="paid-stamp">ชำระแล้ว</div>' : ''}
+    <div class="doc-header">
+      <div class="company-info">
+        <h2>${co.name || ''}</h2>
+        <p>ที่อยู่: ${co.address || ''} กรุงเทพฯ<br>
+        เลขผู้เสียภาษี: ${co.taxId || ''}</p>
+      </div>
+      <div class="doc-title-box">
+        <div class="doc-title">ใบแจ้งหนี้</div>
+        <div class="doc-meta">
+          เลขที่: ${bill['เลขที่ใบกำกับ']||'-'}<br>
+          วันที่ออก: ${fmtDate(new Date())}<br>
+          ประจำเดือน: ${thaiMonth(bill['เดือน'])}
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div>
+        <div class="info-row"><span class="info-label">ห้องเลขที่:</span><span class="info-value">${bill['ห้อง']} (อาคาร ${bill['อาคาร']})</span></div>
+        <div class="info-row"><span class="info-label">ชื่อผู้เช่า:</span><span class="info-value">${bill['ผู้เช่า']||'-'}</span></div>
+      </div>
+      <div>
+        <div class="info-row"><span class="info-label">กำหนดชำระ:</span><span class="info-value" style="color:#c62828">ภายในวันที่ 5 ของเดือน</span></div>
+        <div class="info-row"><span class="info-label">เดือน:</span><span class="info-value">${thaiMonth(bill['เดือน'])}</span></div>
+      </div>
+    </div>
+
+    ${buildMeterSection(bill)}
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>รายการ</th><th>รายละเอียด</th><th class="text-right">จำนวนเงิน (บาท)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ค่าเช่าห้อง</td><td>เดือน ${thaiMonth(bill['เดือน'])}</td><td class="text-right">${fmt(rent)}</td></tr>
+        ${water > 0 ? `<tr><td>ค่าน้ำประปา</td><td>${bill['หน่วยน้ำใช้']||0} หน่วย × ${bill['อัตราน้ำ']||0} บาท</td><td class="text-right">${fmt(water)}</td></tr>` : ''}
+        ${elec > 0  ? `<tr><td>ค่าไฟฟ้า</td><td>${bill['หน่วยไฟใช้']||0} หน่วย × ${bill['อัตราไฟ']||0} บาท</td><td class="text-right">${fmt(elec)}</td></tr>` : ''}
+        ${other > 0 ? `<tr><td>ค่าใช้จ่ายอื่นๆ</td><td>${bill['หมายเหตุบิล']||''}</td><td class="text-right">${fmt(other)}</td></tr>` : ''}
+        <tr class="total-row"><td colspan="2">ยอดรวมทั้งสิ้น</td><td class="text-right">${fmt(total)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="sig-grid">
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">ผู้แจ้งหนี้<br>(.............../............../..............)</div></div>
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">ผู้รับแจ้งหนี้<br>(.............../............../..............)</div></div>
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">วันที่ชำระ<br>(.............../............../..............)</div></div>
+    </div>
+
+    <p style="font-size:10px;color:#999;text-align:center;margin-top:6mm">*** กรุณาชำระภายในกำหนด หากเกินกำหนดจะมีค่าปรับ ***</p>
+  </div>`;
+}
+
+// ============================================================
+// RECEIPT / TAX INVOICE PAGE
+// ============================================================
+function buildReceiptPage(bill) {
+  const co = companies[bill['อาคาร']] || bill.company || {};
+  const rent  = parseFloat(bill['ค่าห้อง'])||0;
+  const water = parseFloat(bill['ค่าน้ำ'])||0;
+  const elec  = parseFloat(bill['ค่าไฟ'])||0;
+  const other = parseFloat(bill['ค่าอื่นๆ'])||0;
+  const subtotal = rent + water + elec + other;
+  const vat   = subtotal * 0.07;
+  const total = parseFloat(bill['รวม'])||subtotal;
+  const payDate = bill['วันที่ชำระ'] ? fmtDate(bill['วันที่ชำระ']) : fmtDate(new Date());
+
+  return `<div class="doc-page">
+    <div class="doc-header">
+      <div class="company-info">
+        <h2>${co.name || ''}</h2>
+        <p>ที่อยู่: ${co.address || ''} กรุงเทพฯ<br>
+        เลขผู้เสียภาษี: ${co.taxId || ''}</p>
+      </div>
+      <div class="doc-title-box">
+        <div class="doc-title">ใบเสร็จรับเงิน <span class="inv-tag">ใบกำกับภาษีอย่างย่อ</span></div>
+        <div class="doc-meta">
+          เลขที่: ${bill['เลขที่ใบกำกับ']||'-'}<br>
+          วันที่ออก: ${payDate}<br>
+          ประจำเดือน: ${thaiMonth(bill['เดือน'])}
+        </div>
+      </div>
+    </div>
+
+    <div class="info-grid">
+      <div>
+        <div class="info-row"><span class="info-label">ห้องเลขที่:</span><span class="info-value">${bill['ห้อง']} (อาคาร ${bill['อาคาร']})</span></div>
+        <div class="info-row"><span class="info-label">ชื่อผู้ชำระ:</span><span class="info-value">${bill['ผู้เช่า']||'-'}</span></div>
+      </div>
+      <div>
+        <div class="info-row"><span class="info-label">วันที่ชำระ:</span><span class="info-value" style="color:#2e7d32">${payDate}</span></div>
+        <div class="info-row"><span class="info-label">เดือน:</span><span class="info-value">${thaiMonth(bill['เดือน'])}</span></div>
+      </div>
+    </div>
+
+    ${buildMeterSection(bill)}
+
+    <table class="doc-table">
+      <thead>
+        <tr><th>รายการ</th><th>รายละเอียด</th><th class="text-right">จำนวนเงิน (บาท)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ค่าเช่าห้อง</td><td>เดือน ${thaiMonth(bill['เดือน'])}</td><td class="text-right">${fmt(rent)}</td></tr>
+        ${water > 0 ? `<tr><td>ค่าน้ำประปา</td><td>${bill['หน่วยน้ำใช้']||0} หน่วย × ${bill['อัตราน้ำ']||0} บาท</td><td class="text-right">${fmt(water)}</td></tr>` : ''}
+        ${elec > 0  ? `<tr><td>ค่าไฟฟ้า</td><td>${bill['หน่วยไฟใช้']||0} หน่วย × ${bill['อัตราไฟ']||0} บาท</td><td class="text-right">${fmt(elec)}</td></tr>` : ''}
+        ${other > 0 ? `<tr><td>ค่าใช้จ่ายอื่นๆ</td><td>${bill['หมายเหตุบิล']||''}</td><td class="text-right">${fmt(other)}</td></tr>` : ''}
+        <tr class="sub-row"><td colspan="2" class="text-right">รวมก่อน VAT</td><td class="text-right">${fmt(subtotal)}</td></tr>
+        <tr class="sub-row"><td colspan="2" class="text-right">ภาษีมูลค่าเพิ่ม 7%</td><td class="text-right">${fmt(vat)}</td></tr>
+        <tr class="total-row"><td colspan="2">ยอดชำระทั้งสิ้น</td><td class="text-right">${fmt(total)}</td></tr>
+      </tbody>
+    </table>
+
+    <div class="sig-grid">
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">ผู้รับเงิน<br>(.............../............../..............)</div></div>
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">ผู้ชำระเงิน<br>(.............../............../..............)</div></div>
+      <div class="sig-box"><div class="sig-line"></div><div class="sig-label">ประทับตราบริษัท</div></div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// TAX SALES REPORT
+// ============================================================
+function renderTaxReport(container) {
+  const byBuilding = {};
+  ['V1','V2','V3','V4'].forEach(v => byBuilding[v] = []);
+  billData.forEach(b => { if(byBuilding[b['อาคาร']]) byBuilding[b['อาคาร']].push(b); });
+
+  let html = '';
+  ['V1','V2','V3','V4'].forEach(v => {
+    const bills = byBuilding[v];
+    if(!bills.length) return;
+    const co = companies[v] || {};
+    const total = bills.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+    const vat   = total * 0.07 / 1.07;
+    const excVat = total - vat;
+
+    html += `<div class="doc-page">
+      <div class="doc-header">
+        <div class="company-info">
+          <h2>${co.name||v}</h2>
+          <p>ที่อยู่: ${co.address||''} กรุงเทพฯ &nbsp;|&nbsp; เลขผู้เสียภาษี: ${co.taxId||''}</p>
+        </div>
+        <div class="doc-title-box">
+          <div class="doc-title">รายงานภาษีขาย</div>
+          <div class="doc-meta">วันที่พิมพ์: ${fmtDate(new Date())}</div>
+        </div>
+      </div>
+
+      <table class="doc-table">
+        <thead>
+          <tr>
+            <th>#</th><th>เลขที่ใบกำกับ</th><th>วันที่</th>
+            <th>ห้อง</th><th>ผู้ซื้อ/ผู้เช่า</th>
+            <th class="text-right">ยอดรวม</th>
+            <th class="text-right">ฐานภาษี</th>
+            <th class="text-right">VAT 7%</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${bills.map((b,i) => {
+            const amt = parseFloat(b['รวม'])||0;
+            const bVat = amt * 0.07 / 1.07;
+            return `<tr>
+              <td>${i+1}</td>
+              <td style="font-size:11px">${b['เลขที่ใบกำกับ']||''}</td>
+              <td style="font-size:11px">${fmtDate(b['วันที่ชำระ'])||'-'}</td>
+              <td>${b['ห้อง']}</td>
+              <td>${b['ผู้เช่า']||''}</td>
+              <td class="text-right">${fmt(amt)}</td>
+              <td class="text-right">${fmt(amt-bVat)}</td>
+              <td class="text-right">${fmt(bVat)}</td>
+            </tr>`;
+          }).join('')}
+          <tr class="total-row">
+            <td colspan="5">รวมทั้งสิ้น (${bills.length} รายการ)</td>
+            <td class="text-right">${fmt(total)}</td>
+            <td class="text-right">${fmt(excVat)}</td>
+            <td class="text-right">${fmt(vat)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>`;
+  });
+
+  container.innerHTML = html || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
+}
+</script>
+</body>
+</html>
