@@ -4,10 +4,10 @@
 // ============================================================
 
 const COMPANIES = {
-  V1: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 1 จำกัด', address: '888/1 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018014', phone: '02-997-7700', fax: '02-997-7690' },
-  V2: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 2 จำกัด', address: '888/6 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018022', phone: '02-997-7700', fax: '02-997-7690' },
-  V3: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 3 จำกัด', address: '777 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220',   taxId: '0135559018031', phone: '02-997-7700', fax: '02-997-7690' },
-  V4: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 4 จำกัด', address: '777/3 หมู่ 7 ถ.พหลโยธิน แขวงอนุสาวรีย์ เขตบางเขน กรุงเทพฯ 10220', taxId: '0135559018049', phone: '02-997-7700', fax: '02-997-7690' }
+  V1: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 1 จำกัด', address: '888/1 หมู่ 7 ตำบลหลักหก อำเภอเมืองปทุมธานี จังหวัดปทุมธานี 12000', taxId: '0135559018014', phone: '02-997-7700', fax: '02-997-7690', bank1: 'บมจ.ธนาคารกสิกรไทย เลขที่บัญชี 017-1-43129-8 (รหัสบริษัท 10315)', bank2: 'บมจ.ธนาคารกสิกรไทย เลขที่บัญชี 017-1-42847-5' },
+  V2: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 2 จำกัด', address: '888/6 หมู่ 7 ตำบลหลักหก อำเภอเมืองปทุมธานี จังหวัดปทุมธานี 12000', taxId: '0135559018022', phone: '02-997-7700', fax: '02-997-7690', bank1: '', bank2: '' },
+  V3: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 3 จำกัด', address: '777 หมู่ 7 ตำบลหลักหก อำเภอเมืองปทุมธานี จังหวัดปทุมธานี 12000',   taxId: '0135559018031', phone: '02-997-7700', fax: '02-997-7690', bank1: '', bank2: '' },
+  V4: { name: 'บริษัท วี เรสซิเดนซ์ เพลซ 4 จำกัด', address: '777/3 หมู่ 7 ตำบลหลักหก อำเภอเมืองปทุมธานี จังหวัดปทุมธานี 12000', taxId: '0135559018049', phone: '02-997-7700', fax: '02-997-7690', bank1: '', bank2: '' }
 };
 
 const SHEETS = {
@@ -997,6 +997,22 @@ function getConfig() {
   try {
     return { companies: COMPANIES, incomeCategories: INCOME_CATEGORIES, expenseCategories: EXPENSE_CATEGORIES };
   } catch (err) { return { companies:{}, incomeCategories:[], expenseCategories:[] }; }
+}
+
+function getTaxBuyData(month, building) {
+  try {
+    let expenses = getExpenses();
+    if (month) {
+      expenses = expenses.filter(e => {
+        const d = e['วันที่'];
+        if (!d) return false;
+        const dt = (d instanceof Date) ? d : new Date(d);
+        return Utilities.formatDate(dt, 'Asia/Bangkok', 'yyyy-MM') === month;
+      });
+    }
+    if (building) expenses = expenses.filter(e => e['อาคาร'] === building);
+    return expenses;
+  } catch(e) { return []; }
 }
 
 function getAvailableMonths() {
