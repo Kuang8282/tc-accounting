@@ -37,74 +37,82 @@ body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#2
 .page-separator{text-align:center;color:#999;font-size:11px;padding:4px 0;display:flex;align-items:center;gap:8px;}
 .page-separator::before,.page-separator::after{content:'';flex:1;height:1px;background:#ccc;}
 
-/* DOCUMENT PAGE */
-.doc-page{background:#fff;width:210mm;margin:0 auto;padding:8mm 10mm;box-shadow:0 2px 8px rgba(0,0,0,.2);position:relative;}
+/* ── DOCUMENT PAGE ─────────────────────────────────────── */
+.doc-page{background:#fff;width:210mm;margin:0 auto;padding:6mm 8mm;box-shadow:0 2px 8px rgba(0,0,0,.2);position:relative;}
 
-/* COMPANY HEADER */
-.co-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:3mm;margin-bottom:3mm;}
-.co-left h2{font-size:14px;font-weight:700;margin-bottom:2px;}
-.co-left p{font-size:11px;line-height:1.6;color:#333;}
-.co-right{text-align:right;}
-.doc-title-th{font-size:14px;font-weight:700;}
-.doc-title-en{font-size:11px;color:#555;margin-top:1px;}
-.doc-taxid{font-size:11px;margin-top:3px;}
+/* ── INVOICE HEADER ─────────────────────────────────────── */
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:3mm;margin-bottom:2mm;}
+.inv-co-name{font-size:15px;font-weight:700;margin-bottom:1mm;}
+.inv-co-addr{font-size:11px;color:#222;line-height:1.5;}
+.inv-right{text-align:right;}
+.inv-title-th{font-size:17px;font-weight:700;}
+.inv-title-en{font-size:11px;color:#333;margin-top:1px;}
+.inv-taxid{font-size:11px;margin-top:3px;}
 
-/* TENANT / DOC INFO */
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:2mm 6mm;margin-bottom:3mm;font-size:12px;border:1px solid #ccc;padding:3mm;}
-.info-section{}
-.info-row{display:flex;gap:4px;margin-bottom:1px;}
-.info-label{color:#555;min-width:100px;white-space:nowrap;font-size:11px;}
-.info-value{font-weight:600;font-size:12px;}
+/* ── TENANT INFO BOX ─────────────────────────────────────── */
+.tenant-box{width:100%;border-collapse:collapse;margin-bottom:2mm;border:1px solid #333;font-size:12px;}
+.tenant-box td{padding:2px 5px;vertical-align:top;}
+.tenant-box .lbl{white-space:nowrap;color:#333;width:120px;border-right:1px solid #ccc;}
+.tenant-box .val{font-weight:600;}
+.tenant-box .lbl2{white-space:nowrap;color:#333;width:90px;border-left:1px solid #aaa;border-right:1px solid #ccc;padding-left:6px;}
+.tenant-box .val2{font-weight:600;}
+.tenant-box tr{border-bottom:1px dotted #bbb;}
+.tenant-box tr:last-child{border-bottom:none;}
 
-/* ITEMS TABLE */
-.items-table{width:100%;border-collapse:collapse;margin-bottom:0;font-size:12px;}
-.items-table th{background:#1a237e;color:#fff;padding:4px 5px;text-align:center;border:1px solid #555;font-size:11px;}
+/* ── ITEMS TABLE ─────────────────────────────────────────── */
+.items-table{width:100%;border-collapse:collapse;font-size:12px;}
+.items-table th{background:#000;color:#fff;padding:3px 5px;text-align:center;border:1px solid #555;font-size:11px;font-weight:600;}
 .items-table th.tl{text-align:left;}
-.items-table td{padding:3px 5px;border:1px solid #aaa;vertical-align:middle;height:20px;}
+.items-table td{padding:2px 5px;border:1px solid #aaa;vertical-align:middle;min-height:18px;}
 .items-table td.tr{text-align:right;}
 .items-table td.tc{text-align:center;}
-.items-table tr.row-extra td{background:#f9f9f9;}
+.items-table .note-cell{vertical-align:top;font-size:10px;color:#333;line-height:1.5;border-top:1px solid #aaa;}
+.items-table .total-lbl{text-align:right;font-size:12px;}
+.items-table .total-lbl.grand{font-weight:700;border-top:2px solid #000;}
+.items-table .total-amt{text-align:right;font-size:12px;}
+.items-table .total-amt.grand{font-weight:700;border-top:2px solid #000;}
+.items-table .words-lbl{font-size:11px;}
+.items-table .words-val{text-align:center;font-weight:600;font-size:12px;}
 
-/* FOOTER TOTALS */
-.totals-box{display:flex;justify-content:flex-end;margin-top:0;}
-.totals-table{font-size:12px;border-collapse:collapse;min-width:280px;}
-.totals-table td{padding:2px 6px;border:1px solid #aaa;}
-.totals-table td.tr{text-align:right;}
-.totals-table tr.grand td{font-weight:700;font-size:13px;background:#e8eaf6;border-top:2px solid #1a237e;}
+/* ── SIGNATURE SECTION ───────────────────────────────────── */
+.sig-section{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:4mm;}
+.sig-col{text-align:center;font-size:11px;}
+.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
+.sig-date{font-size:10px;color:#444;margin-top:2px;}
 
-/* AMOUNT IN WORDS */
-.amount-words{border:1px solid #aaa;padding:3px 6px;font-size:12px;margin-top:2mm;margin-bottom:3mm;}
-.amount-words span{font-weight:600;}
+/* ── BANK SLIP ───────────────────────────────────────────── */
+.cut-line{border:none;border-top:2px dashed #777;margin:3mm 0;}
+.slip-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #333;padding-bottom:2mm;margin-bottom:2mm;}
+.slip-co-name{font-size:13px;font-weight:700;}
+.slip-co-addr{font-size:10px;color:#333;line-height:1.5;margin-top:1px;}
+.slip-title-th{font-size:14px;font-weight:700;text-align:right;}
+.slip-title-en{font-size:10px;color:#333;text-align:right;margin-top:1px;}
+.slip-body{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-bottom:2mm;}
+.slip-bank-box{border:1px solid #333;padding:3mm;font-size:11px;line-height:1.7;}
+.slip-bank-box .co-line{font-weight:700;margin-bottom:1mm;}
+.slip-bank-box .taxid-line{margin-bottom:2mm;font-size:10px;}
+.slip-bank-acct{display:flex;align-items:flex-start;gap:4px;margin-bottom:1mm;font-size:11px;}
+.slip-bank-acct input[type=checkbox]{margin-top:2px;flex-shrink:0;}
+.slip-form{font-size:11px;}
+.slip-form-row{display:flex;border-bottom:1px dotted #aaa;padding:2px 0;margin-bottom:1px;}
+.slip-form-row .fl{white-space:nowrap;min-width:110px;color:#555;}
+.slip-form-row .fv{flex:1;font-weight:600;padding-left:4px;}
+.slip-pay-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:0;}
+.slip-pay-table th{border:1px solid #555;padding:3px 4px;text-align:center;background:#e0e0e0;font-size:10px;}
+.slip-pay-table td{border:1px solid #aaa;padding:3px 4px;height:16px;}
+.slip-pay-table td.tc{text-align:center;}
+.slip-pay-table td.tr{text-align:right;}
+.slip-words-row{display:flex;border:1px solid #aaa;border-top:none;}
+.slip-words-row .wl{flex:1;padding:2px 5px;font-size:11px;border-right:1px solid #aaa;}
+.slip-words-row .wr{width:80px;padding:2px 5px;text-align:right;font-size:11px;}
+.slip-notes{font-size:10px;color:#333;line-height:1.6;margin-top:2mm;}
 
-/* NOTE */
-.doc-note{font-size:10px;color:#444;margin-bottom:3mm;line-height:1.5;border-left:3px solid #1a237e;padding-left:4px;}
-
-/* SIGNATURES */
-.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin-top:4mm;}
-.sig-box{text-align:center;font-size:11px;}
-.sig-line{border-bottom:1px dotted #555;height:18px;margin-bottom:3px;}
-.sig-sub{font-size:10px;color:#777;}
-
-/* BANK SLIP */
-.bank-slip-separator{border:none;border-top:2px dashed #888;margin:4mm 0;}
-.bank-slip{border:1px solid #333;padding:3mm 4mm;margin-top:0;}
-.bank-slip-title{font-size:12px;font-weight:700;text-align:center;border-bottom:1px solid #333;padding-bottom:2px;margin-bottom:2mm;}
-.slip-grid{display:grid;grid-template-columns:1fr 1fr;gap:4mm;font-size:11px;}
-.slip-col{}
-.slip-row{display:flex;gap:4px;margin-bottom:1px;}
-.slip-label{color:#555;min-width:70px;white-space:nowrap;}
-.slip-value{font-weight:600;}
-.bank-accounts{font-size:11px;margin-top:2mm;}
-.bank-accounts div{margin-bottom:1px;}
-
-/* VAT ROWS on receipt */
+/* ── RECEIPT / TAX INVOICE ───────────────────────────────── */
 .vat-row td{background:#f0f4ff;font-size:11px;font-style:italic;}
 .grand-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;font-size:13px;}
-
-/* PAID STAMP */
 .paid-stamp{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);border:4px solid #2e7d32;color:#2e7d32;font-size:28px;font-weight:700;padding:6px 18px;border-radius:8px;opacity:.2;pointer-events:none;z-index:10;}
 
-/* TAX REPORT */
+/* ── TAX REPORT ──────────────────────────────────────────── */
 .tax-report-header{margin-bottom:5mm;}
 .tax-report-header h2{font-size:15px;font-weight:700;text-align:center;}
 .tax-report-header .co-name{font-size:13px;text-align:center;margin:2px 0;}
@@ -117,11 +125,14 @@ body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#2
 .tax-table td.tc{text-align:center;}
 .tax-table tr.total-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;}
 .tax-sig-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6mm;margin-top:10mm;}
+.sig-box{text-align:center;font-size:11px;}
+.sig-box .sig-line2{border-bottom:1px dotted #555;height:20px;margin-bottom:3px;}
+.sig-box .sig-sub{font-size:10px;color:#777;}
 
 @media print {
   .print-controls,.doc-selector,.page-separator{display:none!important;}
   body{background:#fff;}
-  .doc-page{box-shadow:none;margin:0;padding:6mm 8mm;width:100%;page-break-after:always;}
+  .doc-page{box-shadow:none;margin:0;padding:5mm 7mm;width:100%;page-break-after:always;}
   .page-container{margin:0;gap:0;}
 }
 </style>
@@ -174,13 +185,10 @@ body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#2
 
 <script>
 const $id = id => document.getElementById(id);
-let billData = [];
-let expenseData = [];
-let expenseLoaded = false;
-let docType = 'invoice';
-let companies = {};
+let billData = [], expenseData = [], expenseLoaded = false;
+let docType = 'invoice', companies = {};
 
-// ─── Formatters ───────────────────────────────────────────────
+// ── Formatters ────────────────────────────────────────────
 const fmt  = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
 const fmt0 = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0});
 
@@ -209,7 +217,7 @@ function thaiMonth(m) {
 }
 function todayThai() { return fmtDate(new Date()); }
 
-// ─── Number to Thai Words ──────────────────────────────────────
+// ── Number to Thai Words ──────────────────────────────────
 function numToThai(amount) {
   const n = Math.round(parseFloat(amount || 0) * 100) / 100;
   if (n === 0) return 'ศูนย์บาทถ้วน';
@@ -245,7 +253,7 @@ function numToThai(amount) {
   return result;
 }
 
-// ─── Parse extra items from หมายเหตุบิล ──────────────────────
+// ── Parse extras ─────────────────────────────────────────
 function parseExtraItems(bill) {
   const note = bill['หมายเหตุบิล'] || '';
   const match = note.match(/^(\[.*?\])/s);
@@ -255,34 +263,21 @@ function parseExtraItems(bill) {
   }
   return { extras, plainNote };
 }
-
-// Find first matching extra item by keywords
 function findExtra(extras, keywords) {
   const kw = keywords.map(k => k.toLowerCase());
   for (const ex of extras) {
     const cat = (ex.cat || '').toLowerCase();
-    if (kw.some(k => cat.includes(k))) {
-      return { amt: parseFloat(ex.amt)||0, desc: ex.desc||'', cat: ex.cat||'' };
-    }
+    if (kw.some(k => cat.includes(k))) return { amt: parseFloat(ex.amt)||0, desc: ex.desc||'', cat: ex.cat||'' };
   }
-  return { amt: 0, desc: '', cat: '' };
+  return { amt:0, desc:'', cat:'' };
 }
-
-// Returns extras that don't match any of the 9 fixed categories
 function getUnmatchedExtras(extras) {
   const fixed = ['internet','อินเตอร์','ปรับ','ทีวี','ตู้เย็น','เฟอร์','furniture','voucher','gift','คูปอง','ส่วนกลาง'];
-  return extras.filter(ex => {
-    const cat = (ex.cat||'').toLowerCase();
-    return !fixed.some(k => cat.includes(k));
-  });
+  return extras.filter(ex => !fixed.some(k => (ex.cat||'').toLowerCase().includes(k)));
 }
-
-// ─── NV items from checkboxes ─────────────────────────────────
 function getNvItems() {
   return [...document.querySelectorAll('#nv-checkboxes input:checked')].map(c => c.value);
 }
-
-// ─── VAT calculation ──────────────────────────────────────────
 function calcVat(bill, nvItems) {
   const rent  = parseFloat(bill['ค่าห้อง'])||0;
   const water = parseFloat(bill['ค่าน้ำ'])||0;
@@ -293,17 +288,15 @@ function calcVat(bill, nvItems) {
   vatIncTotal += water + elec;
   extras.forEach(ex => {
     const amt = parseFloat(ex.amt)||0;
-    const cat = ex.cat||'';
-    const matched = nvItems.some(nv => cat.toLowerCase().includes(nv.toLowerCase()));
+    const matched = nvItems.some(nv => (ex.cat||'').toLowerCase().includes(nv.toLowerCase()));
     if (matched) nvTotal += amt; else vatIncTotal += amt;
   });
   const vatBase = vatIncTotal / 1.07;
   const vat     = vatIncTotal - vatBase;
-  const grandTotal = nvTotal + vatIncTotal;
-  return { nvTotal, vatIncTotal, vatBase, vat, grandTotal };
+  return { nvTotal, vatIncTotal, vatBase, vat, grandTotal: nvTotal + vatIncTotal };
 }
 
-// ─── Tab switching ────────────────────────────────────────────
+// ── Tab switching ─────────────────────────────────────────
 function setActiveTab(id) {
   document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
   $id(id).classList.add('active');
@@ -312,14 +305,13 @@ function setActiveTab(id) {
   $id('nv-item-selector').style.display = id === 'tab-tax-sale' ? 'block' : 'none';
   if (!isTax) renderPages();
 }
-
 $id('tab-invoice').addEventListener('click',  () => { docType='invoice';  setActiveTab('tab-invoice'); });
 $id('tab-receipt').addEventListener('click',  () => { docType='receipt';  setActiveTab('tab-receipt'); });
 $id('tab-tax-sale').addEventListener('click', () => { docType='tax-sale'; setActiveTab('tab-tax-sale'); });
 $id('tab-tax-buy').addEventListener('click',  () => { docType='tax-buy';  setActiveTab('tab-tax-buy'); });
 $id('btn-render-tax').addEventListener('click', renderPages);
 
-// ─── Load ────────────────────────────────────────────────────
+// ── Load ──────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   const params = new URLSearchParams(window.location.search);
   const idsStr = params.get('ids');
@@ -334,10 +326,7 @@ window.addEventListener('load', async () => {
     companies = cfg.companies || {};
     $id('loading-box').style.display = 'none';
     $id('print-status').textContent = `${billData.length} รายการ`;
-    if (billData.length) {
-      const m = billData[0]['เดือน'];
-      if (m) $id('tax-month').value = m;
-    }
+    if (billData.length) { const m = billData[0]['เดือน']; if(m) $id('tax-month').value = m.slice(0,7); }
     renderPages();
   } catch(e) {
     $id('loading-box').innerHTML = `<p style="color:red;padding:40px">เกิดข้อผิดพลาด: ${e}</p>`;
@@ -359,7 +348,7 @@ async function loadExpenses() {
 function renderPages() {
   const container = $id('pages-container');
   if (!billData.length && docType !== 'tax-buy') {
-    container.innerHTML = '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
+    container.innerHTML='<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
     return;
   }
   if (docType === 'tax-sale') { renderTaxSaleReport(container); return; }
@@ -372,58 +361,34 @@ function renderPages() {
   container.innerHTML = html;
 }
 
-// ─── Company Header ───────────────────────────────────────────
-function buildCoHeader(bill, titleTh, titleEn) {
-  const co = companies[bill['อาคาร']] || bill.company || {};
-  return `
-  <div class="co-header">
-    <div class="co-left">
-      <h2>${co.name||''} (สำนักงานใหญ่)</h2>
-      <p>${co.address||''}<br>
-      โทร ${co.phone||''}&nbsp;&nbsp;แฟกซ์ ${co.fax||''}</p>
-    </div>
-    <div class="co-right">
-      <div class="doc-title-th">${titleTh}</div>
-      <div class="doc-title-en">${titleEn}</div>
-      <div class="doc-taxid">เลขประจำตัวผู้เสียภาษีอากร ${co.taxId||''}</div>
-    </div>
-  </div>`;
-}
-
-// ─── Fixed 9-Item Rows ────────────────────────────────────────
-function buildItemRows(bill, showSeq) {
+// ── 9-item rows ───────────────────────────────────────────
+function buildItemRows(bill) {
   const { extras } = parseExtraItems(bill);
-  const rent   = parseFloat(bill['ค่าห้อง'])||0;
-  const water  = parseFloat(bill['ค่าน้ำ'])||0;
-  const elec   = parseFloat(bill['ค่าไฟ'])||0;
-  const wPrev  = bill['หน่วยน้ำก่อน']||'';
-  const wCurr  = bill['หน่วยน้ำปัจจุบัน']||'';
-  const wUsed  = bill['หน่วยน้ำใช้']||'';
-  const wRate  = parseFloat(bill['อัตราน้ำ'])||0;
-  const ePrev  = bill['หน่วยไฟก่อน']||'';
-  const eCurr  = bill['หน่วยไฟปัจจุบัน']||'';
-  const eUsed  = bill['หน่วยไฟใช้']||'';
-  const eRate  = parseFloat(bill['อัตราไฟ'])||0;
+  const rent  = parseFloat(bill['ค่าห้อง'])||0;
+  const water = parseFloat(bill['ค่าน้ำ'])||0;
+  const elec  = parseFloat(bill['ค่าไฟ'])||0;
+  const wPrev = bill['หน่วยน้ำก่อน']||'', wCurr = bill['หน่วยน้ำปัจจุบัน']||'';
+  const wUsed = bill['หน่วยน้ำใช้']||0,  wRate = parseFloat(bill['อัตราน้ำ'])||0;
+  const ePrev = bill['หน่วยไฟก่อน']||'', eCurr = bill['หน่วยไฟปัจจุบัน']||'';
+  const eUsed = bill['หน่วยไฟใช้']||0,  eRate = parseFloat(bill['อัตราไฟ'])||0;
 
-  const internet   = findExtra(extras, ['internet','อินเตอร์']);
-  const penalty    = findExtra(extras, ['ปรับ']);
-  const tv         = findExtra(extras, ['ทีวี','ตู้เย็น']);
-  const furniture  = findExtra(extras, ['เฟอร์','furniture']);
-  const voucher    = findExtra(extras, ['voucher','gift','คูปอง']);
-  const communal   = findExtra(extras, ['ส่วนกลาง']);
-  const unmatched  = getUnmatchedExtras(extras);
+  const internet  = findExtra(extras, ['internet','อินเตอร์']);
+  const penalty   = findExtra(extras, ['ปรับ']);
+  const tv        = findExtra(extras, ['ทีวี','ตู้เย็น']);
+  const furniture = findExtra(extras, ['เฟอร์','furniture']);
+  const voucher   = findExtra(extras, ['voucher','gift','คูปอง']);
+  const communal  = findExtra(extras, ['ส่วนกลาง']);
+  const unmatched = getUnmatchedExtras(extras);
 
-  const wMeter = (wPrev||wCurr) ? `[${wPrev} - ${wCurr}]` : '';
-  const eMeter = (ePrev||eCurr) ? `[${ePrev} - ${eCurr}]` : '';
+  const wMeter = (wPrev||wCurr) ? ` [ ${wPrev} - ${wCurr} ]` : '';
+  const eMeter = (ePrev||eCurr) ? ` [ ${ePrev} - ${eCurr} ]` : '';
 
-  let seq = 1;
-  function row(label, qty, rate, amt, extraClass) {
-    const n = showSeq ? seq++ : '';
+  function row(n, label, qty, rate, amt) {
     const qtyStr  = qty  ? fmt0(qty)  : '';
     const rateStr = rate ? fmt(rate)  : '';
-    const amtStr  = amt  ? fmt(amt)   : '';
-    return `<tr${extraClass?' class="'+extraClass+'"':''}>
-      <td class="tc">${n}</td>
+    const amtStr  = amt  ? fmt(amt)   : '-';
+    return `<tr>
+      <td class="tc">${n}.</td>
       <td>${label}</td>
       <td class="tc">${qtyStr}</td>
       <td class="tr">${rateStr}</td>
@@ -432,131 +397,199 @@ function buildItemRows(bill, showSeq) {
   }
 
   let html = '';
-  html += row('ค่าเช่าห้อง', '', '', rent);
-  html += row(`ค่า Internet${internet.desc?' - '+internet.desc:''}`, '', '', internet.amt);
-  html += row(`ค่าน้ำประปา ${wMeter}`, wUsed||0, wRate||0, water);
-  html += row(`ค่าไฟฟ้า ${eMeter}`, eUsed||0, eRate||0, elec);
-  html += row(`ค่าปรับล่าช้า${penalty.desc?' - '+penalty.desc:''}`, '', '', penalty.amt);
-  html += row(`ค่าเช่าทีวี/ตู้เย็น${tv.desc?' - '+tv.desc:''}`, '', '', tv.amt);
-  html += row(`ค่าเช่าเฟอร์นิเจอร์${furniture.desc?' - '+furniture.desc:''}`, '', '', furniture.amt);
-  html += row(`Gift Voucher${voucher.desc?' - '+voucher.desc:''}`, '', '', voucher.amt);
-  html += row(`ค่าส่วนกลาง${communal.desc?' - '+communal.desc:''}`, '', '', communal.amt);
-
-  // Append any extra items not matching fixed categories
+  html += row(1, 'ค่าเช่า', '', '', rent);
+  html += row(2, `ค่าInternet${internet.desc?' ('+internet.desc+')':''}`, '', '', internet.amt);
+  html += row(3, `ค่าน้ำประปา${wMeter}`, wUsed, wRate, water);
+  html += row(4, `ค่าไฟฟ้า${eMeter}`, eUsed, eRate, elec);
+  html += row(5, `ค่าปรับล่าช้า${penalty.desc?' ('+penalty.desc+')':''}`, '', '', penalty.amt);
+  html += row(6, `ค่าเช่าทีวี/ตู้เย็น${tv.desc?' ('+tv.desc+')':''}`, '', '', tv.amt);
+  html += row(7, `ค่าเช่าเฟอร์นิเจอร์${furniture.desc?' ('+furniture.desc+')':''}`, '', '', furniture.amt);
+  html += row(8, `Gift Voucher${voucher.desc?' ('+voucher.desc+')':''}`, '', '', voucher.amt);
+  html += row(9, `ค่าส่วนกลาง${communal.desc?' ('+communal.desc+')':''}`, '', '', communal.amt);
+  let seq = 10;
   unmatched.forEach(ex => {
-    if ((parseFloat(ex.amt)||0) > 0) {
-      html += row(`${ex.cat}${ex.desc?' - '+ex.desc:''}`, '', '', parseFloat(ex.amt)||0, 'row-extra');
-    }
+    if ((parseFloat(ex.amt)||0) > 0) html += row(seq++, `${ex.cat}${ex.desc?' ('+ex.desc+')':''}`, '', '', parseFloat(ex.amt)||0);
   });
   return html;
 }
 
-// ─── Invoice Page (ใบแจ้งหนี้) ────────────────────────────────
+// ── INVOICE PAGE ──────────────────────────────────────────
 function buildInvoicePage(bill) {
   const co = companies[bill['อาคาร']] || bill.company || {};
+  const { extras, plainNote } = parseExtraItems(bill);
   const rent  = parseFloat(bill['ค่าห้อง'])||0;
   const water = parseFloat(bill['ค่าน้ำ'])||0;
   const elec  = parseFloat(bill['ค่าไฟ'])||0;
-  const { extras, plainNote } = parseExtraItems(bill);
   const extraTotal = extras.reduce((s,e)=>s+(parseFloat(e.amt)||0),0);
   const subTotal   = rent + water + elec + extraTotal;
   const grandTotal = parseFloat(bill['รวม']) || subTotal;
-  const discount   = subTotal - grandTotal > 0 ? subTotal - grandTotal : 0;
-
-  const issueDate = todayThai();
-  const docNo     = bill['เลขที่ใบกำกับ'] || '-';
+  const discount   = Math.max(0, subTotal - grandTotal);
+  const issueDate  = todayThai();
+  const docNo      = bill['เลขที่ใบกำกับ'] || '-';
+  const tenant     = bill['ผู้เช่า'] || '-';
+  const tenantAddr = (bill.roomData && bill.roomData['หมายเหตุ']) || '';
+  const coTaxFmt   = (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/, '$1 $2 $3 $4 $5');
+  const noteText   = `กรุณาโอนเงินก่อนวันที่ 5 ของทุกเดือน หากเกินกำหนด มีค่าปรับวันละ 100 บาท และหากปรับเกินกำหนดถึงขั้นตัดน้ำตัดไฟ ลูกค้าต้องจ่ายค่าต่อมิเตอร์น้ำ-ไฟ 1,000 บาท${plainNote ? ' / '+plainNote : ''}`;
 
   return `<div class="doc-page">
-    ${buildCoHeader(bill, 'ใบแจ้งหนี้ (ต้นฉบับ)', 'INVOICE (ORIGINAL)')}
-
-    <div class="info-grid">
-      <div class="info-section">
-        <div class="info-row"><span class="info-label">ชื่อ / Name :</span><span class="info-value">${bill['ผู้เช่า']||'-'}</span></div>
-        <div class="info-row"><span class="info-label">ที่อยู่ / Address :</span><span class="info-value">${co.address||''}</span></div>
-        <div class="info-row"><span class="info-label">เลขประจำตัวฯ :</span><span class="info-value">-</span></div>
+    <!-- ── INVOICE HEADER ── -->
+    <div class="inv-header">
+      <div>
+        <div class="inv-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+        <div class="inv-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div>
       </div>
-      <div class="info-section">
-        <div class="info-row"><span class="info-label">เลขที่เอกสาร :</span><span class="info-value">${docNo}</span></div>
-        <div class="info-row"><span class="info-label">วันที่ :</span><span class="info-value">${issueDate}</span></div>
-        <div class="info-row"><span class="info-label">ห้อง / Room :</span><span class="info-value">${bill['ห้อง']} (อาคาร ${bill['อาคาร']})</span></div>
-        <div class="info-row"><span class="info-label">ประจำเดือน :</span><span class="info-value">${thaiMonth(bill['เดือน'])}</span></div>
+      <div class="inv-right">
+        <div class="inv-title-th">ใบแจ้งหนี้ (ต้นฉบับ)</div>
+        <div class="inv-title-en">INVOICE (ORIGINAL)</div>
+        <div class="inv-taxid">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div>
       </div>
     </div>
 
+    <!-- ── TENANT INFO BOX ── -->
+    <table class="tenant-box">
+      <tr>
+        <td class="lbl">ชื่อ</td>
+        <td class="val">${tenant}</td>
+        <td class="lbl2">เลขที่เอกสาร</td>
+        <td class="val2">${docNo}</td>
+      </tr>
+      <tr>
+        <td class="lbl">ที่อยู่</td>
+        <td class="val">${tenantAddr}</td>
+        <td class="lbl2">วันที่</td>
+        <td class="val2">${issueDate}</td>
+      </tr>
+      <tr>
+        <td class="lbl">เลขประจำตัวผู้เสียภาษีอากร</td>
+        <td class="val"></td>
+        <td class="lbl2">ห้อง</td>
+        <td class="val2">${bill['ห้อง']}</td>
+      </tr>
+    </table>
+
+    <!-- ── ITEMS TABLE ── -->
     <table class="items-table">
-      <thead><tr>
-        <th style="width:28px">ที่</th>
-        <th class="tl">รายการ</th>
-        <th style="width:55px">จำนวน</th>
-        <th style="width:75px">ราคา/หน่วย</th>
-        <th style="width:90px">จำนวนเงิน (฿)</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th style="width:28px">ลำดับที่</th>
+          <th class="tl">รายการ</th>
+          <th style="width:55px">จำนวน</th>
+          <th style="width:75px">ราคา/หน่วย</th>
+          <th style="width:90px">จำนวนเงิน</th>
+        </tr>
+      </thead>
       <tbody>
-        ${buildItemRows(bill, true)}
+        ${buildItemRows(bill)}
+        <tr>
+          <td class="note-cell" rowspan="3" colspan="3">${noteText}</td>
+          <td class="total-lbl">รวม</td>
+          <td class="total-amt">${fmt(subTotal)}</td>
+        </tr>
+        <tr>
+          <td class="total-lbl">หักส่วนลดอื่นๆ</td>
+          <td class="total-amt">${discount > 0 ? fmt(discount) : '-'}</td>
+        </tr>
+        <tr>
+          <td class="total-lbl grand">รวมทั้งสิ้น</td>
+          <td class="total-amt grand">${fmt(grandTotal)}</td>
+        </tr>
+        <tr>
+          <td class="words-lbl" colspan="2">ยอดเงินรวม (ตัวอักษร)</td>
+          <td class="words-val" colspan="3">( ${numToThai(grandTotal)} )</td>
+        </tr>
       </tbody>
     </table>
 
-    <div class="totals-box">
-      <table class="totals-table">
-        <tr><td>รวม</td><td class="tr">${fmt(subTotal)}</td></tr>
-        <tr><td>หักส่วนลดอื่นๆ</td><td class="tr">${fmt(discount)}</td></tr>
-        <tr class="grand"><td>รวมทั้งสิ้น</td><td class="tr">${fmt(grandTotal)}</td></tr>
-      </table>
-    </div>
-
-    <div class="amount-words">ยอดเงินรวม (ตัวอักษร) : <span>${numToThai(grandTotal)}</span></div>
-
-    <div class="doc-note">
-      กรุณาโอนเงินก่อนวันที่ 5 ของทุกเดือน หากเกินกำหนด มีค่าปรับวันละ 100 บาท
-      ${plainNote ? '<br>หมายเหตุ: '+plainNote : ''}
-    </div>
-
-    <div class="sig-grid">
-      <div class="sig-box">
+    <!-- ── SIGNATURES ── -->
+    <div class="sig-section">
+      <div class="sig-col">
         <div class="sig-line"></div>
-        <div>ว่าที่ร้อยตรี &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-        <div class="sig-sub">ผู้จัดทำ</div>
-        <div class="sig-sub">(............../............../.............)</div>
+        <div style="font-size:11px">ว่าที่ร้อยตรี</div>
+        <div style="font-size:11px">ผู้จัดทำ</div>
+        <div class="sig-date">วันที่..../..../.....</div>
       </div>
-      <div class="sig-box">
+      <div class="sig-col">
         <div class="sig-line"></div>
-        <div>&nbsp;</div>
-        <div class="sig-sub">ผู้มีอำนาจลงนาม</div>
-        <div class="sig-sub">(............../............../.............)</div>
+        <div style="font-size:11px">&nbsp;</div>
+        <div style="font-size:11px">ผู้มีอำนาจลงนาม</div>
+        <div class="sig-date">วันที่..../..../.....</div>
       </div>
     </div>
 
-    <hr class="bank-slip-separator">
+    <!-- ── BANK SLIP ── -->
+    <hr class="cut-line">
+    ${buildBankSlip(bill, co, tenant, docNo, issueDate, grandTotal, coTaxFmt)}
+  </div>`;
+}
 
-    <div class="bank-slip">
-      <div class="bank-slip-title">ใบแจ้งการชำระเงิน (สำหรับธนาคาร)</div>
-      <div class="slip-grid">
-        <div class="slip-col">
-          <div class="slip-row"><span class="slip-label">บริษัท :</span><span class="slip-value">${co.name||''}</span></div>
-          <div class="slip-row"><span class="slip-label">ห้อง :</span><span class="slip-value">${bill['ห้อง']} อาคาร ${bill['อาคาร']}</span></div>
-          <div class="slip-row"><span class="slip-label">ประจำเดือน :</span><span class="slip-value">${thaiMonth(bill['เดือน'])}</span></div>
-          <div class="slip-row"><span class="slip-label">จำนวนเงิน :</span><span class="slip-value">${fmt(grandTotal)} บาท</span></div>
-          <div class="slip-row"><span class="slip-label">ชื่อผู้โอน :</span><span class="slip-value">${bill['ผู้เช่า']||''}</span></div>
-        </div>
-        <div class="slip-col">
-          <div style="font-size:11px;font-weight:700;margin-bottom:3px;">โอนเงินเข้าบัญชี :</div>
-          <div class="bank-accounts">
-            ${co.bank1 ? '<div>• '+co.bank1+'</div>' : ''}
-            ${co.bank2 ? '<div>• '+co.bank2+'</div>' : ''}
-            ${!co.bank1 && !co.bank2 ? '<div style="color:#999">ยังไม่ได้กำหนดบัญชีธนาคาร</div>' : ''}
-          </div>
-        </div>
+// ── Bank Slip ─────────────────────────────────────────────
+function buildBankSlip(bill, co, tenant, docNo, issueDate, grandTotal, coTaxFmt) {
+  const bank1 = co.bank1 || '';
+  const bank2 = co.bank2 || '';
+  return `
+  <div>
+    <div class="slip-header">
+      <div>
+        <div class="slip-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+        <div class="slip-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div>
       </div>
+      <div>
+        <div class="slip-title-th">ใบแจ้งการชำระเงิน (สำหรับธนาคาร)</div>
+        <div class="slip-title-en">BILL PAYMENT (BANK ONLY)</div>
+      </div>
+    </div>
+
+    <div class="slip-body">
+      <div class="slip-bank-box">
+        <div class="co-line">เพื่อนำเข้าบัญชีกระแสรายวัน ${co.name||''}</div>
+        <div class="taxid-line">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div>
+        ${bank1 ? `<div class="slip-bank-acct"><input type="checkbox" checked disabled><span>${bank1}</span></div>` : ''}
+        ${bank2 ? `<div class="slip-bank-acct"><input type="checkbox" disabled><span>${bank2}</span></div>` : ''}
+        ${!bank1 && !bank2 ? '<div style="color:#999;font-size:10px">ยังไม่ได้กำหนดบัญชีธนาคาร</div>' : ''}
+      </div>
+      <div class="slip-form">
+        <div class="slip-form-row"><span class="fl">วันที่ DATE</span><span class="fv">${issueDate}</span></div>
+        <div class="slip-form-row"><span class="fl">ชื่อลูกค้า NAME</span><span class="fv">${tenant}</span></div>
+        <div class="slip-form-row"><span class="fl">วันครบกำหนดชำระ DUE DATE</span><span class="fv"></span></div>
+        <div class="slip-form-row"><span class="fl">เลขที่อ้างอิง REF.NO.1</span><span class="fv">${bill['ห้อง']}</span></div>
+        <div class="slip-form-row"><span class="fl">เลขที่อ้างอิง REF.NO.2</span><span class="fv"></span></div>
+      </div>
+    </div>
+
+    <table class="slip-pay-table">
+      <thead>
+        <tr>
+          <th style="width:25%">ยอดเงินสด<br>AMOUNT IN CASH</th>
+          <th style="width:25%">หมายเลขเช็ค<br>CHEQUE NO.</th>
+          <th style="width:30%">ชื่อธนาคาร / สาขา<br>BANK / BRANCH</th>
+          <th style="width:20%">จำนวนเงิน<br>AMOUNT</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>&nbsp;</td><td></td><td></td><td></td></tr>
+        <tr><td>&nbsp;</td><td></td><td></td><td></td></tr>
+      </tbody>
+    </table>
+    <div class="slip-words-row">
+      <div class="wl">จำนวนเงินเป็นตัวอักษร<br><small>TOTAL AMOUNT</small></div>
+      <div class="wr">บาท<br><small>BAHT</small></div>
+    </div>
+
+    <div class="slip-notes">
+      กรุณาโอนเงินก่อนวันที่ 5 ของทุกเดือน หากเกินกำหนด มีค่าปรับวันละ 100 บาท<br>
+      และหากปรับเกินกำหนดถึงขั้นตัดน้ำตัดไฟ ลูกค้าต้องจ่ายค่าต่อมิเตอร์น้ำ-ไฟ 1,000 บาท<br>
+      กรุณาเก็บใบแจ้งการชำระเงินไว้เป็นหลักฐาน เพื่อขอรับใบเสร็จรับเงินที่สำนักงาน ${co.name||''}<br>
+      ${co.prevName ? co.prevName+' เปลี่ยนชื่อเป็น '+co.name : ''}
     </div>
   </div>`;
 }
 
-// ─── Receipt / Tax Invoice (ใบเสร็จ/ใบกำกับภาษีอย่างย่อ) ──────
+// ── RECEIPT / TAX INVOICE ─────────────────────────────────
 function buildReceiptPage(bill) {
   const co = companies[bill['อาคาร']] || bill.company || {};
   const nvItems = getNvItems();
   const { extras, plainNote } = parseExtraItems(bill);
-  const { nvTotal, vatIncTotal, vatBase, vat, grandTotal } = calcVat(bill, nvItems);
+  const { nvTotal, vatBase, vat, grandTotal } = calcVat(bill, nvItems);
   const rent  = parseFloat(bill['ค่าห้อง'])||0;
   const water = parseFloat(bill['ค่าน้ำ'])||0;
   const elec  = parseFloat(bill['ค่าไฟ'])||0;
@@ -564,88 +597,79 @@ function buildReceiptPage(bill) {
   const subTotal   = rent + water + elec + extraTotal;
   const payDate = bill['วันที่ชำระ'] ? fmtDate(bill['วันที่ชำระ']) : todayThai();
   const docNo   = bill['เลขที่ใบกำกับ'] || '-';
+  const tenant  = bill['ผู้เช่า'] || '-';
+  const tenantAddr = (bill.roomData && bill.roomData['หมายเหตุ']) || '';
+  const coTaxFmt   = (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/, '$1 $2 $3 $4 $5');
 
   return `<div class="doc-page">
     <div class="paid-stamp">ชำระแล้ว</div>
-    ${buildCoHeader(bill, 'ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (ต้นฉบับ)', 'TAX INVOICE / RECEIPT (ORIGINAL)')}
-
-    <div class="info-grid">
-      <div class="info-section">
-        <div class="info-row"><span class="info-label">ชื่อ / Name :</span><span class="info-value">${bill['ผู้เช่า']||'-'}</span></div>
-        <div class="info-row"><span class="info-label">ที่อยู่ / Address :</span><span class="info-value">${co.address||''}</span></div>
-        <div class="info-row"><span class="info-label">เลขประจำตัวฯ :</span><span class="info-value">-</span></div>
+    <div class="inv-header">
+      <div>
+        <div class="inv-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+        <div class="inv-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div>
       </div>
-      <div class="info-section">
-        <div class="info-row"><span class="info-label">เลขที่เอกสาร :</span><span class="info-value">${docNo}</span></div>
-        <div class="info-row"><span class="info-label">วันที่ชำระ :</span><span class="info-value" style="color:#2e7d32">${payDate}</span></div>
-        <div class="info-row"><span class="info-label">ห้อง / Room :</span><span class="info-value">${bill['ห้อง']} (อาคาร ${bill['อาคาร']})</span></div>
-        <div class="info-row"><span class="info-label">ประจำเดือน :</span><span class="info-value">${thaiMonth(bill['เดือน'])}</span></div>
+      <div class="inv-right">
+        <div class="inv-title-th">ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (ต้นฉบับ)</div>
+        <div class="inv-title-en">TAX INVOICE / RECEIPT (ORIGINAL)</div>
+        <div class="inv-taxid">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div>
       </div>
     </div>
 
+    <table class="tenant-box">
+      <tr>
+        <td class="lbl">ชื่อ</td><td class="val">${tenant}</td>
+        <td class="lbl2">เลขที่เอกสาร</td><td class="val2">${docNo}</td>
+      </tr>
+      <tr>
+        <td class="lbl">ที่อยู่</td><td class="val">${tenantAddr}</td>
+        <td class="lbl2">วันที่ชำระ</td><td class="val2" style="color:#2e7d32">${payDate}</td>
+      </tr>
+      <tr>
+        <td class="lbl">เลขประจำตัวผู้เสียภาษีอากร</td><td class="val"></td>
+        <td class="lbl2">ห้อง</td><td class="val2">${bill['ห้อง']}</td>
+      </tr>
+    </table>
+
     <table class="items-table">
-      <thead><tr>
-        <th style="width:28px">ที่</th>
-        <th class="tl">รายการ</th>
-        <th style="width:55px">จำนวน</th>
-        <th style="width:75px">ราคา/หน่วย</th>
-        <th style="width:90px">จำนวนเงิน (฿)</th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th style="width:28px">ลำดับที่</th>
+          <th class="tl">รายการ</th>
+          <th style="width:55px">จำนวน</th>
+          <th style="width:75px">ราคา/หน่วย</th>
+          <th style="width:90px">จำนวนเงิน</th>
+        </tr>
+      </thead>
       <tbody>
-        ${buildItemRows(bill, true)}
-        <tr class="vat-row">
-          <td colspan="4" class="tr">รวม</td>
-          <td class="tr">${fmt(subTotal)}</td>
-        </tr>
-        <tr class="vat-row">
-          <td colspan="4" class="tr">มูลค่าสินค้าที่ไม่รวม VAT (NV)</td>
-          <td class="tr">${fmt(nvTotal)}</td>
-        </tr>
-        <tr class="vat-row">
-          <td colspan="4" class="tr">มูลค่าสินค้าที่รวม VAT 7% (V)</td>
-          <td class="tr">${fmt(vatBase)}</td>
-        </tr>
-        <tr class="vat-row">
-          <td colspan="4" class="tr">ภาษีมูลค่าเพิ่ม 7%</td>
-          <td class="tr">${fmt(vat)}</td>
-        </tr>
-        <tr class="grand-row">
-          <td colspan="4" class="tr">รวมทั้งสิ้น</td>
-          <td class="tr">${fmt(grandTotal)}</td>
+        ${buildItemRows(bill)}
+        <tr class="vat-row"><td colspan="4" style="text-align:right">รวม</td><td style="text-align:right">${fmt(subTotal)}</td></tr>
+        <tr class="vat-row"><td colspan="4" style="text-align:right">มูลค่าสินค้าที่ไม่รวม VAT (NV)</td><td style="text-align:right">${fmt(nvTotal)}</td></tr>
+        <tr class="vat-row"><td colspan="4" style="text-align:right">มูลค่าสินค้าที่รวม VAT 7% (V)</td><td style="text-align:right">${fmt(vatBase)}</td></tr>
+        <tr class="vat-row"><td colspan="4" style="text-align:right">ภาษีมูลค่าเพิ่ม 7%</td><td style="text-align:right">${fmt(vat)}</td></tr>
+        <tr class="grand-row"><td colspan="4" style="text-align:right">รวมทั้งสิ้น</td><td style="text-align:right">${fmt(grandTotal)}</td></tr>
+        <tr>
+          <td class="words-lbl" colspan="2">ยอดเงินรวม (ตัวอักษร)</td>
+          <td class="words-val" colspan="3">( ${numToThai(grandTotal)} )</td>
         </tr>
       </tbody>
     </table>
 
-    <div class="amount-words" style="margin-top:2mm">ยอดเงินรวม (ตัวอักษร) : <span>${numToThai(grandTotal)}</span></div>
     ${plainNote ? `<p style="font-size:11px;color:#555;margin-top:2mm">หมายเหตุ: ${plainNote}</p>` : ''}
-
-    <div class="sig-grid" style="margin-top:6mm">
-      <div class="sig-box">
-        <div class="sig-line"></div>
-        <div>ว่าที่ร้อยตรี</div>
-        <div class="sig-sub">ผู้รับเงิน / Received by</div>
-        <div class="sig-sub">(............../............../.............)</div>
-      </div>
-      <div class="sig-box">
-        <div class="sig-line"></div>
-        <div>&nbsp;</div>
-        <div class="sig-sub">ผู้ชำระเงิน / Paid by</div>
-        <div class="sig-sub">(............../............../.............)</div>
-      </div>
+    <div class="sig-section" style="margin-top:6mm">
+      <div class="sig-col"><div class="sig-line"></div><div>ว่าที่ร้อยตรี</div><div>ผู้รับเงิน</div><div class="sig-date">วันที่..../..../.....</div></div>
+      <div class="sig-col"><div class="sig-line"></div><div>&nbsp;</div><div>ผู้ชำระเงิน</div><div class="sig-date">วันที่..../..../.....</div></div>
     </div>
   </div>`;
 }
 
-// ─── Tax Sale Report (ภาษีขาย) ────────────────────────────────
+// ── Tax Sale Report ────────────────────────────────────────
 function renderTaxSaleReport(container) {
   const filterMonth = $id('tax-month').value;
   const filterBld   = $id('tax-building').value;
   const nvItems     = getNvItems();
-
   let bills = billData.filter(b => b['สถานะ'] === 'ชำระแล้ว');
-  if (filterMonth) bills = bills.filter(b => b['เดือน'] === filterMonth);
+  if (filterMonth) bills = bills.filter(b => String(b['เดือน']).startsWith(filterMonth));
   if (filterBld)   bills = bills.filter(b => b['อาคาร'] === filterBld);
-
   const byBuilding = { V1:[], V2:[], V3:[], V4:[] };
   bills.forEach(b => { if (byBuilding[b['อาคาร']]) byBuilding[b['อาคาร']].push(b); });
 
@@ -655,17 +679,12 @@ function renderTaxSaleReport(container) {
     if (!vBills.length) return;
     const co = companies[v] || {};
     let totalNV=0, totalV=0, totalVAT=0, totalGrand=0;
-
-    const rows = vBills.map((b, i) => {
+    const rows = vBills.map((b,i) => {
       const { nvTotal, vatBase, vat, grandTotal } = calcVat(b, nvItems);
-      totalNV    += nvTotal;
-      totalV     += vatBase;
-      totalVAT   += vat;
-      totalGrand += grandTotal;
-      const payDate = b['วันที่ชำระ'] ? fmtDateShort(b['วันที่ชำระ']) : '-';
+      totalNV += nvTotal; totalV += vatBase; totalVAT += vat; totalGrand += grandTotal;
       return `<tr>
         <td class="tc">${i+1}</td>
-        <td class="tc">${payDate}</td>
+        <td class="tc">${fmtDateShort(b['วันที่ชำระ'])}</td>
         <td>${b['เลขที่ใบกำกับ']||'-'}</td>
         <td>${b['ผู้เช่า']||''}</td>
         <td class="tc">${b['ห้อง']}</td>
@@ -675,67 +694,48 @@ function renderTaxSaleReport(container) {
         <td class="tr">${fmt(grandTotal)}</td>
       </tr>`;
     }).join('');
-
-    const reportMonth = filterMonth ? thaiMonth(filterMonth) : '—';
-
     html += `<div class="doc-page">
       <div class="tax-report-header">
         <h2>บัญชีรายงานภาษีขาย</h2>
         <div class="co-name">${co.name||v} (สำนักงานใหญ่)</div>
         <div class="meta">
-          <div>ชื่อผู้ประกอบการ: ${co.name||v}<br>
-          เลขประจำตัวผู้เสียภาษี: ${co.taxId||''}<br>
-          สถานประกอบการ: ${co.address||''}</div>
-          <div style="text-align:right">ประจำเดือน: <strong>${reportMonth}</strong></div>
+          <div>ชื่อผู้ประกอบการ: ${co.name||v}<br>เลขประจำตัวผู้เสียภาษี: ${co.taxId||''}<br>สถานประกอบการ: ${co.address||''}</div>
+          <div style="text-align:right">ประจำเดือน: <strong>${filterMonth ? thaiMonth(filterMonth) : '—'}</strong></div>
         </div>
       </div>
       <table class="tax-table">
-        <thead>
-          <tr>
-            <th style="width:30px">ลำดับ</th>
-            <th style="width:72px">วัน/เดือน/ปี</th>
-            <th style="width:100px" class="tl">เลขที่ใบกำกับภาษี</th>
-            <th class="tl">ชื่อผู้ซื้อ / ผู้เช่า</th>
-            <th style="width:52px">เลขที่ห้อง</th>
-            <th style="width:84px">มูลค่า NV</th>
-            <th style="width:84px">มูลค่า V</th>
-            <th style="width:72px">VAT 7%</th>
-            <th style="width:84px">รวม</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th style="width:30px">ลำดับ</th><th style="width:72px">วัน/เดือน/ปี</th>
+          <th style="width:100px" class="tl">เลขที่ใบกำกับภาษี</th><th class="tl">ชื่อผู้เช่า</th>
+          <th style="width:52px">ห้อง</th><th style="width:80px">มูลค่า NV</th>
+          <th style="width:80px">มูลค่า V</th><th style="width:70px">VAT 7%</th><th style="width:80px">รวม</th>
+        </tr></thead>
         <tbody>
           ${rows}
           <tr class="total-row">
             <td colspan="5" class="tr">รวม</td>
-            <td class="tr">${fmt(totalNV)}</td>
-            <td class="tr">${fmt(totalV)}</td>
-            <td class="tr">${fmt(totalVAT)}</td>
-            <td class="tr">${fmt(totalGrand)}</td>
+            <td class="tr">${fmt(totalNV)}</td><td class="tr">${fmt(totalV)}</td>
+            <td class="tr">${fmt(totalVAT)}</td><td class="tr">${fmt(totalGrand)}</td>
           </tr>
         </tbody>
       </table>
       <div class="tax-sig-grid">
-        <div class="sig-box"><div class="sig-line"></div>ผู้จัดทำ<br><span class="sig-sub">(............../............../.............)</span></div>
-        <div class="sig-box"><div class="sig-line"></div>ผู้ตรวจสอบ<br><span class="sig-sub">(............../............../.............)</span></div>
-        <div class="sig-box"><div class="sig-line"></div>ผู้อนุมัติ<br><span class="sig-sub">(............../............../.............)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้จัดทำ<br><span class="sig-sub">(........../.........../..........)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้ตรวจสอบ<br><span class="sig-sub">(........../.........../..........)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้อนุมัติ<br><span class="sig-sub">(........../.........../..........)</span></div>
       </div>
     </div>`;
   });
-
   container.innerHTML = html || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล กรุณาเลือกเดือนและกดแสดงรายงาน</p>';
 }
 
-// ─── Tax Purchase Report (ภาษีซื้อ) ─────────────────────────
+// ── Tax Buy Report ─────────────────────────────────────────
 async function renderTaxBuyReport(container) {
   container.innerHTML = '<div style="text-align:center;padding:40px"><div class="spinner"></div><p style="color:#666;margin-top:8px">กำลังโหลดรายจ่าย...</p></div>';
-  expenseLoaded = false; // force reload with current filters
+  expenseLoaded = false;
   await loadExpenses();
-
-  const filterMonth   = $id('tax-month').value;
-  const filterBld     = $id('tax-building').value;
-
+  const filterMonth = $id('tax-month').value;
   let expenses = expenseData || [];
-
   const byBuilding = { V1:[], V2:[], V3:[], V4:[] };
   expenses.forEach(e => { if (byBuilding[e['อาคาร']]) byBuilding[e['อาคาร']].push(e); });
 
@@ -744,72 +744,58 @@ async function renderTaxBuyReport(container) {
     const vExps = byBuilding[v];
     if (!vExps.length) return;
     const co = companies[v] || {};
-    let totalNV=0, totalVAT=0, totalAmt=0;
-
-    const rows = vExps.map((e, i) => {
-      const amt    = parseFloat(e['จำนวนเงิน'])||0;
-      const vat    = parseFloat(e['ภาษีหัก ณ ที่จ่าย'])||0;
-      const isVat  = vat > 0;
-      const base   = isVat ? amt / 1.07 : amt;
-      const vatAmt = isVat ? amt - base : 0;
-      if (isVat) totalVAT += vatAmt; else totalNV += amt;
-      totalAmt += amt;
+    let totalAmt=0, totalVAT=0;
+    const rows = vExps.map((e,i) => {
+      const amt   = parseFloat(e['จำนวนเงิน'])||0;
+      const isVat = (parseFloat(e['ภาษีหัก ณ ที่จ่าย'])||0) > 0;
+      const base  = isVat ? amt/1.07 : amt;
+      const vat   = isVat ? amt-base : 0;
+      totalAmt += amt; if(isVat) totalVAT += vat;
       return `<tr>
-        <td class="tc">${i+1}</td>
-        <td class="tc">${fmtDateShort(e['วันที่'])}</td>
-        <td>${e['ID']||''}</td>
-        <td>${e['ผู้รับเงิน']||''}</td>
-        <td>-</td>
-        <td>${e['หมวดหมู่']||''}</td>
-        <td class="tc">${isVat ? 'Vat' : 'Non Vat'}</td>
-        <td class="tr">${fmt(isVat ? base : amt)}</td>
-        <td class="tr">${fmt(vatAmt)}</td>
+        <td class="tc">${i+1}</td><td class="tc">${fmtDateShort(e['วันที่'])}</td>
+        <td>${e['ID']||''}</td><td>${e['ผู้รับเงิน']||''}</td>
+        <td>-</td><td>${e['หมวดหมู่']||''}</td>
+        <td class="tc">${isVat?'Vat':'Non Vat'}</td>
+        <td class="tr">${fmt(isVat?base:amt)}</td>
+        <td class="tr">${fmt(vat)}</td>
       </tr>`;
     }).join('');
-
-    const reportMonth = filterMonth ? thaiMonth(filterMonth) : '—';
-
     html += `<div class="doc-page">
       <div class="tax-report-header">
         <h2>บัญชีรายงานภาษีซื้อ</h2>
         <div class="co-name">${co.name||v} (สำนักงานใหญ่)</div>
         <div class="meta">
-          <div>ชื่อผู้ประกอบการ: ${co.name||v}<br>
-          เลขประจำตัวผู้เสียภาษี: ${co.taxId||''}</div>
-          <div style="text-align:right">ประจำเดือน: <strong>${reportMonth}</strong></div>
+          <div>ชื่อผู้ประกอบการ: ${co.name||v}<br>เลขประจำตัวผู้เสียภาษี: ${co.taxId||''}</div>
+          <div style="text-align:right">ประจำเดือน: <strong>${filterMonth ? thaiMonth(filterMonth) : '—'}</strong></div>
         </div>
       </div>
       <table class="tax-table">
-        <thead>
-          <tr>
-            <th style="width:30px">ลำดับ</th>
-            <th style="width:72px">วัน/เดือน/ปี</th>
-            <th style="width:80px" class="tl">เลขที่ใบกำกับ/ใบรับ</th>
-            <th class="tl">ชื่อผู้ขาย/ผู้ให้บริการ</th>
-            <th style="width:80px">เลขประจำตัวฯ ผู้ขาย</th>
-            <th style="width:100px" class="tl">รายการ</th>
-            <th style="width:60px">Non Vat/Vat</th>
-            <th style="width:90px">มูลค่าสินค้า</th>
-            <th style="width:80px">ภาษีมูลค่าเพิ่ม</th>
-          </tr>
-        </thead>
+        <thead><tr>
+          <th style="width:30px">ลำดับ</th><th style="width:72px">วัน/เดือน/ปี</th>
+          <th style="width:80px" class="tl">เลขที่ใบกำกับ/ใบรับ</th>
+          <th class="tl">ชื่อผู้ขาย/ผู้ให้บริการ</th>
+          <th style="width:80px">เลขประจำตัวฯ ผู้ขาย</th>
+          <th style="width:100px" class="tl">รายการ</th>
+          <th style="width:60px">Non Vat/Vat</th>
+          <th style="width:90px">มูลค่าสินค้า</th>
+          <th style="width:80px">ภาษีมูลค่าเพิ่ม</th>
+        </tr></thead>
         <tbody>
           ${rows}
           <tr class="total-row">
             <td colspan="7" class="tr">รวม</td>
-            <td class="tr">${fmt(totalNV + (totalAmt - totalVAT - totalNV))}</td>
+            <td class="tr">${fmt(totalAmt-totalVAT)}</td>
             <td class="tr">${fmt(totalVAT)}</td>
           </tr>
         </tbody>
       </table>
       <div class="tax-sig-grid">
-        <div class="sig-box"><div class="sig-line"></div>ผู้จัดทำ<br><span class="sig-sub">(............../............../.............)</span></div>
-        <div class="sig-box"><div class="sig-line"></div>ผู้ตรวจสอบ<br><span class="sig-sub">(............../............../.............)</span></div>
-        <div class="sig-box"><div class="sig-line"></div>ผู้อนุมัติ<br><span class="sig-sub">(............../............../.............)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้จัดทำ<br><span class="sig-sub">(........../.........../..........)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้ตรวจสอบ<br><span class="sig-sub">(........../.........../..........)</span></div>
+        <div class="sig-box"><div class="sig-line2"></div>ผู้อนุมัติ<br><span class="sig-sub">(........../.........../..........)</span></div>
       </div>
     </div>`;
   });
-
   container.innerHTML = html || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูลรายจ่าย กรุณาเลือกเดือนและกดแสดงรายงาน</p>';
 }
 </script>
