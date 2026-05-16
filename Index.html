@@ -1797,11 +1797,302 @@ document.querySelectorAll('input[name="print-doc-type"]').forEach(radio => {
   });
 });
 
+// ── Invoice rendering helpers (srcdoc) ──────────────────────
+const _invFmt  = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const _invFmt0 = n => Number(n||0).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0});
+const _thaiMonths = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function _fmtDateThai(d) {
+  if (!d) return '';
+  try { const dt = (d instanceof Date) ? d : new Date(d); if(isNaN(dt)) return String(d);
+    return dt.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'}); } catch(e){ return String(d); }
+}
+function _todayThai() { return _fmtDateThai(new Date()); }
+function _numToThai(amount) {
+  const n = Math.round(parseFloat(amount||0)*100)/100;
+  if (n===0) return 'ศูนย์บาทถ้วน';
+  const ones=['','หนึ่ง','สอง','สาม','สี่','ห้า','หก','เจ็ด','แปด','เก้า'];
+  function b100(n){if(!n)return'';if(n<10)return ones[n];const t=Math.floor(n/10),u=n%10;let s=t===1?'สิบ':t===2?'ยี่สิบ':ones[t]+'สิบ';if(u===1&&t>0)s+='เอ็ด';else if(u>0)s+=ones[u];return s;}
+  function b1000(n){if(!n)return'';const h=Math.floor(n/100),r=n%100;return(h?ones[h]+'ร้อย':'')+b100(r);}
+  function conv(n){if(!n)return'';let s='';if(n>=1000000){s+=conv(Math.floor(n/1000000))+'ล้าน';n%=1000000;}
+    if(n>=100000){s+=ones[Math.floor(n/100000)]+'แสน';n%=100000;}if(n>=10000){s+=ones[Math.floor(n/10000)]+'หมื่น';n%=10000;}
+    if(n>=1000){s+=ones[Math.floor(n/1000)]+'พัน';n%=1000;}return s+b1000(n);}
+  const p=n.toFixed(2).split('.');const baht=parseInt(p[0]);const sat=parseInt(p[1]||'0');
+  let r=baht>0?conv(baht)+'บาท':'';r+=sat>0?b100(sat)+'สตางค์':'ถ้วน';return r;
+}
+function _parseExtraItems(bill) {
+  const note = bill['หมายเหตุบิล']||''; const match=note.match(/^(\[.*?\])/s);
+  let extras=[],plainNote=note;
+  if(match){try{extras=JSON.parse(match[1]);plainNote=note.slice(match[0].length).trim();}catch(e){}}
+  return {extras,plainNote};
+}
+function _findExtra(extras,keywords) {
+  const kw=keywords.map(k=>k.toLowerCase());
+  for(const ex of extras){const cat=(ex.cat||'').toLowerCase();if(kw.some(k=>cat.includes(k)))return{amt:parseFloat(ex.amt)||0,desc:ex.desc||'',cat:ex.cat||''};}
+  return{amt:0,desc:'',cat:''};
+}
+function _getUnmatchedExtras(extras) {
+  const fixed=['internet','อินเตอร์','ปรับ','ทีวี','ตู้เย็น','เฟอร์','furniture','voucher','gift','คูปอง','ส่วนกลาง'];
+  return extras.filter(ex=>!fixed.some(k=>(ex.cat||'').toLowerCase().includes(k)));
+}
+function _calcVat(bill,nvItems) {
+  const rent=parseFloat(bill['ค่าห้อง'])||0,water=parseFloat(bill['ค่าน้ำ'])||0,elec=parseFloat(bill['ค่าไฟ'])||0;
+  const{extras}=_parseExtraItems(bill);let nvTotal=0,vatIncTotal=0;
+  if(nvItems.includes('ค่าเช่า'))nvTotal+=rent;else vatIncTotal+=rent;
+  vatIncTotal+=water+elec;
+  extras.forEach(ex=>{const amt=parseFloat(ex.amt)||0;const matched=nvItems.some(nv=>(ex.cat||'').toLowerCase().includes(nv.toLowerCase()));if(matched)nvTotal+=amt;else vatIncTotal+=amt;});
+  const vatBase=vatIncTotal/1.07,vat=vatIncTotal-vatBase;
+  return{nvTotal,vatIncTotal,vatBase,vat,grandTotal:nvTotal+vatIncTotal};
+}
+function _buildItemRows(bill) {
+  const{extras}=_parseExtraItems(bill);
+  const rent=parseFloat(bill['ค่าห้อง'])||0,water=parseFloat(bill['ค่าน้ำ'])||0,elec=parseFloat(bill['ค่าไฟ'])||0;
+  const wPrev=bill['หน่วยน้ำก่อน']||'',wCurr=bill['หน่วยน้ำปัจจุบัน']||'';
+  const wUsed=bill['หน่วยน้ำใช้']||0,wRate=parseFloat(bill['อัตราน้ำ'])||0;
+  const ePrev=bill['หน่วยไฟก่อน']||'',eCurr=bill['หน่วยไฟปัจจุบัน']||'';
+  const eUsed=bill['หน่วยไฟใช้']||0,eRate=parseFloat(bill['อัตราไฟ'])||0;
+  const internet=_findExtra(extras,['internet','อินเตอร์']),penalty=_findExtra(extras,['ปรับ']);
+  const tv=_findExtra(extras,['ทีวี','ตู้เย็น']),furniture=_findExtra(extras,['เฟอร์','furniture']);
+  const voucher=_findExtra(extras,['voucher','gift','คูปอง']),communal=_findExtra(extras,['ส่วนกลาง']);
+  const unmatched=_getUnmatchedExtras(extras);
+  const wMeter=(wPrev||wCurr)?` [ ${wPrev} - ${wCurr} ]`:'';
+  const eMeter=(ePrev||eCurr)?` [ ${ePrev} - ${eCurr} ]`:'';
+  function row(n,label,qty,rate,amt){
+    return`<tr><td class="tc">${n}.</td><td>${label}</td><td class="tc">${qty?_invFmt0(qty):''}</td><td class="tr">${rate?_invFmt(rate):''}</td><td class="tr">${amt?_invFmt(amt):'-'}</td></tr>`;
+  }
+  let h='';
+  h+=row(1,'ค่าเช่า','','',rent);
+  h+=row(2,`ค่าInternet${internet.desc?' ('+internet.desc+')':''}`, '','',internet.amt);
+  h+=row(3,`ค่าน้ำประปา${wMeter}`,wUsed,wRate,water);
+  h+=row(4,`ค่าไฟฟ้า${eMeter}`,eUsed,eRate,elec);
+  h+=row(5,`ค่าปรับล่าช้า${penalty.desc?' ('+penalty.desc+')':''}`, '','',penalty.amt);
+  h+=row(6,`ค่าเช่าทีวี/ตู้เย็น${tv.desc?' ('+tv.desc+')':''}`, '','',tv.amt);
+  h+=row(7,`ค่าเช่าเฟอร์นิเจอร์${furniture.desc?' ('+furniture.desc+')':''}`, '','',furniture.amt);
+  h+=row(8,`Gift Voucher${voucher.desc?' ('+voucher.desc+')':''}`, '','',voucher.amt);
+  h+=row(9,`ค่าส่วนกลาง${communal.desc?' ('+communal.desc+')':''}`, '','',communal.amt);
+  let seq=10;unmatched.forEach(ex=>{if((parseFloat(ex.amt)||0)>0)h+=row(seq++,`${ex.cat}${ex.desc?' ('+ex.desc+')':''}`, '','',parseFloat(ex.amt)||0);});
+  return h;
+}
+function _buildInvoicePage(bill,companies) {
+  const co=companies[bill['อาคาร']]||{};
+  const{extras,plainNote}=_parseExtraItems(bill);
+  const rent=parseFloat(bill['ค่าห้อง'])||0,water=parseFloat(bill['ค่าน้ำ'])||0,elec=parseFloat(bill['ค่าไฟ'])||0;
+  const extraTotal=extras.reduce((s,e)=>s+(parseFloat(e.amt)||0),0);
+  const subTotal=rent+water+elec+extraTotal;
+  const grandTotal=parseFloat(bill['รวม'])||subTotal;
+  const discount=Math.max(0,subTotal-grandTotal);
+  const issueDate=_todayThai();
+  const docNo=bill['เลขที่ใบกำกับ']||'-',tenant=bill['ผู้เช่า']||'-';
+  const tenantAddr=(bill.roomData&&bill.roomData['หมายเหตุ'])||'';
+  const coTaxFmt=(co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
+  const noteText=`กรุณาโอนเงินก่อนวันที่ 5 ของทุกเดือน หากเกินกำหนด มีค่าปรับวันละ 100 บาท และหากปรับเกินกำหนดถึงขั้นตัดน้ำตัดไฟ ลูกค้าต้องจ่ายค่าต่อมิเตอร์น้ำ-ไฟ 1,000 บาท${plainNote?' / '+plainNote:''}`;
+  return`<div class="doc-page">
+  <div class="inv-header">
+    <div><div class="inv-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+    <div class="inv-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div></div>
+    <div class="inv-right"><div class="inv-title-th">ใบแจ้งหนี้ (ต้นฉบับ)</div>
+    <div class="inv-title-en">INVOICE (ORIGINAL)</div>
+    <div class="inv-taxid">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div></div>
+  </div>
+  <table class="tenant-box">
+    <tr><td class="lbl">ชื่อ</td><td class="val">${tenant}</td><td class="lbl2">เลขที่เอกสาร</td><td class="val2">${docNo}</td></tr>
+    <tr><td class="lbl">ที่อยู่</td><td class="val">${tenantAddr}</td><td class="lbl2">วันที่</td><td class="val2">${issueDate}</td></tr>
+    <tr><td class="lbl">เลขประจำตัวผู้เสียภาษีอากร</td><td class="val"></td><td class="lbl2">ห้อง</td><td class="val2">${bill['ห้อง']}</td></tr>
+  </table>
+  <table class="items-table">
+    <thead><tr><th style="width:28px">ลำดับที่</th><th class="tl">รายการ</th><th style="width:55px">จำนวน</th><th style="width:75px">ราคา/หน่วย</th><th style="width:90px">จำนวนเงิน</th></tr></thead>
+    <tbody>${_buildItemRows(bill)}
+      <tr><td class="note-cell" rowspan="3" colspan="3">${noteText}</td><td class="total-lbl">รวม</td><td class="total-amt">${_invFmt(subTotal)}</td></tr>
+      <tr><td class="total-lbl">หักส่วนลดอื่นๆ</td><td class="total-amt">${discount>0?_invFmt(discount):'-'}</td></tr>
+      <tr><td class="total-lbl grand">รวมทั้งสิ้น</td><td class="total-amt grand">${_invFmt(grandTotal)}</td></tr>
+      <tr><td class="words-lbl" colspan="2">ยอดเงินรวม (ตัวอักษร)</td><td class="words-val" colspan="3">( ${_numToThai(grandTotal)} )</td></tr>
+    </tbody>
+  </table>
+  <div class="sig-section">
+    <div class="sig-col"><div class="sig-line"></div><div style="font-size:11px">ว่าที่ร้อยตรี</div><div style="font-size:11px">ผู้จัดทำ</div><div class="sig-date">วันที่..../..../.....</div></div>
+    <div class="sig-col"><div class="sig-line"></div><div style="font-size:11px">&nbsp;</div><div style="font-size:11px">ผู้มีอำนาจลงนาม</div><div class="sig-date">วันที่..../..../.....</div></div>
+  </div>
+  <hr class="cut-line">
+  ${_buildBankSlip(bill,co,tenant,docNo,issueDate,grandTotal,coTaxFmt)}
+</div>`;
+}
+function _buildBankSlip(bill,co,tenant,docNo,issueDate,grandTotal,coTaxFmt) {
+  const bank1=co.bank1||'',bank2=co.bank2||'';
+  return`<div>
+  <div class="slip-header">
+    <div><div class="slip-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+    <div class="slip-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div></div>
+    <div><div class="slip-title-th">ใบแจ้งการชำระเงิน (สำหรับธนาคาร)</div><div class="slip-title-en">BILL PAYMENT (BANK ONLY)</div></div>
+  </div>
+  <div class="slip-body">
+    <div class="slip-bank-box">
+      <div class="co-line">เพื่อนำเข้าบัญชีกระแสรายวัน ${co.name||''}</div>
+      <div class="taxid-line">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div>
+      ${bank1?`<div class="slip-bank-acct"><input type="checkbox" checked disabled><span>${bank1}</span></div>`:''}
+      ${bank2?`<div class="slip-bank-acct"><input type="checkbox" disabled><span>${bank2}</span></div>`:''}
+      ${!bank1&&!bank2?'<div style="color:#999;font-size:10px">ยังไม่ได้กำหนดบัญชีธนาคาร</div>':''}
+    </div>
+    <div class="slip-form">
+      <div class="slip-form-row"><span class="fl">วันที่ DATE</span><span class="fv">${issueDate}</span></div>
+      <div class="slip-form-row"><span class="fl">ชื่อลูกค้า NAME</span><span class="fv">${tenant}</span></div>
+      <div class="slip-form-row"><span class="fl">วันครบกำหนดชำระ DUE DATE</span><span class="fv"></span></div>
+      <div class="slip-form-row"><span class="fl">เลขที่อ้างอิง REF.NO.1</span><span class="fv">${bill['ห้อง']}</span></div>
+      <div class="slip-form-row"><span class="fl">เลขที่อ้างอิง REF.NO.2</span><span class="fv"></span></div>
+    </div>
+  </div>
+  <table class="slip-pay-table">
+    <thead><tr>
+      <th style="width:25%">ยอดเงินสด<br>AMOUNT IN CASH</th>
+      <th style="width:25%">หมายเลขเช็ค<br>CHEQUE NO.</th>
+      <th style="width:30%">ชื่อธนาคาร / สาขา<br>BANK / BRANCH</th>
+      <th style="width:20%">จำนวนเงิน<br>AMOUNT</th>
+    </tr></thead>
+    <tbody><tr><td>&nbsp;</td><td></td><td></td><td></td></tr><tr><td>&nbsp;</td><td></td><td></td><td></td></tr></tbody>
+  </table>
+  <div class="slip-words-row">
+    <div class="wl">จำนวนเงินเป็นตัวอักษร<br><small>TOTAL AMOUNT</small></div>
+    <div class="wr">บาท<br><small>BAHT</small></div>
+  </div>
+  <div class="slip-notes">
+    กรุณาโอนเงินก่อนวันที่ 5 ของทุกเดือน หากเกินกำหนด มีค่าปรับวันละ 100 บาท<br>
+    และหากปรับเกินกำหนดถึงขั้นตัดน้ำตัดไฟ ลูกค้าต้องจ่ายค่าต่อมิเตอร์น้ำ-ไฟ 1,000 บาท<br>
+    กรุณาเก็บใบแจ้งการชำระเงินไว้เป็นหลักฐาน เพื่อขอรับใบเสร็จรับเงินที่สำนักงาน ${co.name||''}<br>
+    ${co.prevName?co.prevName+' เปลี่ยนชื่อเป็น '+co.name:''}
+  </div>
+</div>`;
+}
+function _buildReceiptPage(bill,companies) {
+  const co=companies[bill['อาคาร']]||{};
+  const nvItems=['ค่าเช่า'];
+  const{extras,plainNote}=_parseExtraItems(bill);
+  const{nvTotal,vatBase,vat,grandTotal}=_calcVat(bill,nvItems);
+  const rent=parseFloat(bill['ค่าห้อง'])||0,water=parseFloat(bill['ค่าน้ำ'])||0,elec=parseFloat(bill['ค่าไฟ'])||0;
+  const extraTotal=extras.reduce((s,e)=>s+(parseFloat(e.amt)||0),0);
+  const subTotal=rent+water+elec+extraTotal;
+  const payDate=bill['วันที่ชำระ']?_fmtDateThai(bill['วันที่ชำระ']):_todayThai();
+  const docNo=bill['เลขที่ใบกำกับ']||'-',tenant=bill['ผู้เช่า']||'-';
+  const tenantAddr=(bill.roomData&&bill.roomData['หมายเหตุ'])||'';
+  const coTaxFmt=(co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
+  return`<div class="doc-page">
+  <div class="paid-stamp">ชำระแล้ว</div>
+  <div class="inv-header">
+    <div><div class="inv-co-name">${co.name||''} (สำนักงานใหญ่)</div>
+    <div class="inv-co-addr">${co.address||''}<br>โทรศัพท์ ${co.phone||''}  แฟกซ์ ${co.fax||''}</div></div>
+    <div class="inv-right"><div class="inv-title-th">ใบเสร็จรับเงิน / ใบกำกับภาษีอย่างย่อ (ต้นฉบับ)</div>
+    <div class="inv-title-en">TAX INVOICE / RECEIPT (ORIGINAL)</div>
+    <div class="inv-taxid">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div></div>
+  </div>
+  <table class="tenant-box">
+    <tr><td class="lbl">ชื่อ</td><td class="val">${tenant}</td><td class="lbl2">เลขที่เอกสาร</td><td class="val2">${docNo}</td></tr>
+    <tr><td class="lbl">ที่อยู่</td><td class="val">${tenantAddr}</td><td class="lbl2">วันที่ชำระ</td><td class="val2" style="color:#2e7d32">${payDate}</td></tr>
+    <tr><td class="lbl">เลขประจำตัวผู้เสียภาษีอากร</td><td class="val"></td><td class="lbl2">ห้อง</td><td class="val2">${bill['ห้อง']}</td></tr>
+  </table>
+  <table class="items-table">
+    <thead><tr><th style="width:28px">ลำดับที่</th><th class="tl">รายการ</th><th style="width:55px">จำนวน</th><th style="width:75px">ราคา/หน่วย</th><th style="width:90px">จำนวนเงิน</th></tr></thead>
+    <tbody>${_buildItemRows(bill)}
+      <tr class="vat-row"><td colspan="4" style="text-align:right">รวม</td><td style="text-align:right">${_invFmt(subTotal)}</td></tr>
+      <tr class="vat-row"><td colspan="4" style="text-align:right">มูลค่าสินค้าที่ไม่รวม VAT (NV)</td><td style="text-align:right">${_invFmt(nvTotal)}</td></tr>
+      <tr class="vat-row"><td colspan="4" style="text-align:right">มูลค่าสินค้าที่รวม VAT 7% (V)</td><td style="text-align:right">${_invFmt(vatBase)}</td></tr>
+      <tr class="vat-row"><td colspan="4" style="text-align:right">ภาษีมูลค่าเพิ่ม 7%</td><td style="text-align:right">${_invFmt(vat)}</td></tr>
+      <tr class="grand-row"><td colspan="4" style="text-align:right">รวมทั้งสิ้น</td><td style="text-align:right">${_invFmt(grandTotal)}</td></tr>
+      <tr><td class="words-lbl" colspan="2">ยอดเงินรวม (ตัวอักษร)</td><td class="words-val" colspan="3">( ${_numToThai(grandTotal)} )</td></tr>
+    </tbody>
+  </table>
+  ${plainNote?`<p style="font-size:11px;color:#555;margin-top:2mm">หมายเหตุ: ${plainNote}</p>`:''}
+  <div class="sig-section" style="margin-top:6mm">
+    <div class="sig-col"><div class="sig-line"></div><div>ว่าที่ร้อยตรี</div><div>ผู้รับเงิน</div><div class="sig-date">วันที่..../..../.....</div></div>
+    <div class="sig-col"><div class="sig-line"></div><div>&nbsp;</div><div>ผู้ชำระเงิน</div><div class="sig-date">วันที่..../..../.....</div></div>
+  </div>
+</div>`;
+}
+
+const _INV_CSS = `@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#212121;padding:12px;}
+.page-container{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
+.page-separator{text-align:center;color:#999;font-size:11px;padding:4px 0;display:flex;align-items:center;gap:8px;}
+.page-separator::before,.page-separator::after{content:'';flex:1;height:1px;background:#ccc;}
+.doc-page{background:#fff;width:100%;padding:6mm 8mm;box-shadow:0 2px 8px rgba(0,0,0,.2);position:relative;}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #000;padding-bottom:3mm;margin-bottom:2mm;}
+.inv-co-name{font-size:15px;font-weight:700;margin-bottom:1mm;}
+.inv-co-addr{font-size:11px;color:#222;line-height:1.5;}
+.inv-right{text-align:right;}
+.inv-title-th{font-size:17px;font-weight:700;}
+.inv-title-en{font-size:11px;color:#333;margin-top:1px;}
+.inv-taxid{font-size:11px;margin-top:3px;}
+.tenant-box{width:100%;border-collapse:collapse;margin-bottom:2mm;border:1px solid #333;font-size:12px;}
+.tenant-box td{padding:2px 5px;vertical-align:top;}
+.tenant-box .lbl{white-space:nowrap;color:#333;width:120px;border-right:1px solid #ccc;}
+.tenant-box .val{font-weight:600;}
+.tenant-box .lbl2{white-space:nowrap;color:#333;width:90px;border-left:1px solid #aaa;border-right:1px solid #ccc;padding-left:6px;}
+.tenant-box .val2{font-weight:600;}
+.tenant-box tr{border-bottom:1px dotted #bbb;}
+.tenant-box tr:last-child{border-bottom:none;}
+.items-table{width:100%;border-collapse:collapse;font-size:12px;}
+.items-table th{background:#000;color:#fff;padding:3px 5px;text-align:center;border:1px solid #555;font-size:11px;font-weight:600;}
+.items-table th.tl{text-align:left;}
+.items-table td{padding:2px 5px;border:1px solid #aaa;vertical-align:middle;min-height:18px;}
+.items-table td.tr{text-align:right;}
+.items-table td.tc{text-align:center;}
+.items-table .note-cell{vertical-align:top;font-size:10px;color:#333;line-height:1.5;border-top:1px solid #aaa;}
+.items-table .total-lbl{text-align:right;font-size:12px;}
+.items-table .total-lbl.grand{font-weight:700;border-top:2px solid #000;}
+.items-table .total-amt{text-align:right;font-size:12px;}
+.items-table .total-amt.grand{font-weight:700;border-top:2px solid #000;}
+.items-table .words-lbl{font-size:11px;}
+.items-table .words-val{text-align:center;font-weight:600;font-size:12px;}
+.sig-section{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:4mm;}
+.sig-col{text-align:center;font-size:11px;}
+.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
+.sig-date{font-size:10px;color:#444;margin-top:2px;}
+.cut-line{border:none;border-top:2px dashed #777;margin:3mm 0;}
+.slip-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid #333;padding-bottom:2mm;margin-bottom:2mm;}
+.slip-co-name{font-size:13px;font-weight:700;}
+.slip-co-addr{font-size:10px;color:#333;line-height:1.5;margin-top:1px;}
+.slip-title-th{font-size:14px;font-weight:700;text-align:right;}
+.slip-title-en{font-size:10px;color:#333;text-align:right;margin-top:1px;}
+.slip-body{display:grid;grid-template-columns:1fr 1fr;gap:4mm;margin-bottom:2mm;}
+.slip-bank-box{border:1px solid #333;padding:3mm;font-size:11px;line-height:1.7;}
+.slip-bank-box .co-line{font-weight:700;margin-bottom:1mm;}
+.slip-bank-box .taxid-line{margin-bottom:2mm;font-size:10px;}
+.slip-bank-acct{display:flex;align-items:flex-start;gap:4px;margin-bottom:1mm;font-size:11px;}
+.slip-bank-acct input[type=checkbox]{margin-top:2px;flex-shrink:0;}
+.slip-form{font-size:11px;}
+.slip-form-row{display:flex;border-bottom:1px dotted #aaa;padding:2px 0;margin-bottom:1px;}
+.slip-form-row .fl{white-space:nowrap;min-width:110px;color:#555;}
+.slip-form-row .fv{flex:1;font-weight:600;padding-left:4px;}
+.slip-pay-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:0;}
+.slip-pay-table th{border:1px solid #555;padding:3px 4px;text-align:center;background:#e0e0e0;font-size:10px;}
+.slip-pay-table td{border:1px solid #aaa;padding:3px 4px;height:16px;}
+.slip-pay-table td.tc{text-align:center;}
+.slip-pay-table td.tr{text-align:right;}
+.slip-words-row{display:flex;border:1px solid #aaa;border-top:none;}
+.slip-words-row .wl{flex:1;padding:2px 5px;font-size:11px;border-right:1px solid #aaa;}
+.slip-words-row .wr{width:80px;padding:2px 5px;text-align:right;font-size:11px;}
+.slip-notes{font-size:10px;color:#333;line-height:1.6;margin-top:2mm;}
+.vat-row td{background:#f0f4ff;font-size:11px;font-style:italic;}
+.grand-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;font-size:13px;}
+.paid-stamp{position:absolute;top:30%;left:50%;transform:translate(-50%,-50%) rotate(-15deg);border:4px solid #2e7d32;color:#2e7d32;font-size:28px;font-weight:700;padding:6px 18px;border-radius:8px;opacity:.2;pointer-events:none;z-index:10;}`;
+
 function _loadPreviewFrame() {
   const docType = document.querySelector('input[name="print-doc-type"]:checked')?.value || 'invoice';
-  const url = '?page=print&ids=' + _printIds.join(',') + '&type=' + docType + '&embed=1';
-  $('print-preview-frame').src = url;
   $('preview-room-count').textContent = `${_printIds.length} ห้องที่เลือก`;
+  const ids = new Set(_printIds.map(String));
+  const bills = S.bills.filter(b => ids.has(String(b['ID'])));
+  if (!bills.length) {
+    $('print-preview-frame').srcdoc = '<p style="padding:20px;color:#999">ไม่พบบิลที่เลือก</p>';
+    return;
+  }
+  let pagesHtml = '';
+  bills.forEach((bill, i) => {
+    if (i > 0) pagesHtml += '<div class="page-separator">— หน้าถัดไป —</div>';
+    pagesHtml += docType === 'invoice' ? _buildInvoicePage(bill, S.companies) : _buildReceiptPage(bill, S.companies);
+  });
+  const srcdoc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>${_INV_CSS}</style></head><body>
+<div class="page-container">${pagesHtml}</div>
+</body></html>`;
+  $('print-preview-frame').srcdoc = srcdoc;
 }
 
 $('btn-print-confirm').addEventListener('click', ()=>{
