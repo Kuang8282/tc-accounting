@@ -327,7 +327,9 @@ window.addEventListener('load', async () => {
     $id('loading-box').style.display = 'none';
     $id('print-status').textContent = `${billData.length} รายการ`;
     if (billData.length) { const m = billData[0]['เดือน']; if(m) $id('tax-month').value = m.slice(0,7); }
-    renderPages();
+    // Auto-select doc type from URL parameter
+    const urlType = params.get('type');
+    if (urlType === 'receipt') { docType = 'receipt'; setActiveTab('tab-receipt'); } else { renderPages(); }
   } catch(e) {
     $id('loading-box').innerHTML = `<p style="color:red;padding:40px">เกิดข้อผิดพลาด: ${e}</p>`;
   }
