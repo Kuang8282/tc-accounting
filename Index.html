@@ -367,13 +367,21 @@ canvas{max-width:100%;}
     <div id="dash-trend" style="display:none">
       <div class="card">
         <div class="card-title">📈 รายรับ-รายจ่าย 6 เดือนล่าสุด</div>
-        <canvas id="dash-trend-chart" height="260"></canvas>
+        <div style="position:relative;height:200px;max-width:700px;margin:0 auto">
+          <canvas id="dash-trend-chart"></canvas>
+        </div>
+        <div id="dash-trend-table" style="margin-top:12px;overflow-x:auto"></div>
       </div>
     </div>
     <div id="dash-building-panel" style="display:none">
       <div class="card">
         <div class="card-title">🏢 รายรับตามอาคารเดือนนี้</div>
-        <canvas id="dash-building-chart" height="300" style="max-width:400px;margin:0 auto;display:block"></canvas>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
+          <div id="dash-building-table"></div>
+          <div style="position:relative;height:180px">
+            <canvas id="dash-building-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
     <div id="dash-occupancy-panel" style="display:none">
@@ -1873,14 +1881,35 @@ function renderDashTrend(trend) {
   _dashCharts.trend = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: trend.map(t=>t.month),
+      labels: trend.map(t => t.month),
       datasets: [
-        { label: 'รายรับ', data: trend.map(t=>t.income), backgroundColor: 'rgba(46,125,50,0.7)', borderColor:'#2e7d32', borderWidth:1 },
-        { label: 'รายจ่าย', data: trend.map(t=>t.expense), backgroundColor: 'rgba(198,40,40,0.6)', borderColor:'#c62828', borderWidth:1 }
+        { label: 'รายรับ',  data: trend.map(t=>t.income),  backgroundColor:'rgba(46,125,50,0.7)', borderColor:'#2e7d32', borderWidth:1 },
+        { label: 'รายจ่าย', data: trend.map(t=>t.expense), backgroundColor:'rgba(198,40,40,0.55)', borderColor:'#c62828', borderWidth:1 }
       ]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top'}}, scales:{y:{beginAtZero:true}} }
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position:'top', labels:{ boxWidth:12, font:{size:11} } } },
+      scales: { y: { beginAtZero:true, ticks:{ font:{size:10}, callback: v => (v/1000)+'K' } }, x: { ticks:{ font:{size:10} } } }
+    }
   });
+  // Summary table below chart
+  const fmt2 = n => Number(n||0).toLocaleString('th-TH',{maximumFractionDigits:0});
+  const tbl = document.getElementById('dash-trend-table');
+  if(tbl) tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:#1a237e;color:#fff">
+      <th style="padding:4px 8px;text-align:left">เดือน</th>
+      <th style="padding:4px 8px;text-align:right">รายรับ</th>
+      <th style="padding:4px 8px;text-align:right">รายจ่าย</th>
+      <th style="padding:4px 8px;text-align:right">กำไร</th>
+    </tr></thead>
+    <tbody>${trend.map((t,i)=>`<tr style="background:${i%2?'#f5f5f5':'#fff'}">
+      <td style="padding:3px 8px">${t.month}</td>
+      <td style="padding:3px 8px;text-align:right;color:#2e7d32">${fmt2(t.income)}</td>
+      <td style="padding:3px 8px;text-align:right;color:#c62828">${fmt2(t.expense)}</td>
+      <td style="padding:3px 8px;text-align:right;font-weight:600;color:${(t.income-t.expense)>=0?'#1a237e':'#c62828'}">${fmt2(t.income-t.expense)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
 }
 
 function renderDashBuilding(byBuilding) {
@@ -1888,13 +1917,45 @@ function renderDashBuilding(byBuilding) {
   if(!ctx) return;
   if(_dashCharts.building) _dashCharts.building.destroy();
   _dashCharts.building = new Chart(ctx, {
-    type: 'doughnut',
+    type: 'bar',
     data: {
       labels: byBuilding.map(b=>b.building),
-      datasets: [{ data: byBuilding.map(b=>b.income), backgroundColor:['#1a237e','#1565c0','#0277bd','#01579b'], borderWidth:2 }]
+      datasets: [{ label: 'รายรับ (บาท)', data: byBuilding.map(b=>b.income),
+        backgroundColor:['rgba(26,35,126,0.8)','rgba(21,101,192,0.8)','rgba(2,119,189,0.8)','rgba(1,87,155,0.8)'],
+        borderWidth:1 }]
     },
-    options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+    options: {
+      responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+      plugins: { legend: { display:false } },
+      scales: { x: { beginAtZero:true, ticks:{ font:{size:10}, callback: v=>(v/1000)+'K' } }, y: { ticks:{ font:{size:12, weight:'bold'} } } }
+    }
   });
+  // Summary table left of chart
+  const fmt2 = n => Number(n||0).toLocaleString('th-TH',{maximumFractionDigits:0});
+  const tbl = document.getElementById('dash-building-table');
+  if(tbl) {
+    const total = byBuilding.reduce((s,b)=>s+b.income,0);
+    tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#1a237e;color:#fff">
+        <th style="padding:4px 8px;text-align:left">อาคาร</th>
+        <th style="padding:4px 8px;text-align:right">รายรับ (฿)</th>
+        <th style="padding:4px 8px;text-align:right">%</th>
+      </tr></thead>
+      <tbody>${byBuilding.map((b,i)=>{
+        const pct = total ? Math.round(b.income/total*100) : 0;
+        return `<tr style="background:${i%2?'#f5f5f5':'#fff'}">
+          <td style="padding:4px 8px;font-weight:700">${b.building}</td>
+          <td style="padding:4px 8px;text-align:right;color:#1a237e">${fmt2(b.income)}</td>
+          <td style="padding:4px 8px;text-align:right">${pct}%</td>
+        </tr>`;
+      }).join('')}
+      <tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+        <td style="padding:4px 8px">รวม</td>
+        <td style="padding:4px 8px;text-align:right;color:#1a237e">${fmt2(total)}</td>
+        <td style="padding:4px 8px;text-align:right">100%</td>
+      </tr></tbody>
+    </table>`;
+  }
 }
 
 function renderDashOccupancy(occ) {
