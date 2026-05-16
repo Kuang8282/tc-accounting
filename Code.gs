@@ -677,7 +677,13 @@ function getBills() {
   try {
     const sh = getSheet(SHEETS.BILLS);
     if (!sh) return [];
-    return sheetToObjects(sh, BILL_HEADERS);
+    return sheetToObjects(sh, BILL_HEADERS).map(b => {
+      // Sheets may auto-convert "2025-05" to a Date → normalize back to YYYY-MM
+      if (b['เดือน'] && String(b['เดือน']).length > 7) {
+        b['เดือน'] = String(b['เดือน']).slice(0, 7);
+      }
+      return b;
+    });
   } catch (err) { return []; }
 }
 
@@ -686,10 +692,12 @@ function saveBill(data) {
     const sh = getSheet(SHEETS.BILLS);
     if (!sh) return { success: false, message: 'ไม่พบ Sheet' };
 
-    // Check duplicate bill same room+month
+    // Check duplicate bill same room+month (normalize month to YYYY-MM before compare)
     const existing = sh.getDataRange().getValues();
+    const targetMonth = String(data['เดือน']).slice(0, 7);
     for (let i = 1; i < existing.length; i++) {
-      if (existing[i][1] == data['เดือน'] && existing[i][2] == data['ห้อง'] && existing[i][3] == data['อาคาร']) {
+      const rowMonth = String(cellVal_(existing[i][1])).slice(0, 7);
+      if (rowMonth === targetMonth && existing[i][2] == data['ห้อง'] && existing[i][3] == data['อาคาร']) {
         return { success: false, message: 'มีบิลห้องนี้ในเดือนนี้แล้ว' };
       }
     }
