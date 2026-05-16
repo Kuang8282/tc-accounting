@@ -485,27 +485,29 @@ canvas{max-width:100%;}
 
 <!-- Print Preview Modal -->
 <div class="modal-overlay" id="modal-print-preview">
-  <div class="modal" style="max-width:860px;width:98%">
+  <div class="modal" style="max-width:1060px;width:98%;height:92vh;display:flex;flex-direction:column">
     <div class="modal-header">
       <span class="modal-title">🖨️ ตัวอย่างก่อนพิมพ์</span>
       <button class="modal-close" data-close="modal-print-preview">×</button>
     </div>
-
     <!-- Document type selector -->
-    <div style="display:flex;gap:10px;padding:10px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;flex-wrap:wrap;align-items:center">
+    <div style="display:flex;gap:10px;padding:8px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;flex-wrap:wrap;align-items:center;flex-shrink:0">
       <strong style="font-size:13px;color:#333">ประเภทเอกสาร:</strong>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:5px 12px;border:2px solid #1a237e;border-radius:4px;background:#fff">
+      <label id="lbl-invoice" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:5px 14px;border:2px solid #1a237e;border-radius:4px;background:#fff;font-weight:700">
         <input type="radio" name="print-doc-type" value="invoice" checked> 📄 ใบแจ้งหนี้
       </label>
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:5px 12px;border:2px solid #c5cae9;border-radius:4px;background:#fff" id="lbl-receipt">
+      <label id="lbl-receipt" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;padding:5px 14px;border:2px solid #c5cae9;border-radius:4px;background:#fff">
         <input type="radio" name="print-doc-type" value="receipt"> 🧾 ใบเสร็จ / ใบกำกับภาษีอย่างย่อ
       </label>
+      <span id="preview-room-count" style="margin-left:auto;font-size:12px;color:#666"></span>
     </div>
-
-    <div id="print-preview-content" style="max-height:60vh;overflow-y:auto;border:1px solid #e0e0e0;border-radius:4px;padding:12px;background:#fafafa;margin:10px 16px"></div>
-    <div class="modal-footer" style="gap:8px">
+    <!-- Full-document iframe preview -->
+    <div style="flex:1;overflow:hidden;background:#e0e0e0">
+      <iframe id="print-preview-frame" style="width:100%;height:100%;border:none" src="about:blank"></iframe>
+    </div>
+    <div class="modal-footer" style="gap:8px;flex-shrink:0">
       <button class="btn btn-outline btn-primary" data-close="modal-print-preview">ปิด</button>
-      <button class="btn btn-primary" id="btn-print-confirm">🖨️ พิมพ์จริง</button>
+      <button class="btn btn-primary" id="btn-print-confirm">🖨️ พิมพ์</button>
     </div>
   </div>
 </div>
@@ -1780,98 +1782,34 @@ let _printIds = [];
 $('btn-do-print').addEventListener('click', ()=>{
   _printIds = [...document.querySelectorAll('.print-check:checked')].map(c=>c.dataset.id);
   if(!_printIds.length) { showAlert('กรุณาเลือกห้องที่จะพิมพ์','error'); return; }
-  renderPrintPreview(_printIds);
   openModal('modal-print-preview');
+  _loadPreviewFrame();
 });
 
-// Highlight selected doc type radio
+// Update iframe and highlight when doc type changes
 document.querySelectorAll('input[name="print-doc-type"]').forEach(radio => {
   radio.addEventListener('change', () => {
     document.querySelectorAll('input[name="print-doc-type"]').forEach(r => {
-      r.closest('label').style.borderColor = r.checked ? '#1a237e' : '#c5cae9';
-      r.closest('label').style.fontWeight  = r.checked ? '700' : 'normal';
+      r.closest('label').style.borderColor  = r.checked ? '#1a237e' : '#c5cae9';
+      r.closest('label').style.fontWeight   = r.checked ? '700' : 'normal';
     });
+    if (_printIds.length) _loadPreviewFrame();
   });
 });
+
+function _loadPreviewFrame() {
+  const docType = document.querySelector('input[name="print-doc-type"]:checked')?.value || 'invoice';
+  const url = '?page=print&ids=' + _printIds.join(',') + '&type=' + docType + '&embed=1';
+  $('print-preview-frame').src = url;
+  $('preview-room-count').textContent = `${_printIds.length} ห้องที่เลือก`;
+}
 
 $('btn-print-confirm').addEventListener('click', ()=>{
-  if(!_printIds.length) return;
+  if (!_printIds.length) return;
   const docType = document.querySelector('input[name="print-doc-type"]:checked')?.value || 'invoice';
   window.open('?page=print&ids=' + _printIds.join(',') + '&type=' + docType, '_blank');
-  closeModal('modal-print-preview');
 });
 
-function renderPrintPreview(ids) {
-  const selected = S.bills.filter(b => ids.includes(String(b['ID'])));
-
-  // Group by building for display
-  const summary = {};
-  selected.forEach(b => {
-    if (!summary[b['อาคาร']]) summary[b['อาคาร']] = { count:0, total:0 };
-    summary[b['อาคาร']].count++;
-    summary[b['อาคาร']].total += parseFloat(b['รวม'])||0;
-  });
-  const grandTotal = selected.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
-
-  const summaryHtml = `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-    ${Object.entries(summary).map(([bld,d])=>`
-      <div style="background:#e8eaf6;border-radius:6px;padding:6px 14px;font-size:13px">
-        <strong>${bld}</strong> — ${d.count} ห้อง — <span style="color:#1a237e;font-weight:700">${fmt(d.total)} ฿</span>
-      </div>`).join('')}
-    <div style="background:#1a237e;color:#fff;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700;margin-left:auto">
-      รวมทั้งหมด ${fmt(grandTotal)} ฿
-    </div>
-  </div>`;
-
-  const rows = selected.map(b => {
-    const co = S.companies[b['อาคาร']] || {};
-    const stCls = b['สถานะ']==='ชำระแล้ว' ? 'status-paid' : 'status-pending';
-    const wUsed = b['หน่วยน้ำใช้']||0, wRate = parseFloat(b['อัตราน้ำ'])||0;
-    const eUsed = b['หน่วยไฟใช้']||0, eRate = parseFloat(b['อัตราไฟ'])||0;
-    // Parse extras
-    const note = b['หมายเหตุบิล']||'';
-    const m = note.match(/^(\[.*?\])/s);
-    let extras = [];
-    if (m) { try { extras = JSON.parse(m[1]); } catch(e){} }
-    const extraRows = extras.filter(e=>parseFloat(e.amt)>0)
-      .map(e=>`<td style="text-align:right">${fmt(e.amt)}</td><td style="font-size:11px;color:#666">${e.cat}</td>`)
-      .join('') || '';
-    return `<div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 12px;margin-bottom:8px;background:#fff;font-size:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <div>
-          <strong style="font-size:14px">ห้อง ${b['ห้อง']}</strong>
-          <span style="color:#666;margin-left:6px">(${b['อาคาร']}) ${b['ผู้เช่า']||''}</span>
-          <span style="margin-left:8px;font-size:11px;color:#888">เดือน ${b['เดือน']}</span>
-        </div>
-        <span class="status ${stCls}">${b['สถานะ']}</span>
-      </div>
-      <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <tr>
-          <td style="color:#555;width:80px">เลขที่:</td><td style="color:#888">${b['เลขที่ใบกำกับ']||b['ID']}</td>
-          <td style="text-align:right;color:#555">ค่าเช่า:</td><td style="text-align:right;width:90px;font-weight:600">${fmt(b['ค่าห้อง'])} ฿</td>
-        </tr>
-        <tr>
-          <td style="color:#555">น้ำ:</td><td style="color:#666">${b['หน่วยน้ำก่อน']||0} → ${b['หน่วยน้ำปัจจุบัน']||0} (${wUsed} หน่วย × ${wRate})</td>
-          <td style="text-align:right;color:#555">ค่าน้ำ:</td><td style="text-align:right;font-weight:600">${fmt(b['ค่าน้ำ'])} ฿</td>
-        </tr>
-        <tr>
-          <td style="color:#555">ไฟ:</td><td style="color:#666">${b['หน่วยไฟก่อน']||0} → ${b['หน่วยไฟปัจจุบัน']||0} (${eUsed} หน่วย × ${eRate})</td>
-          <td style="text-align:right;color:#555">ค่าไฟ:</td><td style="text-align:right;font-weight:600">${fmt(b['ค่าไฟ'])} ฿</td>
-        </tr>
-        ${extras.filter(e=>parseFloat(e.amt)>0).map(e=>`<tr>
-          <td colspan="2" style="color:#6a1b9a">${e.cat}${e.desc?' ('+e.desc+')':''}</td>
-          <td style="text-align:right;color:#555"></td>
-          <td style="text-align:right;font-weight:600">${fmt(e.amt)} ฿</td>
-        </tr>`).join('')}
-      </table>
-      <div style="text-align:right;font-weight:700;font-size:15px;margin-top:6px;padding-top:6px;border-top:1px solid #e0e0e0;color:#1a237e">
-        รวม ${fmt(b['รวม'])} ฿
-      </div>
-    </div>`;
-  }).join('');
-
-  $('print-preview-content').innerHTML = summaryHtml + rows || '<p class="text-muted">ไม่มีข้อมูล</p>';
-}
 
 // ============================================================
 // EXTRA INCOME ITEMS in Bill Modal

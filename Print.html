@@ -314,6 +314,13 @@ $id('btn-render-tax').addEventListener('click', renderPages);
 // ── Load ──────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   const params = new URLSearchParams(window.location.search);
+  // Hide controls bar and selector when embedded in iframe preview
+  if (params.get('embed') === '1') {
+    const ctrl = document.querySelector('.print-controls');
+    const sel  = document.querySelector('.doc-selector');
+    if (ctrl) ctrl.style.display = 'none';
+    if (sel)  sel.style.display  = 'none';
+  }
   const idsStr = params.get('ids');
   if (!idsStr) { $id('loading-box').innerHTML='<p style="color:red;padding:40px">ไม่มีข้อมูล</p>'; return; }
   const ids = idsStr.split(',').map(s=>s.trim()).filter(Boolean);
