@@ -102,6 +102,15 @@ tbody td{padding:7px 10px;vertical-align:middle;}
 .print-list-item:hover{background:#f5f5f5;}
 /* MISC */
 .divider{height:1px;background:var(--border);margin:12px 0;}
+/* DASHBOARD BUILDING DETAIL */
+.bld-detail-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:14px;}
+.bld-detail-table th{background:#1a237e;color:#fff;padding:5px 8px;text-align:right;font-size:11px;font-weight:600;white-space:nowrap;}
+.bld-detail-table th:first-child{text-align:center;}
+.bld-detail-table td{padding:5px 8px;border-bottom:1px solid #e8eaf6;text-align:right;white-space:nowrap;}
+.bld-detail-table td:first-child{text-align:center;font-weight:700;font-size:13px;}
+.bld-detail-table tr:last-child td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;border-bottom:none;}
+.bld-detail-table tr:hover td{background:#f5f5f5;}
+.bld-detail-table tr:last-child:hover td{background:#e8eaf6;}
 canvas{max-width:100%;}
 .text-muted{color:var(--muted);}
 .text-success{color:var(--success);}
@@ -363,6 +372,10 @@ canvas{max-width:100%;}
     </div>
     <div id="dash-overview">
       <div class="stat-grid" id="dash-stat-cards"></div>
+      <div class="card" style="margin-top:12px;padding:12px 16px">
+        <div class="card-title" style="margin-bottom:4px">🏢 รายละเอียดแยกตามอาคาร — เดือนนี้</div>
+        <div id="dash-bld-detail"></div>
+      </div>
     </div>
     <div id="dash-trend" style="display:none">
       <div class="card">
@@ -2413,6 +2426,9 @@ document.querySelectorAll('.sub-tab[data-dash]').forEach(btn => {
 
 function renderDashStats(d) {
   const fmt2 = n => Number(n||0).toLocaleString('th-TH', {maximumFractionDigits:0});
+  const fmt2b = n => Number(n||0).toLocaleString('th-TH', {minimumFractionDigits:0, maximumFractionDigits:0});
+
+  // Summary stat cards (รวมทุก V)
   $('dash-stat-cards').innerHTML = `
     <div class="stat-card income"><div class="label">💰 รายรับเดือนนี้</div><div class="value">${fmt2(d.monthIncome)}</div></div>
     <div class="stat-card expense"><div class="label">💸 รายจ่ายเดือนนี้</div><div class="value">${fmt2(d.monthExpense)}</div></div>
@@ -2420,6 +2436,63 @@ function renderDashStats(d) {
     <div class="stat-card"><div class="label">⚠️ ค้างชำระ</div><div class="value">${d.overdueCount} ห้อง</div></div>
     <div class="stat-card"><div class="label">🏠 ห้องทั้งหมด</div><div class="value">${d.occupancy.all.total}</div></div>
     <div class="stat-card income"><div class="label">✅ ห้องมีผู้เช่า</div><div class="value">${d.occupancy.all.rented}</div></div>`;
+
+  // Per-building breakdown table
+  const bld = d.byBuilding || [];
+  if (!bld.length) return;
+  const totalInc  = bld.reduce((s,b)=>s+b.income, 0);
+  const totalBill = bld.reduce((s,b)=>s+b.billIncome, 0);
+  const totalOth  = bld.reduce((s,b)=>s+b.otherIncome, 0);
+  const totalExp  = bld.reduce((s,b)=>s+b.expense, 0);
+  const totalPro  = bld.reduce((s,b)=>s+b.profit, 0);
+  const totalOvd  = bld.reduce((s,b)=>s+b.overdueCount, 0);
+  const totalOvdAmt = bld.reduce((s,b)=>s+b.overdueTotal, 0);
+  const totalRooms  = bld.reduce((s,b)=>s+b.rooms, 0);
+  const totalRented = bld.reduce((s,b)=>s+b.rented, 0);
+
+  const rows = bld.map(b => {
+    const occ = b.rooms ? Math.round(b.rented/b.rooms*100) : 0;
+    const profitColor = b.profit >= 0 ? 'color:#2e7d32' : 'color:#c62828';
+    return `<tr>
+      <td style="color:#1a237e">${b.building}</td>
+      <td>${b.rooms}</td>
+      <td>${b.rented} <span style="font-size:10px;color:#888">(${occ}%)</span></td>
+      <td style="color:#2e7d32">${fmt2b(b.billIncome)}</td>
+      <td style="color:#43a047">${fmt2b(b.otherIncome)}</td>
+      <td style="color:#c62828">${fmt2b(b.expense)}</td>
+      <td style="${profitColor};font-weight:700">${fmt2b(b.profit)}</td>
+      <td>${b.overdueCount ? `<span style="color:#e65100">${b.overdueCount} ห้อง<br><small>${fmt2b(b.overdueTotal)}</small></span>` : '<span style="color:#aaa">-</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const totalOcc = totalRooms ? Math.round(totalRented/totalRooms*100) : 0;
+  const totProfitColor = totalPro >= 0 ? 'color:#2e7d32' : 'color:#c62828';
+  $('dash-bld-detail').innerHTML = `
+    <table class="bld-detail-table">
+      <thead><tr>
+        <th>อาคาร</th>
+        <th>ห้องทั้งหมด</th>
+        <th>ทำสัญญา</th>
+        <th>รายรับค่าเช่า</th>
+        <th>รายรับอื่นๆ</th>
+        <th>รายจ่าย</th>
+        <th>กำไร/ขาดทุน</th>
+        <th>ค้างชำระ</th>
+      </tr></thead>
+      <tbody>
+        ${rows}
+        <tr>
+          <td>รวม</td>
+          <td>${totalRooms}</td>
+          <td>${totalRented} <span style="font-size:10px">(${totalOcc}%)</span></td>
+          <td style="color:#2e7d32">${fmt2b(totalBill)}</td>
+          <td style="color:#43a047">${fmt2b(totalOth)}</td>
+          <td style="color:#c62828">${fmt2b(totalExp)}</td>
+          <td style="${totProfitColor}">${fmt2b(totalPro)}</td>
+          <td>${totalOvd ? `<span style="color:#e65100">${totalOvd} ห้อง<br><small>${fmt2b(totalOvdAmt)}</small></span>` : '<span style="color:#aaa">-</span>'}</td>
+        </tr>
+      </tbody>
+    </table>`;
 }
 
 function renderDashTrend(trend) {

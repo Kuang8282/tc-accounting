@@ -1082,8 +1082,26 @@ function getDashboardData() {
 
     // Building breakdown for current month
     const byBuilding = ['V1','V2','V3','V4'].map(v => {
-      const vb = paidBills.filter(b=>b['อาคาร']===v);
-      return { building: v, income: vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0), count: vb.length };
+      const vb  = paidBills.filter(b => b['อาคาร'] === v);
+      const vi  = curInc.filter(i => i['อาคาร'] === v);
+      const ve  = curExp.filter(e => e['อาคาร'] === v);
+      const vo  = overdueBills.filter(b => b['อาคาร'] === v);
+      const billInc   = vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0), 0);
+      const otherInc  = vi.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
+      const exp       = ve.reduce((s,e)=>s+(parseFloat(e['จำนวนเงิน'])||0), 0);
+      return {
+        building:     v,
+        income:       billInc + otherInc,
+        billIncome:   billInc,
+        otherIncome:  otherInc,
+        expense:      exp,
+        profit:       billInc + otherInc - exp,
+        count:        vb.length,
+        overdueCount: vo.length,
+        overdueTotal: vo.reduce((s,b)=>s+(parseFloat(b['รวม'])||0), 0),
+        rooms:        occ[v].total,
+        rented:       occ[v].rented
+      };
     });
 
     return {
