@@ -241,6 +241,13 @@ canvas{max-width:100%;}
   <div id="section-overdue" class="section">
     <div class="card">
       <div class="card-title">⚠️ แจ้งเตือนค้างชำระ</div>
+      <div class="search-bar" style="margin-bottom:10px">
+        <select class="form-control" id="overdue-filter-building" style="width:130px">
+          <option value="">ทุกอาคาร</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <button class="btn btn-primary" id="btn-print-overdue" style="margin-left:auto">🖨️ พิมพ์รายงานค้างชำระ</button>
+      </div>
       <div id="overdue-summary" class="stat-grid"></div>
       <div class="table-wrap">
         <table id="overdue-table">
@@ -1480,10 +1487,12 @@ async function deleteBill(id) {
 // OVERDUE
 // ============================================================
 function renderOverdue() {
+  const bldFilter = ($('overdue-filter-building')||{}).value || '';
   // Deduplicate: keep one entry per room+month+building, sort by building+room+month
   const seen = new Set();
   const overdue = S.bills
     .filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ')
+    .filter(b => !bldFilter || b['อาคาร'] === bldFilter)
     .filter(b => {
       const key = `${b['อาคาร']}-${b['ห้อง']}-${b['เดือน']}`;
       if(seen.has(key)) return false;
@@ -2676,6 +2685,94 @@ function renderDashOccupancy(occ) {
   }).join('');
   el.innerHTML = rows;
 }
+
+// ════════════════════════════════════════════════════════════
+// OVERDUE REPORT
+// ════════════════════════════════════════════════════════════
+$('overdue-filter-building').addEventListener('change', renderOverdue);
+
+function _buildOverdueReport(bldFilter) {
+  const seen = new Set();
+  const allOverdue = S.bills
+    .filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ')
+    .filter(b => !bldFilter || b['อาคาร'] === bldFilter)
+    .filter(b => {
+      const key = `${b['อาคาร']}-${b['ห้อง']}-${b['เดือน']}`;
+      if(seen.has(key)) return false; seen.add(key); return true;
+    })
+    .sort((a,b)=>{
+      const k1=`${a['อาคาร']}-${String(a['ห้อง']).padStart(6,'0')}-${a['เดือน']}`;
+      const k2=`${b['อาคาร']}-${String(b['ห้อง']).padStart(6,'0')}-${b['เดือน']}`;
+      return k1.localeCompare(k2);
+    });
+
+  const groups = bldFilter ? [bldFilter] : ['V1','V2','V3','V4'];
+  const today = _todayThai();
+  let pagesHtml = '';
+
+  groups.forEach(v => {
+    const vb = allOverdue.filter(b => b['อาคาร'] === v);
+    if (!vb.length) return;
+    const co = S.companies[v] || {};
+    const coTaxFmt = (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
+    const total = vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+    const rows = vb.map((b,i)=>`<tr>
+      <td class="tc">${i+1}</td>
+      <td class="tc">${b['เดือน']||''}</td>
+      <td class="tc">${b['ห้อง']||''}</td>
+      <td>${b['ผู้เช่า']||''}</td>
+      <td class="tr">${_invFmt(parseFloat(b['รวม'])||0)}</td>
+      <td class="tc">${b['สถานะ']||''}</td>
+    </tr>`).join('');
+    pagesHtml += `<div class="tax-page">
+      <div class="tax-title">รายงานค้างชำระ</div>
+      <div class="tax-header-grid">
+        <div>
+          <div><strong>ชื่อผู้ประกอบการ:</strong> ${co.name||v} (สำนักงานใหญ่)</div>
+          <div><strong>ที่อยู่:</strong> ${co.address||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div><strong>เลขประจำตัวผู้เสียภาษีอากร</strong> ${coTaxFmt}</div>
+          <div><strong>วันที่พิมพ์:</strong> ${today}</div>
+        </div>
+      </div>
+      <table class="tax-table">
+        <thead><tr>
+          <th style="width:28px">ลำดับ</th>
+          <th style="width:80px">เดือน</th>
+          <th style="width:52px">ห้อง</th>
+          <th class="tl">ชื่อผู้เช่า</th>
+          <th style="width:90px">ยอดค้างชำระ</th>
+          <th style="width:70px">สถานะ</th>
+        </tr></thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td colspan="4" class="tr"><strong>รวม</strong></td>
+            <td class="tr"><strong>${_invFmt(total)}</strong></td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      ${_taxSigGrid()}
+    </div>`;
+  });
+
+  return pagesHtml || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูลค้างชำระ</p>';
+}
+
+$('btn-print-overdue').addEventListener('click', () => {
+  const bld = $('overdue-filter-building').value;
+  const html = _buildOverdueReport(bld);
+  const src  = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<style>${_TAX_CSS}</style></head><body>
+<div class="page-container">${html}</div></body></html>`;
+  const w = window.open('','_blank');
+  if (!w) { showAlert('กรุณาอนุญาต Popup','error'); return; }
+  w.document.write(src);
+  w.document.close();
+  w.onload = () => w.print();
+});
 
 // ════════════════════════════════════════════════════════════
 // TAX REPORTS
