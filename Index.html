@@ -242,12 +242,30 @@ canvas{max-width:100%;}
   <div id="section-overdue" class="section">
     <div class="card">
       <div class="card-title">⚠️ แจ้งเตือนค้างชำระ</div>
-      <div class="search-bar" style="margin-bottom:10px">
+      <div class="search-bar" style="margin-bottom:10px;flex-wrap:wrap;gap:8px;align-items:center">
         <select class="form-control" id="overdue-filter-building" style="width:130px">
           <option value="">ทุกอาคาร</option>
           <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
         </select>
-        <button class="btn btn-primary" id="btn-print-overdue" style="margin-left:auto">🖨️ พิมพ์รายงานค้างชำระ</button>
+        <div style="margin-left:auto;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;gap:12px;font-size:13px;align-items:center">
+            <span style="font-weight:600;color:#555">พิมพ์:</span>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="radio" name="ovd-print-mode" value="combined" checked> แผ่นรวม (ทุกอาคาร)
+            </label>
+            <label style="display:flex;align-items:center;gap:4px;cursor:pointer">
+              <input type="radio" name="ovd-print-mode" value="separate"> แยกแต่ละอาคาร
+            </label>
+          </div>
+          <div id="ovd-bld-checks" style="display:none;gap:6px;align-items:center">
+            <span style="font-size:12px;color:#555">เลือก:</span>
+            <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:3px 8px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="ovd-bld" value="V1" checked> V1</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:3px 8px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="ovd-bld" value="V2" checked> V2</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:3px 8px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="ovd-bld" value="V3" checked> V3</label>
+            <label style="display:flex;align-items:center;gap:3px;font-size:13px;cursor:pointer;padding:3px 8px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="ovd-bld" value="V4" checked> V4</label>
+          </div>
+          <button class="btn btn-primary" id="btn-print-overdue">🖨️ พิมพ์</button>
+        </div>
       </div>
       <div id="overdue-summary" class="stat-grid"></div>
       <div class="table-wrap">
@@ -2720,11 +2738,11 @@ function renderDashOccupancy(occ) {
 // ════════════════════════════════════════════════════════════
 $('overdue-filter-building').addEventListener('change', renderOverdue);
 
-function _buildOverdueReport(bldFilter) {
+function _overdueGetData(buildings) {
   const seen = new Set();
-  const allOverdue = S.bills
+  return S.bills
     .filter(b => b['สถานะ']==='รอชำระ'||b['สถานะ']==='ค้างชำระ')
-    .filter(b => !bldFilter || b['อาคาร'] === bldFilter)
+    .filter(b => !buildings.length || buildings.includes(b['อาคาร']))
     .filter(b => {
       const key = `${b['อาคาร']}-${b['ห้อง']}-${b['เดือน']}`;
       if(seen.has(key)) return false; seen.add(key); return true;
@@ -2734,66 +2752,118 @@ function _buildOverdueReport(bldFilter) {
       const k2=`${b['อาคาร']}-${String(b['ห้อง']).padStart(6,'0')}-${b['เดือน']}`;
       return k1.localeCompare(k2);
     });
+}
 
-  const groups = bldFilter ? [bldFilter] : ['V1','V2','V3','V4'];
+function _overdueRowsHtml(vb, startIdx) {
+  return vb.map((b,i)=>`<tr>
+    <td class="tc">${startIdx+i+1}</td>
+    <td class="tc">${b['เดือน']||''}</td>
+    <td class="tc">${b['ห้อง']||''}</td>
+    <td class="tc">${b['อาคาร']||''}</td>
+    <td class="tl">${b['ผู้เช่า']||''}</td>
+    <td class="tr">${_invFmt(parseFloat(b['รวม'])||0)}</td>
+    <td class="tc">${b['สถานะ']||''}</td>
+  </tr>`).join('');
+}
+
+const _OVERDUE_THEAD = `<thead><tr>
+  <th style="width:28px">ลำดับ</th>
+  <th style="width:80px">เดือน</th>
+  <th style="width:50px">ห้อง</th>
+  <th style="width:46px">อาคาร</th>
+  <th class="tl">ชื่อผู้เช่า</th>
+  <th style="width:96px">ยอดค้างชำระ</th>
+  <th style="width:68px">สถานะ</th>
+</tr></thead>`;
+
+// แผ่นรวม — ทุกอาคารในหน้าเดียว แบ่ง section ต่ออาคาร
+function _buildOverdueReportCombined(buildings) {
+  const allOverdue = _overdueGetData(buildings);
+  if (!allOverdue.length) return '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูลค้างชำระ</p>';
   const today = _todayThai();
-  let pagesHtml = '';
-
-  groups.forEach(v => {
-    const vb = allOverdue.filter(b => b['อาคาร'] === v);
+  const blds = ['V1','V2','V3','V4'].filter(v => buildings.includes(v) && allOverdue.some(b=>b['อาคาร']===v));
+  const grandTotal = allOverdue.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+  let bodyRows = '', rowNum = 0;
+  blds.forEach(v => {
+    const vb = allOverdue.filter(b => b['อาคาร']===v);
     if (!vb.length) return;
-    const co = S.companies[v] || {};
-    const coTaxFmt = (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
+    const co = S.companies[v]||{};
+    const vTotal = vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+    bodyRows += `<tr class="grp-row"><td colspan="7">▸ อาคาร ${v}${co.name?' — '+co.name:''} &nbsp;(${vb.length} ห้อง)</td></tr>`;
+    bodyRows += _overdueRowsHtml(vb, rowNum);
+    bodyRows += `<tr class="total-row"><td colspan="5" class="tr">รวม ${v}</td><td class="tr">${_invFmt(vTotal)}</td><td></td></tr>`;
+    rowNum += vb.length;
+  });
+  bodyRows += `<tr class="grand-row"><td colspan="5" class="tr">รวมทั้งสิ้น (${allOverdue.length} รายการ)</td><td class="tr">${_invFmt(grandTotal)}</td><td></td></tr>`;
+
+  return `<div class="tax-page">
+    <div class="tax-title">รายงานค้างชำระ — รวมทุกอาคาร (${blds.join(', ')})</div>
+    <div class="tax-header-grid">
+      <div><strong>อาคารที่แสดง:</strong> ${blds.join(', ')}</div>
+      <div style="text-align:right"><strong>วันที่พิมพ์:</strong> ${today}</div>
+    </div>
+    <table class="tax-table">${_OVERDUE_THEAD}<tbody>${bodyRows}</tbody></table>
+    ${_taxSigGrid()}
+  </div>`;
+}
+
+// แยกอาคาร — แต่ละอาคารเป็นหน้าแยก
+function _buildOverdueReportSeparate(buildings) {
+  const allOverdue = _overdueGetData(buildings);
+  if (!allOverdue.length) return '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูลค้างชำระ</p>';
+  const today = _todayThai();
+  const blds = ['V1','V2','V3','V4'].filter(v => buildings.includes(v) && allOverdue.some(b=>b['อาคาร']===v));
+  let pagesHtml = '';
+  blds.forEach(v => {
+    const vb = allOverdue.filter(b => b['อาคาร']===v);
+    if (!vb.length) return;
+    const co = S.companies[v]||{};
     const total = vb.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
-    const rows = vb.map((b,i)=>`<tr>
-      <td class="tc">${i+1}</td>
-      <td class="tc">${b['เดือน']||''}</td>
-      <td class="tc">${b['ห้อง']||''}</td>
-      <td>${b['ผู้เช่า']||''}</td>
-      <td class="tr">${_invFmt(parseFloat(b['รวม'])||0)}</td>
-      <td class="tc">${b['สถานะ']||''}</td>
-    </tr>`).join('');
     pagesHtml += `<div class="tax-page">
-      <div class="tax-title">รายงานค้างชำระ</div>
+      <div class="tax-title">รายงานค้างชำระ — อาคาร ${v}</div>
       <div class="tax-header-grid">
         <div>
           <div><strong>ชื่อผู้ประกอบการ:</strong> ${co.name||v} (สำนักงานใหญ่)</div>
-          <div><strong>ที่อยู่:</strong> ${co.address||''}</div>
+          <div>${co.address||''}</div>
+          ${co.taxId?`<div><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${_taxCoFmt(co)}</div>`:''}
         </div>
         <div style="text-align:right">
-          <div><strong>เลขประจำตัวผู้เสียภาษีอากร</strong> ${coTaxFmt}</div>
           <div><strong>วันที่พิมพ์:</strong> ${today}</div>
         </div>
       </div>
-      <table class="tax-table">
-        <thead><tr>
-          <th style="width:28px">ลำดับ</th>
-          <th style="width:80px">เดือน</th>
-          <th style="width:52px">ห้อง</th>
-          <th class="tl">ชื่อผู้เช่า</th>
-          <th style="width:90px">ยอดค้างชำระ</th>
-          <th style="width:70px">สถานะ</th>
-        </tr></thead>
-        <tbody>
-          ${rows}
-          <tr class="total-row">
-            <td colspan="4" class="tr"><strong>รวม</strong></td>
-            <td class="tr"><strong>${_invFmt(total)}</strong></td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
+      <table class="tax-table">${_OVERDUE_THEAD}<tbody>
+        ${_overdueRowsHtml(vb, 0)}
+        <tr class="grand-row">
+          <td colspan="5" class="tr">รวมทั้งสิ้น (${vb.length} รายการ)</td>
+          <td class="tr">${_invFmt(total)}</td><td></td>
+        </tr>
+      </tbody></table>
       ${_taxSigGrid()}
     </div>`;
   });
-
-  return pagesHtml || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูลค้างชำระ</p>';
+  return pagesHtml;
 }
 
+document.querySelectorAll('input[name="ovd-print-mode"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const checks = $('ovd-bld-checks');
+    if (checks) checks.style.display = r.value==='separate' ? 'flex' : 'none';
+  });
+});
+
 $('btn-print-overdue').addEventListener('click', () => {
-  const bld = $('overdue-filter-building').value;
-  const html = _buildOverdueReport(bld);
-  const src  = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+  const mode = (document.querySelector('input[name="ovd-print-mode"]:checked')||{}).value || 'combined';
+  let buildings;
+  if (mode === 'separate') {
+    buildings = [...document.querySelectorAll('.ovd-bld:checked')].map(c => c.value);
+    if (!buildings.length) { showAlert('กรุณาเลือกอาคารอย่างน้อย 1 อาคาร','error'); return; }
+  } else {
+    buildings = ['V1','V2','V3','V4'];
+  }
+  const html = mode==='combined'
+    ? _buildOverdueReportCombined(buildings)
+    : _buildOverdueReportSeparate(buildings);
+  const src = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <style>${_TAX_CSS}</style></head><body>
 <div class="page-container">${html}</div></body></html>`;
   const w = window.open('','_blank');
@@ -2822,6 +2892,7 @@ body{font-family:'Sarabun',sans-serif;font-size:11px;background:#e8eaf6;color:#0
 .tax-table thead tr:not(:first-child) th{background:#3949ab;color:#fff;text-align:center;font-weight:600;}
 .tc{text-align:center;} .tr{text-align:right;} .tl{text-align:left;}
 .tax-table tbody tr:nth-child(even){background:#f3f4fb;}
+.grp-row td{background:#3949ab;color:#fff;font-weight:700;font-size:11px;padding:4px 6px;}
 .total-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;}
 .grand-row td{font-weight:700;background:#1a237e;color:#fff;border-top:2px solid #0d1558;}
 .sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:6mm;text-align:center;font-size:11px;line-height:1.6;}
