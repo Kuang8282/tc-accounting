@@ -1081,11 +1081,12 @@ function setDefaultDates() {
 }
 
 function populateDropdowns() {
-  // Income categories
+  // Income categories — ค่าห้อง/ค่าน้ำ/ค่าไฟ belong to bills, not other income
+  const _incCatsFiltered = S.incomeCategories.filter(c => c!=='ค่าห้อง' && c!=='ค่าน้ำ' && c!=='ค่าไฟ');
   const incCat = $('inc-cat');
-  incCat.innerHTML = S.incomeCategories.map(c => `<option>${c}</option>`).join('');
+  incCat.innerHTML = _incCatsFiltered.map(c => `<option>${c}</option>`).join('');
   const incFilter = $('income-filter-cat');
-  incFilter.innerHTML = '<option value="">ทุกหมวด</option>' + S.incomeCategories.map(c=>`<option>${c}</option>`).join('');
+  incFilter.innerHTML = '<option value="">ทุกหมวด</option>' + _incCatsFiltered.map(c=>`<option>${c}</option>`).join('');
 
   // Expense categories
   const expCat = $('exp-cat');
