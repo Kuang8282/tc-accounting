@@ -2196,76 +2196,68 @@ function _fmtDateShortThai(d) {
 
 function _buildExpenseReport(expenses, params) {
   const { from, to, bld, cat } = params;
-  const co = bld ? (S.companies[bld] || {}) : {};
-  const coName = bld ? (co.name || bld) : 'ทุกอาคาร (V1, V2, V3, V4)';
+  const isAll = !bld;
+  const coName = bld ? (S.companies[bld]?.name || bld) : 'ทุกอาคาร (V1, V2, V3, V4)';
   const period = [from, to].filter(Boolean).join(' ถึง ') || 'ทั้งหมด';
+  const catLabel = cat ? ` / หมวดหมู่: ${cat}` : '';
 
-  // Build table rows grouped by building when bld='all'
-  const buildings = bld ? [bld] : ['V1','V2','V3','V4'];
-  let allHtml = '';
+  function makeRow(e, i) {
+    const amt = parseFloat(e['จำนวนเงิน'])||0;
+    const wht = parseFloat(e['ภาษีหัก ณ ที่จ่าย']||e['ภาษีหัก'])||0;
+    const net = parseFloat(e['สุทธิ'])||(amt-wht);
+    return { amt, wht, net, html: `<tr>
+      <td class="tc">${i+1}</td>
+      <td class="tc">${_fmtDateShortThai(e['วันที่'])}</td>
+      ${isAll ? `<td class="tc">${e['อาคาร']||''}</td>` : ''}
+      <td>${e['หมวดหมู่']||''}</td>
+      <td>${e['ผู้รับเงิน']||''}</td>
+      <td class="tr">${_invFmt(amt)}</td>
+      <td class="tr">${wht?_invFmt(wht):'-'}</td>
+      <td class="tr">${_invFmt(net)}</td>
+      <td>${e['หมายเหตุ']||''}</td>
+    </tr>` };
+  }
+
+  let bodyHtml = '';
   let grandAmt = 0, grandWht = 0, grandNet = 0, grandCount = 0;
 
-  buildings.forEach(v => {
-    const rows = bld ? expenses : expenses.filter(e => e['อาคาร'] === v);
-    if (!rows.length) return;
-    let subAmt = 0, subWht = 0, subNet = 0;
-    const rowsHtml = rows.map((e, i) => {
-      const amt = parseFloat(e['จำนวนเงิน']) || 0;
-      const wht = parseFloat(e['ภาษีหัก ณ ที่จ่าย'] || e['ภาษีหัก']) || 0;
-      const net = parseFloat(e['สุทธิ']) || (amt - wht);
-      subAmt += amt; subWht += wht; subNet += net;
-      return `<tr>
-        <td class="tc">${i+1}</td>
-        <td class="tc">${_fmtDateShortThai(e['วันที่'])}</td>
-        ${!bld ? `<td class="tc">${e['อาคาร']||''}</td>` : ''}
-        <td>${e['หมวดหมู่']||''}</td>
-        <td>${e['ผู้รับเงิน']||''}</td>
-        <td class="tr">${_invFmt(amt)}</td>
-        <td class="tr">${wht ? _invFmt(wht) : '-'}</td>
-        <td class="tr">${_invFmt(net)}</td>
-        <td>${e['หมายเหตุ']||''}</td>
+  if (isAll) {
+    ['V1','V2','V3','V4'].forEach(v => {
+      const vRows = expenses.filter(e => e['อาคาร'] === v);
+      if (!vRows.length) return;
+      const vCo = S.companies[v] || {};
+      let subAmt = 0, subWht = 0, subNet = 0;
+      bodyHtml += `<tr style="background:#e8eaf6"><td colspan="9" style="font-weight:700;color:#1a237e;padding:4px 8px;font-size:12px">🏢 ${v} — ${vCo.name||v}</td></tr>`;
+      vRows.forEach((e, i) => {
+        const r = makeRow(e, i);
+        bodyHtml += r.html;
+        subAmt += r.amt; subWht += r.wht; subNet += r.net;
+      });
+      bodyHtml += `<tr class="subtotal-row">
+        <td colspan="5" class="tr">รวม ${v}</td>
+        <td class="tr">${_invFmt(subAmt)}</td>
+        <td class="tr">${subWht?_invFmt(subWht):'-'}</td>
+        <td class="tr" style="color:#c62828">${_invFmt(subNet)}</td>
+        <td></td>
       </tr>`;
-    }).join('');
-    grandAmt += subAmt; grandWht += subWht; grandNet += subNet; grandCount += rows.length;
-    const vCo = S.companies[v] || {};
-    allHtml += !bld ? `<tr class="subtotal-row"><td colspan="${bld?'7':'8'}" class="tr">รวม ${v} (${vCo.name||v})</td>${bld?'':'<td></td>'}<td class="tr" style="color:#c62828">${_invFmt(subAmt)}</td><td class="tr">${subWht?_invFmt(subWht):'-'}</td><td class="tr">${_invFmt(subNet)}</td><td></td></tr>` : '';
-    if (!bld) {
-      allHtml = `<tr style="background:#e8eaf6"><td colspan="9" style="font-weight:700;color:#1a237e;padding:4px 8px;font-size:12px">🏢 อาคาร ${v} — ${vCo.name||v}</td></tr>` + rowsHtml + (rows.length ? `<tr class="subtotal-row"><td colspan="6" class="tr">รวม ${v}</td><td class="tr">${subWht?_invFmt(subWht):'-'}</td><td class="tr" style="color:#c62828">${_invFmt(subNet)}</td><td></td></tr>` : '') + allHtml;
-    } else {
-      allHtml += rowsHtml;
-    }
-  });
-
-  // For single building, build simply
-  if (bld) {
-    let subAmt2 = 0, subWht2 = 0, subNet2 = 0;
-    const simpleRows = expenses.map((e,i) => {
-      const amt = parseFloat(e['จำนวนเงิน'])||0;
-      const wht = parseFloat(e['ภาษีหัก ณ ที่จ่าย']||e['ภาษีหัก'])||0;
-      const net = parseFloat(e['สุทธิ'])||(amt-wht);
-      subAmt2+=amt; subWht2+=wht; subNet2+=net;
-      return `<tr>
-        <td class="tc">${i+1}</td>
-        <td class="tc">${_fmtDateShortThai(e['วันที่'])}</td>
-        <td>${e['หมวดหมู่']||''}</td>
-        <td>${e['ผู้รับเงิน']||''}</td>
-        <td class="tr">${_invFmt(amt)}</td>
-        <td class="tr">${wht?_invFmt(wht):'-'}</td>
-        <td class="tr">${_invFmt(net)}</td>
-        <td>${e['หมายเหตุ']||''}</td>
-      </tr>`;
-    }).join('');
-    grandAmt = subAmt2; grandWht = subWht2; grandNet = subNet2; grandCount = expenses.length;
-    allHtml = simpleRows + `<tr class="grand-row">
-      <td colspan="4" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
+      grandAmt += subAmt; grandWht += subWht; grandNet += subNet; grandCount += vRows.length;
+    });
+    bodyHtml += `<tr class="grand-row">
+      <td colspan="5" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
       <td class="tr">${_invFmt(grandAmt)}</td>
       <td class="tr">${grandWht?_invFmt(grandWht):'-'}</td>
       <td class="tr">${_invFmt(grandNet)}</td>
       <td></td>
     </tr>`;
   } else {
-    allHtml += `<tr class="grand-row">
-      <td colspan="5" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
+    expenses.forEach((e, i) => {
+      const r = makeRow(e, i);
+      bodyHtml += r.html;
+      grandAmt += r.amt; grandWht += r.wht; grandNet += r.net;
+    });
+    grandCount = expenses.length;
+    bodyHtml += `<tr class="grand-row">
+      <td colspan="4" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
       <td class="tr">${_invFmt(grandAmt)}</td>
       <td class="tr">${grandWht?_invFmt(grandWht):'-'}</td>
       <td class="tr">${_invFmt(grandNet)}</td>
@@ -2273,7 +2265,6 @@ function _buildExpenseReport(expenses, params) {
     </tr>`;
   }
 
-  const catLabel = cat ? ` / หมวดหมู่: ${cat}` : '';
   return `<div class="doc-page">
   <div class="rpt-header">
     <div class="rpt-title">รายงานรายจ่าย</div>
@@ -2287,7 +2278,7 @@ function _buildExpenseReport(expenses, params) {
     <thead><tr>
       <th style="width:28px">ลำดับ</th>
       <th style="width:70px">วันที่</th>
-      ${!bld ? '<th style="width:38px">อาคาร</th>' : ''}
+      ${isAll ? '<th style="width:38px">อาคาร</th>' : ''}
       <th class="tl" style="width:110px">หมวดหมู่</th>
       <th class="tl">ผู้รับเงิน / รายละเอียด</th>
       <th style="width:90px">จำนวนเงิน</th>
@@ -2295,7 +2286,7 @@ function _buildExpenseReport(expenses, params) {
       <th style="width:80px">สุทธิ</th>
       <th class="tl" style="width:100px">หมายเหตุ</th>
     </tr></thead>
-    <tbody>${allHtml}</tbody>
+    <tbody>${bodyHtml}</tbody>
   </table>
   <div class="sig-section">
     <div class="sig-col"><div class="sig-line"></div>ผู้จัดทำ<div class="sig-date">วันที่..../..../.....</div></div>
