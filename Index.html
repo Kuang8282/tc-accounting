@@ -174,7 +174,11 @@ canvas{max-width:100%;}
         </select>
         <select class="form-control" id="room-filter-type">
           <option value="">ทุกประเภท</option>
-          <option>สตูดิโอ</option><option>1 ห้องนอน</option><option>2 ห้องนอน</option><option>ร้านค้า</option><option>สำนักงาน</option>
+          <option>Studio Type 1</option><option>Studio Type 1 (มุม)</option>
+          <option>Studio Type 2</option><option>Studio Type 3</option>
+          <option>Suit Type 2</option><option>Suit Type 2 (มุม)</option>
+          <option>Suit Type 3</option><option>Suit Type 3 (มุม)</option>
+          <option>VIP</option><option>VIP Type 2</option><option>ร้านค้า</option>
         </select>
         <span id="room-count" class="text-muted" style="white-space:nowrap;"></span>
       </div>
@@ -514,7 +518,11 @@ canvas{max-width:100%;}
       <div class="form-group">
         <label>ประเภทห้อง</label>
         <select class="form-control" id="rm-type">
-          <option>สตูดิโอ</option><option>1 ห้องนอน</option><option>2 ห้องนอน</option><option>ร้านค้า</option><option>สำนักงาน</option>
+          <option>Studio Type 1</option><option>Studio Type 1 (มุม)</option>
+          <option>Studio Type 2</option><option>Studio Type 3</option>
+          <option>Suit Type 2</option><option>Suit Type 2 (มุม)</option>
+          <option>Suit Type 3</option><option>Suit Type 3 (มุม)</option>
+          <option>VIP</option><option>VIP Type 2</option><option>ร้านค้า</option>
         </select>
       </div>
       <div class="form-group">
@@ -1129,7 +1137,7 @@ function openRoomModal(r) {
   $('room-modal-title').textContent = r ? `แก้ไขห้อง ${r['เลขห้อง']} (${r['อาคาร']})` : 'เพิ่มห้องใหม่';
   $('rm-no').value           = r ? r['เลขห้อง'] : '';
   $('rm-building').value     = r ? r['อาคาร'] : 'V1';
-  $('rm-type').value         = r ? (r['ประเภทห้อง']||'สตูดิโอ') : 'สตูดิโอ';
+  $('rm-type').value         = r ? (r['ประเภทห้อง']||'Studio Type 1') : 'Studio Type 1';
   $('rm-tenant').value       = r ? (r['ชื่อผู้เช่า']||'') : '';
   $('rm-price').value        = r ? (r['ราคา/เดือน']||'') : '';
   $('rm-deposit').value      = r ? (r['เงินประกัน']||'') : '';
