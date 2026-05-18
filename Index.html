@@ -466,64 +466,69 @@ canvas{max-width:100%;}
 
   <!-- ====== COMPARE ====== -->
   <div id="section-compare" class="section">
-    <div class="card" style="padding:10px 16px;margin-bottom:12px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span style="font-weight:700;color:#1a237e;font-size:14px">📊 เปรียบเทียบรายรับ-รายจ่าย</span>
-        <label style="font-size:13px;margin-left:8px">ปี:</label>
-        <select id="cmp-year" class="form-control" style="width:90px;font-size:13px"></select>
-        <div style="display:flex;gap:6px;margin-left:8px;flex-wrap:wrap">
-          <button class="cmp-tab cmp-active" data-cmp="monthly" style="padding:5px 12px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;color:#fff;background:#1a237e">📅 รายเดือน</button>
-          <button class="cmp-tab" data-cmp="yearly" style="padding:5px 12px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;color:#3949ab;background:#fff">📆 รายปี</button>
-          <button class="cmp-tab" data-cmp="category" style="padding:5px 12px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;color:#3949ab;background:#fff">📂 หมวดหมู่</button>
-          <button class="cmp-tab" data-cmp="buildings" style="padding:5px 12px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-size:13px;font-weight:600;color:#3949ab;background:#fff">🏢 แยกอาคาร</button>
+    <div class="card" style="padding:14px 16px">
+      <div class="card-title" style="margin-bottom:12px">📊 สร้างกราฟเปรียบเทียบ</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <div>
+          <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:4px">แกน X</div>
+          <select id="cmp-xaxis" class="form-control" style="width:155px">
+            <option value="month">รายเดือน (ม.ค.-ธ.ค.)</option>
+            <option value="year">รายปี</option>
+            <option value="building">รายอาคาร</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:4px">แบ่งกลุ่มตาม (Series)</div>
+          <select id="cmp-groupby" class="form-control" style="width:200px">
+            <option value="none">ไม่แบ่ง (รวมทั้งหมด)</option>
+            <option value="year">แยกตามปี</option>
+            <option value="building">แยกตามอาคาร</option>
+          </select>
+        </div>
+        <div>
+          <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:4px">ประเภทกราฟ</div>
+          <div style="display:flex;gap:4px">
+            <button class="cmp-ct cmp-ct-on" data-ct="bar" style="padding:6px 12px;border:2px solid #1a237e;border-radius:4px;cursor:pointer;font-size:12px;background:#1a237e;color:#fff">⬛ แท่ง</button>
+            <button class="cmp-ct" data-ct="line" style="padding:6px 12px;border:2px solid #c5cae9;border-radius:4px;cursor:pointer;font-size:12px;background:#fff;color:#3949ab">📈 เส้น</button>
+          </div>
         </div>
       </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:5px">ข้อมูลที่แสดง</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:6px 12px;border:1px solid #a5d6a7;border-radius:4px;background:#f1f8e9">
+            <input type="checkbox" class="cmp-metric" value="income" checked style="cursor:pointer"> <span style="color:#2e7d32;font-weight:600">💰 รายรับ</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:6px 12px;border:1px solid #ef9a9a;border-radius:4px;background:#fff8f8">
+            <input type="checkbox" class="cmp-metric" value="expense" style="cursor:pointer"> <span style="color:#c62828;font-weight:600">💸 รายจ่าย</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:6px 12px;border:1px solid #9fa8da;border-radius:4px;background:#e8eaf6">
+            <input type="checkbox" class="cmp-metric" value="profit" style="cursor:pointer"> <span style="color:#1a237e;font-weight:600">📈 กำไร/ขาดทุน</span>
+          </label>
+        </div>
+      </div>
+      <div id="cmp-yr-area" style="margin-bottom:10px">
+        <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:5px" id="cmp-yr-label">กรองปี</div>
+        <div id="cmp-year-checks" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div id="cmp-bld-area" style="margin-bottom:14px">
+        <div style="font-size:12px;color:#555;font-weight:600;margin-bottom:5px" id="cmp-bld-label">กรองอาคาร</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="cmp-bld" value="V1" checked style="cursor:pointer"> V1</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="cmp-bld" value="V2" checked style="cursor:pointer"> V2</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="cmp-bld" value="V3" checked style="cursor:pointer"> V3</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px"><input type="checkbox" class="cmp-bld" value="V4" checked style="cursor:pointer"> V4</label>
+        </div>
+      </div>
+      <button class="btn btn-primary" id="btn-cmp-show" style="min-width:120px">▶ แสดงกราฟ</button>
     </div>
-    <div id="cmp-panel-monthly">
+    <div id="cmp-result" style="display:none;margin-top:12px">
       <div class="card">
-        <div class="card-title">📅 รายรับ-รายจ่ายรายเดือน</div>
-        <div style="position:relative;height:220px;max-width:800px;margin:0 auto">
-          <canvas id="cmp-monthly-chart"></canvas>
+        <div class="card-title" id="cmp-result-title"></div>
+        <div style="position:relative;height:300px;max-width:950px;margin:0 auto">
+          <canvas id="cmp-main-chart"></canvas>
         </div>
-        <div id="cmp-monthly-table" style="margin-top:12px;overflow-x:auto"></div>
-      </div>
-    </div>
-    <div id="cmp-panel-yearly" style="display:none">
-      <div class="card">
-        <div class="card-title">📆 รายรับ-รายจ่ายรายปี</div>
-        <div style="position:relative;height:220px;max-width:700px;margin:0 auto">
-          <canvas id="cmp-yearly-chart"></canvas>
-        </div>
-        <div id="cmp-yearly-table" style="margin-top:12px;overflow-x:auto"></div>
-      </div>
-    </div>
-    <div id="cmp-panel-category" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="card">
-          <div class="card-title" style="color:#2e7d32">💰 หมวดหมู่รายรับ</div>
-          <div style="position:relative;height:200px"><canvas id="cmp-inc-cat-chart"></canvas></div>
-          <div id="cmp-inc-cat-table" style="margin-top:8px;overflow-x:auto"></div>
-        </div>
-        <div class="card">
-          <div class="card-title" style="color:#c62828">💸 หมวดหมู่รายจ่าย</div>
-          <div style="position:relative;height:200px"><canvas id="cmp-exp-cat-chart"></canvas></div>
-          <div id="cmp-exp-cat-table" style="margin-top:8px;overflow-x:auto"></div>
-        </div>
-      </div>
-    </div>
-    <div id="cmp-panel-buildings" style="display:none">
-      <div class="card">
-        <div class="card-title">🏢 เปรียบเทียบรายรับ-รายจ่ายแยกอาคาร (รวมทั้งปี)</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start">
-          <div style="position:relative;height:200px"><canvas id="cmp-bld-chart"></canvas></div>
-          <div id="cmp-bld-table" style="overflow-x:auto"></div>
-        </div>
-      </div>
-      <div class="card" style="margin-top:12px">
-        <div class="card-title">📈 รายรับรายเดือนแยกอาคาร</div>
-        <div style="position:relative;height:220px;max-width:800px;margin:0 auto">
-          <canvas id="cmp-bld-monthly-chart"></canvas>
-        </div>
+        <div id="cmp-result-table" style="margin-top:14px;overflow-x:auto"></div>
       </div>
     </div>
   </div>
@@ -3151,313 +3156,211 @@ function _cmpGetYears() {
 const _THAI_MON = ['','ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const _cmpFmt = n => Number(n||0).toLocaleString('th-TH',{maximumFractionDigits:0});
 
-function _cmpAggMonthly(year) {
-  const data = {};
-  const allYMs = Array.from({length:12}, (_,i) => `${year}-${String(i+1).padStart(2,'0')}`);
-  allYMs.forEach(ym => { data[ym] = {income:0, expense:0}; });
-  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว' && String(b['เดือน']||'').slice(0,4)===year)
-    .forEach(b => { const ym=String(b['เดือน']||''); if(data[ym]) data[ym].income += parseFloat(b['รวม'])||0; });
-  S.income.filter(i => { const m=_cmpYM(i['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(i => { const ym=_cmpYM(i['วันที่']); if(data[ym]) data[ym].income += parseFloat(i['จำนวนเงิน'])||0; });
-  S.expenses.filter(e => { const m=_cmpYM(e['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(e => { const ym=_cmpYM(e['วันที่']); if(data[ym]) data[ym].expense += parseFloat(e['จำนวนเงิน'])||0; });
-  return allYMs.map(ym => ({ ym, ...data[ym] }));
-}
-
-function _cmpAggYearly() {
-  const data = {};
-  const add = (key, field, val) => { if(!key) return; if(!data[key]) data[key]={income:0,expense:0}; data[key][field]+=val; };
-  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว')
-    .forEach(b => add(String(b['เดือน']||'').slice(0,4), 'income', parseFloat(b['รวม'])||0));
-  S.income.forEach(i => { const m=_cmpYM(i['วันที่']); add(m&&m.slice(0,4), 'income', parseFloat(i['จำนวนเงิน'])||0); });
-  S.expenses.forEach(e => { const m=_cmpYM(e['วันที่']); add(m&&m.slice(0,4), 'expense', parseFloat(e['จำนวนเงิน'])||0); });
-  return Object.entries(data).sort((a,b)=>a[0].localeCompare(b[0])).map(([year,v])=>({year,...v}));
-}
-
-function _cmpAggCategories(year) {
-  const incCats = {}, expCats = {};
-  const addI = (cat,amt) => { if(amt>0) incCats[cat]=(incCats[cat]||0)+amt; };
-  const addE = (cat,amt) => { if(amt>0) expCats[cat]=(expCats[cat]||0)+amt; };
-  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว' && String(b['เดือน']||'').slice(0,4)===year).forEach(b => {
-    addI('ค่าห้อง',    parseFloat(b['ค่าห้อง'])||0);
-    addI('ค่าน้ำ',     parseFloat(b['ค่าน้ำ'])||0);
-    addI('ค่าไฟ',      parseFloat(b['ค่าไฟ'])||0);
-    addI('อื่นๆ (บิล)',parseFloat(b['ค่าอื่นๆ'])||0);
-  });
-  S.income.filter(i => { const m=_cmpYM(i['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(i => addI(i['หมวดหมู่']||'อื่นๆ', parseFloat(i['จำนวนเงิน'])||0));
-  S.expenses.filter(e => { const m=_cmpYM(e['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(e => addE(e['หมวดหมู่']||'อื่นๆ', parseFloat(e['จำนวนเงิน'])||0));
-  return { incCats, expCats };
-}
-
-function _cmpAggBuildings(year) {
-  const blds = ['V1','V2','V3','V4'];
-  const data = {}; blds.forEach(v => { data[v]={income:0,expense:0}; });
-  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว' && String(b['เดือน']||'').slice(0,4)===year)
-    .forEach(b => { if(data[b['อาคาร']]) data[b['อาคาร']].income+=parseFloat(b['รวม'])||0; });
-  S.income.filter(i => { const m=_cmpYM(i['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(i => { if(data[i['อาคาร']]) data[i['อาคาร']].income+=parseFloat(i['จำนวนเงิน'])||0; });
-  S.expenses.filter(e => { const m=_cmpYM(e['วันที่']); return m&&m.slice(0,4)===year; })
-    .forEach(e => { if(data[e['อาคาร']]) data[e['อาคาร']].expense+=parseFloat(e['จำนวนเงิน'])||0; });
-  return blds.map(v => ({building:v, ...data[v], profit:data[v].income-data[v].expense}));
-}
-
-function _cmpAggBldMonthly(year) {
-  const blds = ['V1','V2','V3','V4'];
-  const months = Array.from({length:12}, (_,i) => `${year}-${String(i+1).padStart(2,'0')}`);
-  const data = {}; blds.forEach(v => { data[v]={}; months.forEach(m => { data[v][m]=0; }); });
-  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว' && String(b['เดือน']||'').slice(0,4)===year).forEach(b => {
-    const ym=String(b['เดือน']||'');
-    if(data[b['อาคาร']]&&data[b['อาคาร']][ym]!==undefined) data[b['อาคาร']][ym]+=parseFloat(b['รวม'])||0;
-  });
-  S.income.filter(i => { const m=_cmpYM(i['วันที่']); return m&&m.slice(0,4)===year; }).forEach(i => {
-    const ym=_cmpYM(i['วันที่']);
-    if(data[i['อาคาร']]&&data[i['อาคาร']][ym]!==undefined) data[i['อาคาร']][ym]+=parseFloat(i['จำนวนเงิน'])||0;
-  });
-  return {blds, months, data};
-}
+// Color palettes per metric type
+const _CMP_PAL = {
+  income:  [[46,125,50],[27,94,32],[56,142,60],[0,150,136],[38,166,154],[1,87,155]],
+  expense: [[198,40,40],[183,28,28],[229,57,53],[191,54,12],[230,74,25],[136,14,79]],
+  profit:  [[26,35,126],[21,101,192],[57,73,171],[13,71,161],[0,96,100],[74,20,140]]
+};
+const _BLD_COL = {V1:[26,35,126],V2:[21,101,192],V3:[2,119,189],V4:[0,131,143]};
+const _ra = ([r,g,b], a) => `rgba(${r},${g},${b},${a})`;
 
 function renderCompare() {
   const years = _cmpGetYears();
-  const yearSel = $('cmp-year');
-  if (yearSel) {
+  const container = $('cmp-year-checks');
+  if (container && !container.dataset.init) {
     const curYear = String(new Date().getFullYear());
-    yearSel.innerHTML = years.length
-      ? years.map(y => `<option value="${y}"${y===curYear?' selected':''}>${y}</option>`).join('')
-      : `<option value="${curYear}">${curYear}</option>`;
+    container.innerHTML = years.map(y =>
+      `<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px">
+        <input type="checkbox" class="cmp-yr" value="${y}"${y===curYear?' checked':''} style="cursor:pointer"> ${y}
+      </label>`
+    ).join('');
+    container.dataset.init = '1';
   }
-  const active = document.querySelector('.cmp-tab.cmp-active');
-  _renderCmpPanel(active ? active.dataset.cmp : 'monthly');
+  _cmpUpdateLabels();
 }
 
-function _renderCmpPanel(which) {
-  const year = ($('cmp-year')||{}).value || String(new Date().getFullYear());
-  ['monthly','yearly','category','buildings'].forEach(p => {
-    const el = $('cmp-panel-'+p);
-    if(el) el.style.display = p===which ? '' : 'none';
-  });
-  if(which==='monthly')   renderCmpMonthly(year);
-  if(which==='yearly')    renderCmpYearly();
-  if(which==='category')  renderCmpCategory(year);
-  if(which==='buildings') renderCmpBuildings(year);
+function _cmpUpdateLabels() {
+  const groupby = ($('cmp-groupby')||{}).value || 'none';
+  const xaxis   = ($('cmp-xaxis')||{}).value   || 'month';
+  const yrLabel  = $('cmp-yr-label');
+  const bldLabel = $('cmp-bld-label');
+  if (yrLabel)  yrLabel.textContent  = groupby==='year'     ? 'ปีที่เปรียบเทียบ (แต่ละปีเป็น 1 ชุดข้อมูล)' : 'กรองปี';
+  if (bldLabel) bldLabel.textContent = groupby==='building' ? 'อาคารที่เปรียบเทียบ (แต่ละอาคารเป็น 1 ชุดข้อมูล)' : 'กรองอาคาร';
+  const yrArea  = $('cmp-yr-area');  if (yrArea)  yrArea.style.display  = xaxis==='year'     ? 'none' : '';
+  const bldArea = $('cmp-bld-area'); if (bldArea) bldArea.style.display = xaxis==='building' ? 'none' : '';
 }
 
-function renderCmpMonthly(year) {
-  const rows = _cmpAggMonthly(year);
-  const ctx = document.getElementById('cmp-monthly-chart');
-  if(!ctx) return;
-  if(_cmpCharts.monthly) _cmpCharts.monthly.destroy();
-  _cmpCharts.monthly = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels: rows.map(r => _THAI_MON[parseInt(r.ym.slice(5,7))]),
-      datasets:[
-        {label:'รายรับ',  data:rows.map(r=>r.income),  backgroundColor:'rgba(46,125,50,0.75)',  borderColor:'#2e7d32',borderWidth:1},
-        {label:'รายจ่าย', data:rows.map(r=>r.expense), backgroundColor:'rgba(198,40,40,0.6)',   borderColor:'#c62828',borderWidth:1}
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},
-      scales:{y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>(v/1000)+'K'}},x:{ticks:{font:{size:10}}}}}
+function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuildings, chartType) {
+  const BLDS = ['V1','V2','V3','V4'];
+
+  // Build flat records
+  const recs = [];
+  S.bills.filter(b => b['สถานะ']==='ชำระแล้ว').forEach(b => {
+    const ym = String(b['เดือน']||''); if (ym.length < 7) return;
+    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:b['อาคาร']||'', income:parseFloat(b['รวม'])||0, expense:0});
   });
-  const tbl = $('cmp-monthly-table'); if(!tbl) return;
-  const totInc=rows.reduce((s,r)=>s+r.income,0), totExp=rows.reduce((s,r)=>s+r.expense,0);
-  tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+  S.income.forEach(i => {
+    const ym = _cmpYM(i['วันที่']); if (!ym) return;
+    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:i['อาคาร']||'', income:parseFloat(i['จำนวนเงิน'])||0, expense:0});
+  });
+  S.expenses.forEach(e => {
+    const ym = _cmpYM(e['วันที่']); if (!ym) return;
+    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:e['อาคาร']||'', income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
+  });
+
+  // Filter
+  const ySet = new Set(selectedYears), bSet = new Set(selectedBuildings);
+  const filtered = recs.filter(r =>
+    (selectedYears.length===0    || ySet.has(r.year))     &&
+    (selectedBuildings.length===0 || bSet.has(r.building))
+  );
+
+  // X-axis labels & index function
+  let xLabels, xIdx;
+  if (xaxis === 'month') {
+    xLabels = _THAI_MON.slice(1);
+    xIdx = r => r.month - 1;
+  } else if (xaxis === 'year') {
+    const yrs = [...new Set(filtered.map(r=>r.year))].sort();
+    xLabels = yrs;
+    xIdx = r => yrs.indexOf(r.year);
+  } else {
+    xLabels = selectedBuildings.length ? selectedBuildings : BLDS;
+    xIdx = r => xLabels.indexOf(r.building);
+  }
+
+  // Series keys & key function
+  let seriesKeys, sKey;
+  if (groupby === 'year') {
+    seriesKeys = [...new Set(filtered.map(r=>r.year))].sort();
+    sKey = r => r.year;
+  } else if (groupby === 'building') {
+    seriesKeys = (selectedBuildings.length ? selectedBuildings : BLDS).filter(v=>BLDS.includes(v));
+    sKey = r => r.building;
+  } else {
+    seriesKeys = ['__all__'];
+    sKey = () => '__all__';
+  }
+
+  // Aggregate
+  const agg = {};
+  seriesKeys.forEach(sk => {
+    agg[sk] = Array.from({length:xLabels.length}, ()=>({income:0, expense:0}));
+  });
+  filtered.forEach(r => {
+    const xi = xIdx(r), sk = sKey(r);
+    if (xi < 0 || !agg[sk]) return;
+    agg[sk][xi].income  += r.income;
+    agg[sk][xi].expense += r.expense;
+  });
+
+  // Build datasets
+  const mLabel = {income:'รายรับ', expense:'รายจ่าย', profit:'กำไร/ขาดทุน'};
+  const isLine = chartType === 'line';
+  const datasets = [];
+
+  seriesKeys.forEach((sk, si) => {
+    metrics.forEach(metric => {
+      const label = groupby==='none' ? mLabel[metric]
+        : metrics.length===1 ? sk
+        : `${sk} (${mLabel[metric]})`;
+
+      const useBldColor = groupby==='building' && metrics.length===1 && _BLD_COL[sk];
+      const pal = useBldColor ? _BLD_COL[sk] : _CMP_PAL[metric][si % _CMP_PAL[metric].length];
+
+      const data = agg[sk].map(v =>
+        metric==='income'  ? Math.round(v.income)  :
+        metric==='expense' ? Math.round(v.expense) :
+        Math.round(v.income - v.expense)
+      );
+
+      datasets.push({
+        label, data,
+        backgroundColor: isLine ? _ra(pal, 0.12) : _ra(pal, 0.8),
+        borderColor:     _ra(pal, 1),
+        borderWidth:     isLine ? 2 : 1,
+        ...(isLine ? {tension:0.3, pointRadius:3, fill:false} : {})
+      });
+    });
+  });
+
+  return {labels: xLabels, datasets};
+}
+
+function _buildCompareChart() {
+  const xaxis    = $('cmp-xaxis').value;
+  const groupby  = $('cmp-groupby').value;
+  const chartType = document.querySelector('.cmp-ct.cmp-ct-on') ? document.querySelector('.cmp-ct.cmp-ct-on').dataset.ct : 'bar';
+  const metrics  = [...document.querySelectorAll('.cmp-metric:checked')].map(c => c.value);
+  if (!metrics.length) { showAlert('กรุณาเลือกข้อมูลที่จะแสดงอย่างน้อย 1 รายการ','error'); return; }
+
+  const selectedYears     = [...document.querySelectorAll('.cmp-yr:checked')].map(c => c.value);
+  const selectedBuildings = [...document.querySelectorAll('.cmp-bld:checked')].map(c => c.value);
+
+  const {labels, datasets} = _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuildings, chartType);
+  if (!labels.length || !datasets.length) { showAlert('ไม่พบข้อมูลสำหรับเงื่อนไขที่เลือก','error'); return; }
+
+  const ctx = document.getElementById('cmp-main-chart');
+  if (!ctx) return;
+  if (_cmpCharts.main) _cmpCharts.main.destroy();
+  _cmpCharts.main = new Chart(ctx, {
+    type: chartType,
+    data: {labels, datasets},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {legend:{position:'top', labels:{boxWidth:12, font:{size:11}}}},
+      scales: {
+        y: {beginAtZero:true, ticks:{font:{size:10}, callback: v => Math.abs(v)>=1000 ? (v/1000).toFixed(0)+'K' : v}},
+        x: {ticks:{font:{size:10}}}
+      }
+    }
+  });
+
+  // Title
+  const xLbl = {month:'รายเดือน', year:'รายปี', building:'รายอาคาร'};
+  const gLbl = {none:'', year:' — แยกตามปี', building:' — แยกตามอาคาร'};
+  const mNames = metrics.map(m => mLabel[m]).join(' + ');
+  $('cmp-result-title').textContent = `${mNames}  ${xLbl[xaxis]}${gLbl[groupby]}`;
+
+  // Summary table
+  let tableHtml = `<table style="width:100%;border-collapse:collapse;font-size:12px">
     <thead><tr style="background:#1a237e;color:#fff">
-      <th style="padding:4px 8px;text-align:left">เดือน</th>
-      <th style="padding:4px 8px;text-align:right">รายรับ</th>
-      <th style="padding:4px 8px;text-align:right">รายจ่าย</th>
-      <th style="padding:4px 8px;text-align:right">กำไร/ขาดทุน</th>
-    </tr></thead>
-    <tbody>${rows.map((r,i)=>{
-      const profit=r.income-r.expense;
-      return `<tr style="background:${i%2?'#f5f5f5':'#fff'}">
-        <td style="padding:3px 8px">${_THAI_MON[parseInt(r.ym.slice(5,7))]} ${parseInt(year)+543}</td>
-        <td style="padding:3px 8px;text-align:right;color:#2e7d32">${_cmpFmt(r.income)}</td>
-        <td style="padding:3px 8px;text-align:right;color:#c62828">${_cmpFmt(r.expense)}</td>
-        <td style="padding:3px 8px;text-align:right;font-weight:600;color:${profit>=0?'#1a237e':'#c62828'}">${_cmpFmt(profit)}</td>
-      </tr>`;
-    }).join('')}
-    <tr style="background:#1a237e;color:#fff;font-weight:700">
-      <td style="padding:4px 8px">รวม</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totInc)}</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totExp)}</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totInc-totExp)}</td>
-    </tr></tbody></table>`;
-}
-
-function renderCmpYearly() {
-  const rows = _cmpAggYearly();
-  const ctx = document.getElementById('cmp-yearly-chart');
-  if(!ctx) return;
-  if(_cmpCharts.yearly) _cmpCharts.yearly.destroy();
-  _cmpCharts.yearly = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels: rows.map(r=>r.year),
-      datasets:[
-        {label:'รายรับ',  data:rows.map(r=>r.income),  backgroundColor:'rgba(46,125,50,0.75)',  borderColor:'#2e7d32',borderWidth:1},
-        {label:'รายจ่าย', data:rows.map(r=>r.expense), backgroundColor:'rgba(198,40,40,0.6)',   borderColor:'#c62828',borderWidth:1}
-      ]
-    },
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},
-      scales:{y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>(v/1000)+'K'}},x:{ticks:{font:{size:11}}}}}
+      <th style="padding:4px 8px;text-align:left">ชุดข้อมูล</th>
+      ${labels.map(l=>`<th style="padding:4px 8px;text-align:right">${l}</th>`).join('')}
+      <th style="padding:4px 8px;text-align:right">รวม</th>
+    </tr></thead><tbody>`;
+  datasets.forEach((ds, di) => {
+    const rowTotal = ds.data.reduce((s,v)=>s+(v||0), 0);
+    tableHtml += `<tr style="background:${di%2?'#f5f5f5':'#fff'}">
+      <td style="padding:3px 8px;font-weight:600;white-space:nowrap">
+        <span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:middle;background:${ds.borderColor}"></span>${ds.label}
+      </td>
+      ${ds.data.map(v=>`<td style="padding:3px 8px;text-align:right">${_cmpFmt(v)}</td>`).join('')}
+      <td style="padding:3px 8px;text-align:right;font-weight:700">${_cmpFmt(rowTotal)}</td>
+    </tr>`;
   });
-  const tbl = $('cmp-yearly-table'); if(!tbl) return;
-  const totInc=rows.reduce((s,r)=>s+r.income,0), totExp=rows.reduce((s,r)=>s+r.expense,0);
-  tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr style="background:#1a237e;color:#fff">
-      <th style="padding:4px 8px;text-align:left">ปี</th>
-      <th style="padding:4px 8px;text-align:right">รายรับ</th>
-      <th style="padding:4px 8px;text-align:right">รายจ่าย</th>
-      <th style="padding:4px 8px;text-align:right">กำไร/ขาดทุน</th>
-    </tr></thead>
-    <tbody>${rows.map((r,i)=>{
-      const profit=r.income-r.expense;
-      return `<tr style="background:${i%2?'#f5f5f5':'#fff'}">
-        <td style="padding:3px 8px">${parseInt(r.year)+543}</td>
-        <td style="padding:3px 8px;text-align:right;color:#2e7d32">${_cmpFmt(r.income)}</td>
-        <td style="padding:3px 8px;text-align:right;color:#c62828">${_cmpFmt(r.expense)}</td>
-        <td style="padding:3px 8px;text-align:right;font-weight:600;color:${profit>=0?'#1a237e':'#c62828'}">${_cmpFmt(profit)}</td>
-      </tr>`;
-    }).join('')}
-    <tr style="background:#1a237e;color:#fff;font-weight:700">
-      <td style="padding:4px 8px">รวม</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totInc)}</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totExp)}</td>
-      <td style="padding:4px 8px;text-align:right">${_cmpFmt(totInc-totExp)}</td>
-    </tr></tbody></table>`;
+  tableHtml += '</tbody></table>';
+  $('cmp-result-table').innerHTML = tableHtml;
+  $('cmp-result').style.display = '';
 }
 
-function renderCmpCategory(year) {
-  const {incCats, expCats} = _cmpAggCategories(year);
-  const incArr = Object.entries(incCats).sort((a,b)=>b[1]-a[1]);
-  const expArr = Object.entries(expCats).sort((a,b)=>b[1]-a[1]);
-  const colI = ['rgba(46,125,50,.8)','rgba(56,142,60,.75)','rgba(76,175,80,.75)','rgba(129,199,132,.75)',
-    'rgba(27,94,32,.8)','rgba(102,187,106,.75)','rgba(38,166,154,.75)','rgba(0,150,136,.75)'];
-  const colE = ['rgba(198,40,40,.8)','rgba(211,47,47,.75)','rgba(229,57,53,.75)','rgba(239,83,80,.75)',
-    'rgba(183,28,28,.8)','rgba(244,67,54,.75)','rgba(229,115,115,.75)','rgba(239,154,154,.75)'];
+const mLabel = {income:'รายรับ', expense:'รายจ่าย', profit:'กำไร/ขาดทุน'};
 
-  const mkCatChart = (id, arr, cols) => {
-    const ctx = document.getElementById(id);
-    if(!ctx) return;
-    if(_cmpCharts[id]) _cmpCharts[id].destroy();
-    _cmpCharts[id] = new Chart(ctx, {
-      type:'bar',
-      data:{labels:arr.map(x=>x[0]),datasets:[{data:arr.map(x=>x[1]),backgroundColor:arr.map((_,i)=>cols[i%cols.length]),borderWidth:1}]},
-      options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
-        plugins:{legend:{display:false}},
-        scales:{x:{beginAtZero:true,ticks:{font:{size:9},callback:v=>(v/1000)+'K'}},y:{ticks:{font:{size:10}}}}}
-    });
-  };
-  const mkCatTable = (id, arr, hdrColor, rowBg) => {
-    const tbl = $(id); if(!tbl) return;
-    const tot = arr.reduce((s,x)=>s+x[1],0);
-    tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:${hdrColor};color:#fff">
-        <th style="padding:3px 6px;text-align:left">หมวดหมู่</th>
-        <th style="padding:3px 6px;text-align:right">จำนวน (฿)</th>
-        <th style="padding:3px 6px;text-align:right">%</th>
-      </tr></thead>
-      <tbody>${arr.map((x,i)=>`<tr style="background:${i%2?rowBg:'#fff'}">
-        <td style="padding:2px 6px">${x[0]}</td>
-        <td style="padding:2px 6px;text-align:right;color:${hdrColor}">${_cmpFmt(x[1])}</td>
-        <td style="padding:2px 6px;text-align:right">${tot?Math.round(x[1]/tot*100):0}%</td>
-      </tr>`).join('')}
-      <tr style="background:${hdrColor};color:#fff;font-weight:700">
-        <td style="padding:3px 6px">รวม</td>
-        <td style="padding:3px 6px;text-align:right">${_cmpFmt(tot)}</td>
-        <td style="padding:3px 6px;text-align:right">100%</td>
-      </tr></tbody></table>`;
-  };
-  mkCatChart('cmp-inc-cat-chart', incArr, colI);
-  mkCatChart('cmp-exp-cat-chart', expArr, colE);
-  mkCatTable('cmp-inc-cat-table', incArr, '#2e7d32', '#f1f8e9');
-  mkCatTable('cmp-exp-cat-table', expArr, '#c62828', '#fff3e0');
-}
-
-function renderCmpBuildings(year) {
-  const bldData = _cmpAggBuildings(year);
-  const ctx = document.getElementById('cmp-bld-chart');
-  if(ctx) {
-    if(_cmpCharts.bld) _cmpCharts.bld.destroy();
-    _cmpCharts.bld = new Chart(ctx, {
-      type:'bar',
-      data:{
-        labels: bldData.map(b=>b.building),
-        datasets:[
-          {label:'รายรับ',  data:bldData.map(b=>b.income),  backgroundColor:'rgba(46,125,50,.75)',  borderColor:'#2e7d32',borderWidth:1},
-          {label:'รายจ่าย', data:bldData.map(b=>b.expense), backgroundColor:'rgba(198,40,40,.6)',   borderColor:'#c62828',borderWidth:1}
-        ]
-      },
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},
-        scales:{y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>(v/1000)+'K'}},x:{ticks:{font:{size:12,weight:'bold'}}}}}
-    });
-  }
-  const tbl = $('cmp-bld-table');
-  if(tbl) {
-    const totI=bldData.reduce((s,b)=>s+b.income,0), totE=bldData.reduce((s,b)=>s+b.expense,0);
-    tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:#1a237e;color:#fff">
-        <th style="padding:4px 8px;text-align:left">อาคาร</th>
-        <th style="padding:4px 8px;text-align:right">รายรับ</th>
-        <th style="padding:4px 8px;text-align:right">รายจ่าย</th>
-        <th style="padding:4px 8px;text-align:right">กำไร</th>
-      </tr></thead>
-      <tbody>${bldData.map((b,i)=>`<tr style="background:${i%2?'#f5f5f5':'#fff'}">
-        <td style="padding:4px 8px;font-weight:700;color:#1a237e">${b.building}</td>
-        <td style="padding:4px 8px;text-align:right;color:#2e7d32">${_cmpFmt(b.income)}</td>
-        <td style="padding:4px 8px;text-align:right;color:#c62828">${_cmpFmt(b.expense)}</td>
-        <td style="padding:4px 8px;text-align:right;font-weight:700;color:${b.profit>=0?'#2e7d32':'#c62828'}">${_cmpFmt(b.profit)}</td>
-      </tr>`).join('')}
-      <tr style="background:#1a237e;color:#fff;font-weight:700">
-        <td style="padding:4px 8px">รวม</td>
-        <td style="padding:4px 8px;text-align:right">${_cmpFmt(totI)}</td>
-        <td style="padding:4px 8px;text-align:right">${_cmpFmt(totE)}</td>
-        <td style="padding:4px 8px;text-align:right">${_cmpFmt(totI-totE)}</td>
-      </tr></tbody></table>`;
-  }
-  const {blds, months, data} = _cmpAggBldMonthly(year);
-  const ctx2 = document.getElementById('cmp-bld-monthly-chart');
-  if(ctx2) {
-    if(_cmpCharts.bldMonthly) _cmpCharts.bldMonthly.destroy();
-    const bldC = {V1:'rgba(26,35,126,.85)',V2:'rgba(21,101,192,.85)',V3:'rgba(2,119,189,.85)',V4:'rgba(1,87,155,.85)'};
-    _cmpCharts.bldMonthly = new Chart(ctx2, {
-      type:'line',
-      data:{
-        labels: months.map(m=>_THAI_MON[parseInt(m.slice(5,7))]),
-        datasets: blds.map(v=>({
-          label:v, data:months.map(m=>data[v][m]||0),
-          borderColor:bldC[v], backgroundColor:bldC[v].replace('.85','.1'),
-          borderWidth:2, pointRadius:3, tension:0.3, fill:false
-        }))
-      },
-      options:{responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{position:'top',labels:{boxWidth:12,font:{size:11}}}},
-        scales:{y:{beginAtZero:true,ticks:{font:{size:10},callback:v=>(v/1000)+'K'}},x:{ticks:{font:{size:10}}}}}
-    });
-  }
-}
-
-document.querySelectorAll('.cmp-tab').forEach(btn => {
+document.querySelectorAll('.cmp-ct').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.cmp-tab').forEach(b => {
+    document.querySelectorAll('.cmp-ct').forEach(b => {
+      b.classList.remove('cmp-ct-on');
       b.style.background='#fff'; b.style.color='#3949ab'; b.style.borderColor='#c5cae9';
-      b.classList.remove('cmp-active');
     });
+    btn.classList.add('cmp-ct-on');
     btn.style.background='#1a237e'; btn.style.color='#fff'; btn.style.borderColor='#1a237e';
-    btn.classList.add('cmp-active');
-    _renderCmpPanel(btn.dataset.cmp);
   });
 });
 
-document.getElementById('cmp-year').addEventListener('change', () => {
-  const active = document.querySelector('.cmp-tab.cmp-active');
-  _renderCmpPanel(active ? active.dataset.cmp : 'monthly');
-});
+$('cmp-xaxis').addEventListener('change', _cmpUpdateLabels);
+$('cmp-groupby').addEventListener('change', _cmpUpdateLabels);
+$('btn-cmp-show').addEventListener('click', _buildCompareChart);
 
 </script>
 </body>
