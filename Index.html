@@ -3263,6 +3263,9 @@ const _CAT_COLORS = [
   [2,119,189],[173,20,87],[33,150,243],[255,109,0],[103,58,183]
 ];
 
+// Normalize expense category: strip " V1/V2/V3/V4" suffix so per-building entries merge
+const _normExpCat = c => (c||'อื่นๆ').replace(/\s+V[1-4]$/, '');
+
 function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuildings, chartType) {
   const BLDS = ['V1','V2','V3','V4'];
   const BILL_CATS = ['ค่าห้อง','ค่าน้ำ','ค่าไฟ','ค่าอื่นๆ'];
@@ -3285,7 +3288,7 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
   S.expenses.forEach(e => {
     const ym = _cmpYM(e['วันที่']); if (!ym) return;
     recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:e['อาคาร']||'',
-               category: e['หมวดหมู่']||'รายจ่ายอื่นๆ', income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
+               category: _normExpCat(e['หมวดหมู่']), income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
   });
 
   // Add static yearly records only for years with no live data (no category split for static)
