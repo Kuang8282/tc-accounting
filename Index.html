@@ -3188,6 +3188,17 @@ $('btn-print-tax').addEventListener('click', () => {
 // ============================================================
 let _cmpCharts = {};
 
+// Static yearly data from financial reports (CE year keys, monthly Jan–Dec)
+const _STATIC_YEARLY = {
+  '2025': {  // 2568 BE
+    income:  [2391265.53, 2373961.93, 2319386.23, 1596049.20, 2219463.00, 1950318.00, 2359069.63, 2587917.19, 2523184.11, 2397755.67, 2383678.74, 2348847.26],
+    expense: [ 910423.80,  729550.93,  865210.79,  716841.80,  475323.90,  573750.41,  971072.69,  848622.05,  690428.90,  644661.96,  859548.47,  703581.36]
+  }
+};
+
+const _yearBE  = y => String(parseInt(y) + 543);   // CE → BE display label
+const _curYearCE = () => String(new Date().getFullYear());
+
 function _cmpYM(d) {
   if (!d) return null;
   const dt = (d instanceof Date) ? d : new Date(d);
@@ -3200,6 +3211,7 @@ function _cmpGetYears() {
   S.bills.forEach(b => { const m = String(b['เดือน']||''); if(m.length>=4) years.add(m.slice(0,4)); });
   S.income.forEach(i => { const m = _cmpYM(i['วันที่']); if(m) years.add(m.slice(0,4)); });
   S.expenses.forEach(e => { const m = _cmpYM(e['วันที่']); if(m) years.add(m.slice(0,4)); });
+  Object.keys(_STATIC_YEARLY).forEach(y => years.add(y));
   return [...years].sort().reverse();
 }
 
@@ -3219,10 +3231,10 @@ function renderCompare() {
   const years = _cmpGetYears();
   const container = $('cmp-year-checks');
   if (container && !container.dataset.init) {
-    const curYear = String(new Date().getFullYear());
+    const curYear = _curYearCE();
     container.innerHTML = years.map(y =>
       `<label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid #c5cae9;border-radius:4px">
-        <input type="checkbox" class="cmp-yr" value="${y}"${y===curYear?' checked':''} style="cursor:pointer"> ${y}
+        <input type="checkbox" class="cmp-yr" value="${y}"${y===curYear?' checked':''} style="cursor:pointer"> ${_yearBE(y)}
       </label>`
     ).join('');
     container.dataset.init = '1';
@@ -3245,7 +3257,7 @@ function _cmpUpdateLabels() {
 function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuildings, chartType) {
   const BLDS = ['V1','V2','V3','V4'];
 
-  // Build flat records
+  // Build flat records from live data
   const recs = [];
   S.bills.filter(b => b['สถานะ']==='ชำระแล้ว').forEach(b => {
     const ym = String(b['เดือน']||''); if (ym.length < 7) return;
@@ -3260,11 +3272,20 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
     recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:e['อาคาร']||'', income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
   });
 
-  // Filter
+  // Add static yearly records only for years with no live data
+  const liveYears = new Set(recs.map(r => r.year));
+  Object.entries(_STATIC_YEARLY).forEach(([year, data]) => {
+    if (liveYears.has(year)) return;  // live data takes priority
+    data.income.forEach((inc, i) => {
+      recs.push({year, month: i+1, building: '', isStatic: true, income: inc, expense: data.expense[i]});
+    });
+  });
+
+  // Filter — static records bypass building filter (they are aggregate totals)
   const ySet = new Set(selectedYears), bSet = new Set(selectedBuildings);
   const filtered = recs.filter(r =>
     (selectedYears.length===0    || ySet.has(r.year))     &&
-    (selectedBuildings.length===0 || bSet.has(r.building))
+    (r.isStatic || selectedBuildings.length===0 || bSet.has(r.building))
   );
 
   // X-axis labels & index function
@@ -3289,7 +3310,7 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
     xIdx = r => r.month - 1;
   } else if (xaxis === 'year') {
     const yrs = [...new Set(filtered.map(r=>r.year))].sort();
-    xLabels = yrs;
+    xLabels = yrs.map(_yearBE);
     xIdx = r => yrs.indexOf(r.year);
   } else {
     xLabels = selectedBuildings.length ? selectedBuildings : BLDS;
@@ -3328,9 +3349,10 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
 
   seriesKeys.forEach((sk, si) => {
     metrics.forEach(metric => {
+      const skLabel = groupby==='year' ? _yearBE(sk) : sk;
       const label = groupby==='none' ? mLabel[metric]
-        : metrics.length===1 ? sk
-        : `${sk} (${mLabel[metric]})`;
+        : metrics.length===1 ? skLabel
+        : `${skLabel} (${mLabel[metric]})`;
 
       const useBldColor = groupby==='building' && metrics.length===1 && _BLD_COL[sk];
       const pal = useBldColor ? _BLD_COL[sk] : _CMP_PAL[metric][si % _CMP_PAL[metric].length];
