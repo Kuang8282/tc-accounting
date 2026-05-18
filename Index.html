@@ -502,6 +502,7 @@ canvas{max-width:100%;}
             <option value="none">ไม่แบ่ง (รวมทั้งหมด)</option>
             <option value="year">แยกตามปี</option>
             <option value="building">แยกตามอาคาร</option>
+            <option value="category">แยกตามหมวดหมู่</option>
           </select>
         </div>
         <div>
@@ -3254,49 +3255,62 @@ function _cmpUpdateLabels() {
   const bldArea = $('cmp-bld-area'); if (bldArea) bldArea.style.display = xaxis==='building' ? 'none' : '';
 }
 
+// Extended palette for category mode (20 distinct colors)
+const _CAT_COLORS = [
+  [46,125,50],[198,40,40],[26,35,126],[230,81,0],[106,27,154],
+  [0,131,143],[136,14,79],[51,105,30],[13,71,161],[74,20,140],
+  [27,94,32],[183,28,28],[57,73,171],[191,54,12],[69,39,160],
+  [2,119,189],[173,20,87],[33,150,243],[255,109,0],[103,58,183]
+];
+
 function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuildings, chartType) {
   const BLDS = ['V1','V2','V3','V4'];
+  const BILL_CATS = ['ค่าห้อง','ค่าน้ำ','ค่าไฟ','ค่าอื่นๆ'];
 
-  // Build flat records from live data
+  // Build flat records from live data — bills split into sub-categories
   const recs = [];
   S.bills.filter(b => b['สถานะ']==='ชำระแล้ว').forEach(b => {
     const ym = String(b['เดือน']||''); if (ym.length < 7) return;
-    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:b['อาคาร']||'', income:parseFloat(b['รวม'])||0, expense:0});
+    const base = {year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:b['อาคาร']||''};
+    BILL_CATS.forEach(cat => {
+      const amt = parseFloat(b[cat])||0;
+      if (amt) recs.push({...base, category: cat, income: amt, expense: 0});
+    });
   });
   S.income.forEach(i => {
     const ym = _cmpYM(i['วันที่']); if (!ym) return;
-    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:i['อาคาร']||'', income:parseFloat(i['จำนวนเงิน'])||0, expense:0});
+    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:i['อาคาร']||'',
+               category: i['หมวดหมู่']||'รายรับอื่นๆ', income:parseFloat(i['จำนวนเงิน'])||0, expense:0});
   });
   S.expenses.forEach(e => {
     const ym = _cmpYM(e['วันที่']); if (!ym) return;
-    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:e['อาคาร']||'', income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
+    recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:e['อาคาร']||'',
+               category: e['หมวดหมู่']||'รายจ่ายอื่นๆ', income:0, expense:parseFloat(e['จำนวนเงิน'])||0});
   });
 
-  // Add static yearly records only for years with no live data
+  // Add static yearly records only for years with no live data (no category split for static)
   const liveYears = new Set(recs.map(r => r.year));
   Object.entries(_STATIC_YEARLY).forEach(([year, data]) => {
-    if (liveYears.has(year)) return;  // live data takes priority
+    if (liveYears.has(year)) return;
     data.income.forEach((inc, i) => {
-      recs.push({year, month: i+1, building: '', isStatic: true, income: inc, expense: data.expense[i]});
+      recs.push({year, month: i+1, building: '', category: '', isStatic: true, income: inc, expense: data.expense[i]});
     });
   });
 
-  // Filter — static records bypass building filter (they are aggregate totals)
+  // Filter — static records bypass building filter; category groupby excludes static
   const ySet = new Set(selectedYears), bSet = new Set(selectedBuildings);
   const filtered = recs.filter(r =>
-    (selectedYears.length===0    || ySet.has(r.year))     &&
-    (r.isStatic || selectedBuildings.length===0 || bSet.has(r.building))
+    (selectedYears.length===0 || ySet.has(r.year)) &&
+    (r.isStatic || selectedBuildings.length===0 || bSet.has(r.building)) &&
+    (groupby !== 'category' || !r.isStatic)
   );
 
   // X-axis labels & index function
   let xLabels, xIdx;
   if (xaxis === 'month-all') {
-    // Continuous timeline: every year-month in chronological order
     const years = (selectedYears.length ? [...selectedYears] : [...new Set(filtered.map(r=>r.year))]).sort();
     const allYMs = [];
-    years.forEach(y => {
-      for (let m=1; m<=12; m++) allYMs.push(`${y}-${String(m).padStart(2,'0')}`);
-    });
+    years.forEach(y => { for (let m=1; m<=12; m++) allYMs.push(`${y}-${String(m).padStart(2,'0')}`); });
     const ymToIdx = {};
     allYMs.forEach((ym,i) => { ymToIdx[ym]=i; });
     xLabels = allYMs.map(ym => {
@@ -3325,6 +3339,15 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
   } else if (groupby === 'building') {
     seriesKeys = (selectedBuildings.length ? selectedBuildings : BLDS).filter(v=>BLDS.includes(v));
     sKey = r => r.building;
+  } else if (groupby === 'category') {
+    // Sort: bill sub-cats first, then others alphabetically
+    const allCats = [...new Set(filtered.map(r => r.category||'ไม่ระบุ'))];
+    const billOrder = ['ค่าห้อง','ค่าน้ำ','ค่าไฟ','ค่าอื่นๆ'];
+    seriesKeys = [
+      ...billOrder.filter(c => allCats.includes(c)),
+      ...allCats.filter(c => !billOrder.includes(c)).sort()
+    ];
+    sKey = r => r.category||'ไม่ระบุ';
   } else {
     seriesKeys = ['__all__'];
     sKey = () => '__all__';
@@ -3354,14 +3377,23 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
         : metrics.length===1 ? skLabel
         : `${skLabel} (${mLabel[metric]})`;
 
-      const useBldColor = groupby==='building' && metrics.length===1 && _BLD_COL[sk];
-      const pal = useBldColor ? _BLD_COL[sk] : _CMP_PAL[metric][si % _CMP_PAL[metric].length];
+      let pal;
+      if (groupby === 'building' && metrics.length===1 && _BLD_COL[sk]) {
+        pal = _BLD_COL[sk];
+      } else if (groupby === 'category') {
+        pal = _CAT_COLORS[si % _CAT_COLORS.length];
+      } else {
+        pal = _CMP_PAL[metric][si % _CMP_PAL[metric].length];
+      }
 
       const data = agg[sk].map(v =>
         metric==='income'  ? Math.round(v.income)  :
         metric==='expense' ? Math.round(v.expense) :
         Math.round(v.income - v.expense)
       );
+
+      // Skip all-zero series in category mode
+      if (groupby === 'category' && data.every(v => v === 0)) return;
 
       datasets.push({
         label, data,
