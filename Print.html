@@ -596,7 +596,8 @@ function buildBankSlip(bill, co, tenant, docNo, issueDate, grandTotal, coTaxFmt)
 // ── RECEIPT / TAX INVOICE ─────────────────────────────────
 function buildReceiptPage(bill) {
   const co = companies[bill['อาคาร']] || bill.company || {};
-  const nvItems = getNvItems();
+  const building = bill['อาคาร'] || '';
+  const nvItems = building === 'V1' ? getNvItems() : getNvItems().filter(v => v !== 'ค่าเช่า');
   const { extras, plainNote } = parseExtraItems(bill);
   const { nvTotal, vatBase, vat, grandTotal } = calcVat(bill, nvItems);
   const rent  = parseFloat(bill['ค่าห้อง'])||0;
@@ -689,7 +690,8 @@ function renderTaxSaleReport(container) {
     const co = companies[v] || {};
     let totalNV=0, totalV=0, totalVAT=0, totalGrand=0;
     const rows = vBills.map((b,i) => {
-      const { nvTotal, vatBase, vat, grandTotal } = calcVat(b, nvItems);
+      const bNvItems = (b['อาคาร']||'') === 'V1' ? nvItems : nvItems.filter(x => x !== 'ค่าเช่า');
+      const { nvTotal, vatBase, vat, grandTotal } = calcVat(b, bNvItems);
       totalNV += nvTotal; totalV += vatBase; totalVAT += vat; totalGrand += grandTotal;
       return `<tr>
         <td class="tc">${i+1}</td>

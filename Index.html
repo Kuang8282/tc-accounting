@@ -2015,7 +2015,8 @@ function _buildBankSlip(bill,co,tenant,docNo,issueDate,grandTotal,coTaxFmt) {
 }
 function _buildReceiptPage(bill,companies) {
   const co=companies[bill['อาคาร']]||{};
-  const nvItems=['ค่าเช่า'];
+  const building=bill['อาคาร']||'';
+  const nvItems=building==='V1'?['ค่าเช่า']:[];
   const{extras,plainNote}=_parseExtraItems(bill);
   const{nvTotal,vatBase,vat,grandTotal}=_calcVat(bill,nvItems);
   const rent=parseFloat(bill['ค่าห้อง'])||0,water=parseFloat(bill['ค่าน้ำ'])||0,elec=parseFloat(bill['ค่าไฟ'])||0;
