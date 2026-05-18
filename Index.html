@@ -2317,27 +2317,6 @@ $('btn-print-confirm').addEventListener('click', ()=>{
 // ============================================================
 // EXPENSE REPORT PRINT
 // ============================================================
-const _EXP_CSS = `@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-@page{size:A4 landscape;margin:10mm 12mm;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Sarabun',sans-serif;font-size:11px;background:#e0e0e0;color:#000;padding:10px;}
-.page-container{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
-.tax-page{background:#fff;padding:6mm 8mm;box-shadow:0 2px 8px rgba(0,0,0,.2);}
-.rpt-title{text-align:center;font-size:15px;font-weight:700;margin-bottom:3mm;}
-.rpt-header-grid{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:3mm;font-size:11px;line-height:1.7;border-bottom:2px solid #000;padding-bottom:2mm;}
-.tax-table{width:100%;border-collapse:collapse;font-size:10px;}
-.tax-table th,.tax-table td{border:1px solid #555;padding:3px 5px;vertical-align:middle;}
-.tax-table th{background:#333;color:#fff;text-align:center;font-weight:700;line-height:1.4;}
-.tax-table th.tl{text-align:left;}
-.tc{text-align:center;}.tr{text-align:right;}.tl{text-align:left;}
-.tax-table tbody tr:nth-child(even){background:#f9f9f9;}
-.grp-row td{background:#e0e0e0;font-weight:700;font-size:10.5px;}
-.total-row td{font-weight:700;background:#ddd;border-top:2px solid #333;}
-.grand-row td{font-weight:700;background:#333;color:#fff;border-top:2px solid #000;}
-.sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:6mm;text-align:center;font-size:11px;line-height:1.6;}
-.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
-@media print{body{background:#fff;padding:0;}.tax-page{box-shadow:none;page-break-after:always;}.tax-page:last-child{page-break-after:auto;}}`;
-
 function _getExpenseFilteredData() {
   const from = $('exp-print-from').value;
   const to   = $('exp-print-to').value;
@@ -2366,11 +2345,10 @@ function _fmtDateShortThai(d) {
 function _buildExpenseReport(expenses, params) {
   const { from, to, bld, cat } = params;
   const isAll = !bld;
-  const period = [from, to].filter(Boolean).map(m => _thaiMonthFull(m)).join(' ถึง ') || 'ทั้งหมด';
+  const period = [from, to].filter(Boolean).map(m => _thaiMonthFull(m)).join(' – ') || 'ทั้งหมด';
   const catLabel = cat || 'ทุกหมวดหมู่';
 
   function buildPage(rows, co, v) {
-    const coTaxFmt = (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
     let totAmt=0, totVat=0, totWht=0, totNet=0;
     const rowHtml = rows.map((e,i) => {
       const amt = parseFloat(e['จำนวนเงิน'])||0;
@@ -2390,38 +2368,39 @@ function _buildExpenseReport(expenses, params) {
         <td class="tl" style="font-size:9.5px">${e['หมายเหตุ']||''}</td>
       </tr>`;
     }).join('');
+
     return `<div class="tax-page">
-  <div class="rpt-title">รายงานรายจ่าย</div>
-  <div class="rpt-header-grid">
+  <div class="tax-title">รายงานรายจ่าย — อาคาร ${v}</div>
+  <div class="tax-header-grid">
     <div>
-      <div><strong>${co.name||v} (สำนักงานใหญ่)</strong></div>
-      <div style="font-size:10px;color:#444">${co.address||''}</div>
-      ${co.taxId?`<div style="font-size:10px">เลขประจำตัวผู้เสียภาษีอากร ${coTaxFmt}</div>`:''}
+      <div><strong>ชื่อกิจการ:</strong> ${co.name||v} (สำนักงานใหญ่)</div>
+      <div>${co.address||''}</div>
+      ${co.taxId?`<div><strong>เลขประจำตัวผู้เสียภาษี:</strong> ${_taxCoFmt(co)}</div>`:''}
     </div>
     <div style="text-align:right">
       <div><strong>ช่วงเวลา:</strong> ${period}</div>
       <div><strong>หมวดหมู่:</strong> ${catLabel}</div>
-      <div style="font-size:10px;color:#555">วันที่พิมพ์: ${_todayThai()}</div>
+      <div style="font-size:10px;color:#555">พิมพ์วันที่ ${_todayThai()}</div>
     </div>
   </div>
   <table class="tax-table">
     <thead>
       <tr>
-        <th style="width:28px">ลำดับ</th>
-        <th style="width:65px">วันที่</th>
-        <th class="tl" style="width:120px">หมวดหมู่</th>
+        <th style="width:30px">ลำดับ</th>
+        <th style="width:68px">วันที่</th>
+        <th class="tl" style="width:125px">หมวดหมู่</th>
         <th class="tl">ผู้รับเงิน / รายละเอียด</th>
-        <th style="width:85px">จำนวนเงิน</th>
-        <th style="width:70px">VAT 7%</th>
-        <th style="width:75px">หัก ณ ที่จ่าย</th>
-        <th style="width:85px">สุทธิ</th>
-        <th class="tl" style="width:95px">หมายเหตุ</th>
+        <th style="width:88px">จำนวนเงิน</th>
+        <th style="width:72px">VAT 7%</th>
+        <th style="width:78px">หัก ณ ที่จ่าย</th>
+        <th style="width:88px">สุทธิ (฿)</th>
+        <th class="tl" style="width:90px">หมายเหตุ</th>
       </tr>
     </thead>
     <tbody>
       ${rowHtml}
       <tr class="grand-row">
-        <td colspan="4" class="tr">รวมทั้งสิ้น (${rows.length} รายการ)</td>
+        <td colspan="4" class="tr">รวมทั้งสิ้น &nbsp;(${rows.length} รายการ)</td>
         <td class="tr">${_invFmt(totAmt)}</td>
         <td class="tr">${totVat?_invFmt(totVat):'-'}</td>
         <td class="tr">${totWht?_invFmt(totWht):'-'}</td>
@@ -2430,11 +2409,7 @@ function _buildExpenseReport(expenses, params) {
       </tr>
     </tbody>
   </table>
-  <div class="sig-grid">
-    <div><div class="sig-line"></div>ผู้จัดทำ<br>(.........../........../..........)  </div>
-    <div><div class="sig-line"></div>ผู้ตรวจสอบ<br>(.........../........../..........)  </div>
-    <div><div class="sig-line"></div>ผู้อนุมัติ<br>(.........../........../..........)  </div>
-  </div>
+  ${_taxSigGrid()}
 </div>`;
   }
 
@@ -2484,7 +2459,7 @@ $('btn-do-print-expense').addEventListener('click', () => {
   const reportHtml = _buildExpenseReport(expenses, params);
   const srcdoc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>${_EXP_CSS}</style></head><body>
+<style>${_TAX_CSS}@page{size:A4 landscape;margin:10mm 12mm;}</style></head><body>
 <div class="page-container">${reportHtml}</div>
 </body></html>`;
   $('expense-preview-frame').srcdoc = srcdoc;
@@ -2835,19 +2810,22 @@ let _taxPrintSrc = '';
 const _TAX_CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Sarabun',sans-serif;font-size:11px;background:#e0e0e0;color:#000;padding:10px;}
-.page-container{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
-.tax-page{background:#fff;padding:6mm 8mm;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+body{font-family:'Sarabun',sans-serif;font-size:11px;background:#e8eaf6;color:#000;padding:10px;}
+.page-container{max-width:1150px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+.tax-page{background:#fff;padding:7mm 9mm;box-shadow:0 2px 8px rgba(0,0,0,.18);}
 .tax-title{text-align:center;font-size:15px;font-weight:700;margin-bottom:3mm;}
-.tax-header-grid{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:3mm;font-size:11px;line-height:1.7;}
-.tax-table{width:100%;border-collapse:collapse;font-size:10px;}
-.tax-table th,.tax-table td{border:1px solid #555;padding:2px 4px;vertical-align:middle;}
-.tax-table th{background:#f5f5f5;text-align:center;font-weight:600;line-height:1.4;}
+.tax-header-grid{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:3mm;font-size:11px;line-height:1.8;border-bottom:2px solid #1a237e;padding-bottom:2.5mm;}
+.tax-table{width:100%;border-collapse:collapse;font-size:10.5px;}
+.tax-table th,.tax-table td{border:1px solid #bbb;padding:3px 5px;vertical-align:middle;}
+.tax-table thead tr:first-child th{background:#1a237e;color:#fff;text-align:center;font-weight:700;line-height:1.5;}
+.tax-table thead tr:not(:first-child) th{background:#3949ab;color:#fff;text-align:center;font-weight:600;}
 .tc{text-align:center;} .tr{text-align:right;} .tl{text-align:left;}
-.total-row td{font-weight:700;background:#f0f0f0;}
+.tax-table tbody tr:nth-child(even){background:#f3f4fb;}
+.total-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #1a237e;}
+.grand-row td{font-weight:700;background:#1a237e;color:#fff;border-top:2px solid #0d1558;}
 .sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:6mm;text-align:center;font-size:11px;line-height:1.6;}
-.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
-@media print{body{background:#fff;padding:0;}.tax-page{box-shadow:none;page-break-after:always;}}
+.sig-line{border-bottom:1px dotted #888;height:22px;margin-bottom:3px;}
+@media print{body{background:#fff;padding:0;}.tax-page{box-shadow:none;page-break-after:always;}.tax-page:last-child{page-break-after:auto;}}
 `;
 
 function _thaiMonthFull(yyyyMm) {
