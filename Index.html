@@ -144,6 +144,7 @@ canvas{max-width:100%;}
     <button class="nav-tab" data-section="income">💰 รายรับอื่นๆ</button>
     <button class="nav-tab" data-section="expenses">💸 รายจ่าย</button>
     <button class="nav-tab" data-section="reports">📊 รายงาน</button>
+    <button class="nav-tab" data-section="tax">📑 รายงานภาษี</button>
     <button class="nav-tab" data-section="print-select">🖨️ พิมพ์เอกสาร</button>
     <button class="nav-tab" data-section="dashboard">📈 Dashboard</button>
   </div>
@@ -360,6 +361,47 @@ canvas{max-width:100%;}
     </div>
   </div>
 
+  <!-- ====== TAX REPORTS ====== -->
+  <div id="section-tax" class="section">
+    <div class="card">
+      <div class="card-title">📑 รายงานภาษี</div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" data-sub="tax-sale-panel">📊 ภาษีขาย (Tax Sale)</button>
+        <button class="sub-tab" data-sub="tax-buy-panel">📑 ภาษีซื้อ (Tax Purchase)</button>
+      </div>
+
+      <!-- Tax Sale -->
+      <div id="tax-sale-panel" class="sub-content active">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <label style="font-size:13px">เดือน</label>
+          <input type="month" class="form-control" id="tsale-month" style="width:160px">
+          <label style="font-size:13px">อาคาร</label>
+          <select class="form-control" id="tsale-building" style="width:130px">
+            <option value="">ทุกอาคาร</option>
+            <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+          </select>
+          <button class="btn btn-primary" id="btn-preview-tsale">🖨️ ดูตัวอย่าง / พิมพ์</button>
+        </div>
+        <div id="tsale-summary" style="font-size:13px;color:#555"></div>
+      </div>
+
+      <!-- Tax Buy -->
+      <div id="tax-buy-panel" class="sub-content">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <label style="font-size:13px">เดือน</label>
+          <input type="month" class="form-control" id="tbuy-month" style="width:160px">
+          <label style="font-size:13px">อาคาร</label>
+          <select class="form-control" id="tbuy-building" style="width:130px">
+            <option value="">ทุกอาคาร</option>
+            <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+          </select>
+          <button class="btn btn-primary" id="btn-preview-tbuy">🖨️ ดูตัวอย่าง / พิมพ์</button>
+        </div>
+        <div id="tbuy-summary" style="font-size:13px;color:#555"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- ====== DASHBOARD ====== -->
   <div id="section-dashboard" class="section">
     <div class="card" style="padding:8px 16px;margin-bottom:12px">
@@ -561,6 +603,21 @@ canvas{max-width:100%;}
     <div class="modal-footer" style="gap:8px;flex-shrink:0">
       <button class="btn btn-outline btn-primary" data-close="modal-expense-preview">ปิด</button>
       <button class="btn btn-primary" id="btn-print-expense-confirm">🖨️ พิมพ์</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tax Preview Modal -->
+<div class="modal-overlay" id="modal-tax-preview">
+  <div class="modal" style="width:97vw;height:96vh;max-width:1200px;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <span class="modal-title" id="tax-preview-title">รายงานภาษี</span>
+      <button class="modal-close" data-close="modal-tax-preview">×</button>
+    </div>
+    <iframe id="tax-preview-frame" style="width:100%;flex:1;border:none" src="about:blank"></iframe>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-primary" id="btn-print-tax">🖨️ พิมพ์</button>
+      <button class="btn btn-outline" data-close="modal-tax-preview">ปิด</button>
     </div>
   </div>
 </div>
@@ -2597,6 +2654,255 @@ function renderDashOccupancy(occ) {
   }).join('');
   el.innerHTML = rows;
 }
+
+// ════════════════════════════════════════════════════════════
+// TAX REPORTS
+// ════════════════════════════════════════════════════════════
+let _taxPrintSrc = '';
+
+const _TAX_CSS = `
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;font-size:11px;background:#e0e0e0;color:#000;padding:10px;}
+.page-container{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:16px;}
+.tax-page{background:#fff;padding:6mm 8mm;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.tax-title{text-align:center;font-size:15px;font-weight:700;margin-bottom:3mm;}
+.tax-header-grid{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:3mm;font-size:11px;line-height:1.7;}
+.tax-table{width:100%;border-collapse:collapse;font-size:10px;}
+.tax-table th,.tax-table td{border:1px solid #555;padding:2px 4px;vertical-align:middle;}
+.tax-table th{background:#f5f5f5;text-align:center;font-weight:600;line-height:1.4;}
+.tc{text-align:center;} .tr{text-align:right;} .tl{text-align:left;}
+.total-row td{font-weight:700;background:#f0f0f0;}
+.sig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;margin-top:6mm;text-align:center;font-size:11px;line-height:1.6;}
+.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
+@media print{body{background:#fff;padding:0;}.tax-page{box-shadow:none;page-break-after:always;}}
+`;
+
+function _thaiMonthFull(yyyyMm) {
+  if (!yyyyMm) return '';
+  const [y, m] = yyyyMm.split('-');
+  const months = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+                  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  return `${months[parseInt(m)||0]} ${parseInt(y)+543}`;
+}
+
+function _fmtTaxDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt)) return String(d).slice(0,10);
+  const dd = String(dt.getDate()).padStart(2,'0');
+  const mm = String(dt.getMonth()+1).padStart(2,'0');
+  const yy = String(dt.getFullYear()+543).slice(-2);
+  return `${dd}/${mm}/${yy}`;
+}
+
+function _taxCoFmt(co) {
+  return (co.taxId||'').replace(/(\d)(\d{4})(\d{5})(\d{2})(\d)/,'$1 $2 $3 $4 $5');
+}
+
+function _taxHeader(title, co, v, month) {
+  return `<div class="tax-title">${title}</div>
+  <div class="tax-header-grid">
+    <div>
+      <div><strong>ชื่อผู้ประกอบการ:</strong> ${co.name||v} (สำนักงานใหญ่)</div>
+      <div><strong>สถานประกอบการ:</strong> ${co.address||''}</div>
+    </div>
+    <div style="text-align:right">
+      <div><strong>เลขประจำตัวผู้เสียภาษีอากร</strong> ${_taxCoFmt(co)}</div>
+      <div><strong>ประจำเดือน</strong> ${_thaiMonthFull(month)||'ทั้งหมด'}</div>
+    </div>
+  </div>`;
+}
+
+function _taxSigGrid() {
+  return `<div class="sig-grid">
+    <div><div class="sig-line"></div>ผู้จัดทำ<br>(.........../........../..........)  </div>
+    <div><div class="sig-line"></div>ผู้ตรวจสอบ<br>(.........../........../..........)  </div>
+    <div><div class="sig-line"></div>ผู้อนุมัติ<br>(.........../........../..........)  </div>
+  </div>`;
+}
+
+// ── Tax Sale Report ─────────────────────────────────────────
+function _buildTaxSaleReport(bills, params) {
+  const {building: bld, month} = params;
+  const filtered = bills.filter(b => {
+    if (b['สถานะ'] !== 'ชำระแล้ว') return false;
+    if (month && !String(b['เดือน']).startsWith(month)) return false;
+    if (bld && b['อาคาร'] !== bld) return false;
+    return true;
+  });
+  const groups = bld ? [bld] : ['V1','V2','V3','V4'];
+  let out = '';
+  groups.forEach(v => {
+    const vb = filtered.filter(b => b['อาคาร'] === v);
+    if (!vb.length) return;
+    const co = S.companies[v] || {};
+    const nvItems = v === 'V1' ? ['ค่าเช่า'] : [];
+    let totNV=0, totV=0, totVAT=0;
+    const rows = vb.map((b,i) => {
+      const {nvTotal, vatBase, vat} = _calcVat(b, nvItems);
+      totNV += nvTotal; totV += vatBase; totVAT += vat;
+      return `<tr>
+        <td class="tc">${i+1}</td>
+        <td class="tc">${b['ห้อง']||''}</td>
+        <td class="tc">${_fmtTaxDate(b['วันที่ชำระ'])}</td>
+        <td>${b['เลขที่ใบกำกับ']||'-'}</td>
+        <td class="tl">${b['ผู้เช่า']||''}</td>
+        <td class="tr">${nvTotal>0?_invFmt(nvTotal):'-'}</td>
+        <td class="tr">${vatBase>0?_invFmt(vatBase):'-'}</td>
+        <td class="tr">${vat>0?_invFmt(vat):'-'}</td>
+      </tr>`;
+    }).join('');
+    out += `<div class="tax-page">
+      ${_taxHeader('บัญชีรายงานภาษีขาย', co, v, month)}
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="width:28px">ลำดับที่</th>
+            <th rowspan="2" style="width:44px">เลขที่ห้อง</th>
+            <th rowspan="2" style="width:68px">วัน/เดือน/ปี</th>
+            <th rowspan="2" style="width:100px">เลขที่ใบกำกับภาษี</th>
+            <th rowspan="2" class="tl">รายการ (ชื่อผู้เช่า)</th>
+            <th colspan="3">มูลค่าสินค้า/บริการ</th>
+          </tr>
+          <tr>
+            <th style="width:80px">มูลค่าสินค้า NV<br><small>(ไม่มี VAT)</small></th>
+            <th style="width:80px">มูลค่าสินค้า V<br><small>(มี VAT 7%)</small></th>
+            <th style="width:72px">ภาษีมูลค่าเพิ่ม</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td colspan="5" class="tr"><strong>รวม</strong></td>
+            <td class="tr">${_invFmt(totNV)}</td>
+            <td class="tr">${_invFmt(totV)}</td>
+            <td class="tr">${_invFmt(totVAT)}</td>
+          </tr>
+        </tbody>
+      </table>
+      ${_taxSigGrid()}
+    </div>`;
+  });
+  return out || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
+}
+
+// ── Tax Buy Report ──────────────────────────────────────────
+function _buildTaxBuyReport(expenses, params) {
+  const {building: bld, month} = params;
+  const filtered = expenses.filter(e => {
+    if (month) {
+      const d = e['วันที่'] ? new Date(e['วันที่']) : null;
+      if (!d || isNaN(d)) return false;
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if (!ym.startsWith(month)) return false;
+    }
+    if (bld && e['อาคาร'] !== bld) return false;
+    return true;
+  });
+  const groups = bld ? [bld] : ['V1','V2','V3','V4'];
+  let out = '';
+  groups.forEach(v => {
+    const ve = filtered.filter(e => e['อาคาร'] === v);
+    if (!ve.length) return;
+    const co = S.companies[v] || {};
+    let totNonVat=0, totBase=0, totVAT=0;
+    const rows = ve.map((e,i) => {
+      const amt = parseFloat(e['จำนวนเงิน'])||0;
+      const hasVat = (parseFloat(e['ภาษีหัก ณ ที่จ่าย'])||0) > 0;
+      const vatBase = hasVat ? Math.round(amt/1.07*100)/100 : 0;
+      const vat     = hasVat ? Math.round((amt-vatBase)*100)/100 : 0;
+      const nonVat  = hasVat ? 0 : amt;
+      totNonVat += nonVat; totBase += vatBase; totVAT += vat;
+      return `<tr>
+        <td class="tc">${i+1}</td>
+        <td class="tc">${_fmtTaxDate(e['วันที่'])}</td>
+        <td class="tc">${e['ID']||'-'}</td>
+        <td class="tl">${e['ผู้รับเงิน']||''}</td>
+        <td class="tc">-</td>
+        <td class="tl">${e['หมวดหมู่']||''}</td>
+        <td class="tr">${nonVat>0?_invFmt(nonVat):'-'}</td>
+        <td class="tr">-</td>
+        <td class="tr">${vatBase>0?_invFmt(vatBase):'-'}</td>
+        <td class="tr">${vat>0?_invFmt(vat):'-'}</td>
+        <td class="tr">-</td>
+        <td class="tr">-</td>
+      </tr>`;
+    }).join('');
+    out += `<div class="tax-page">
+      ${_taxHeader('รายงานภาษีซื้อ', co, v, month)}
+      <table class="tax-table">
+        <thead>
+          <tr>
+            <th rowspan="2" style="width:25px">ลำดับที่</th>
+            <th rowspan="2" style="width:55px">วัน/เดือน/ปี (รับ)</th>
+            <th rowspan="2" style="width:65px">เลขที่ใบกำกับ/เลขที่อ้างอิง</th>
+            <th rowspan="2" class="tl">ชื่อผู้ขาย/ผู้ให้บริการ</th>
+            <th rowspan="2" style="width:85px">เลขประจำตัวผู้เสียภาษี ผู้ขาย</th>
+            <th rowspan="2" class="tl">รายการ</th>
+            <th colspan="4">ภาษีซื้อ</th>
+            <th colspan="2">ภาษีซื้อต้องห้าม</th>
+          </tr>
+          <tr>
+            <th style="width:60px">Non Vat</th>
+            <th style="width:50px">ยกเว้น</th>
+            <th style="width:68px">มูลค่าฐาน</th>
+            <th style="width:60px">ภาษีมูลค่าเพิ่ม</th>
+            <th style="width:50px">ยกเว้น</th>
+            <th style="width:60px">ภาษีมูลค่าเพิ่ม</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr class="total-row">
+            <td colspan="6" class="tr"><strong>รวม</strong></td>
+            <td class="tr">${_invFmt(totNonVat)}</td>
+            <td class="tr">-</td>
+            <td class="tr">${_invFmt(totBase)}</td>
+            <td class="tr">${_invFmt(totVAT)}</td>
+            <td class="tr">-</td>
+            <td class="tr">-</td>
+          </tr>
+        </tbody>
+      </table>
+      ${_taxSigGrid()}
+    </div>`;
+  });
+  return out || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
+}
+
+// ── Tax event listeners ─────────────────────────────────────
+$('btn-preview-tsale').addEventListener('click', () => {
+  const month = $('tsale-month').value;
+  const bld   = $('tsale-building').value;
+  const html  = _buildTaxSaleReport(S.bills, {month, building: bld});
+  _taxPrintSrc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<style>${_TAX_CSS}</style></head><body>
+<div class="page-container">${html}</div></body></html>`;
+  $('tax-preview-frame').srcdoc = _taxPrintSrc;
+  $('tax-preview-title').textContent = 'บัญชีรายงานภาษีขาย' + (month ? ' — ' + _thaiMonthFull(month) : '');
+  openModal('modal-tax-preview');
+});
+
+$('btn-preview-tbuy').addEventListener('click', () => {
+  const month = $('tbuy-month').value;
+  const bld   = $('tbuy-building').value;
+  const html  = _buildTaxBuyReport(S.expenses, {month, building: bld});
+  _taxPrintSrc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<style>${_TAX_CSS}</style></head><body>
+<div class="page-container">${html}</div></body></html>`;
+  $('tax-preview-frame').srcdoc = _taxPrintSrc;
+  $('tax-preview-title').textContent = 'รายงานภาษีซื้อ' + (month ? ' — ' + _thaiMonthFull(month) : '');
+  openModal('modal-tax-preview');
+});
+
+$('btn-print-tax').addEventListener('click', () => {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  w.document.write(_taxPrintSrc);
+  w.document.close();
+  w.onload = () => w.print();
+});
 
 </script>
 </body>
