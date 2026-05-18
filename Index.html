@@ -380,9 +380,11 @@ canvas{max-width:100%;}
             <option value="">ทุกอาคาร</option>
             <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
           </select>
-          <button class="btn btn-primary" id="btn-preview-tsale">🖨️ ดูตัวอย่าง / พิมพ์</button>
+          <button class="btn btn-sm btn-outline btn-primary" id="btn-tsale-all">เลือกทั้งหมด</button>
+          <button class="btn btn-sm btn-outline btn-primary" id="btn-tsale-none">ยกเลิกทั้งหมด</button>
+          <button class="btn btn-primary" id="btn-preview-tsale" style="margin-left:auto">🖨️ ดูตัวอย่าง / พิมพ์</button>
         </div>
-        <div id="tsale-summary" style="font-size:13px;color:#555"></div>
+        <div class="print-list" id="tsale-bill-list"></div>
       </div>
 
       <!-- Tax Buy -->
@@ -395,9 +397,11 @@ canvas{max-width:100%;}
             <option value="">ทุกอาคาร</option>
             <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
           </select>
-          <button class="btn btn-primary" id="btn-preview-tbuy">🖨️ ดูตัวอย่าง / พิมพ์</button>
+          <button class="btn btn-sm btn-outline btn-primary" id="btn-tbuy-all">เลือกทั้งหมด</button>
+          <button class="btn btn-sm btn-outline btn-primary" id="btn-tbuy-none">ยกเลิกทั้งหมด</button>
+          <button class="btn btn-primary" id="btn-preview-tbuy" style="margin-left:auto">🖨️ ดูตัวอย่าง / พิมพ์</button>
         </div>
-        <div id="tbuy-summary" style="font-size:13px;color:#555"></div>
+        <div class="print-list" id="tbuy-exp-list"></div>
       </div>
     </div>
   </div>
@@ -992,6 +996,7 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
     document.getElementById(sec).classList.add('active');
     if(btn.dataset.section === 'overdue') renderOverdue();
     if(btn.dataset.section === 'print-select') { renderPrintList(); _populateExpenseCatDropdown(); _updateExpenseSummary(); }
+    if(btn.dataset.section === 'tax') { renderTaxSaleList(); renderTaxBuyList(); }
     if(btn.dataset.section === 'dashboard') renderDashboard();
   });
 });
@@ -2724,14 +2729,10 @@ function _taxSigGrid() {
 
 // ── Tax Sale Report ─────────────────────────────────────────
 function _buildTaxSaleReport(bills, params) {
-  const {building: bld, month} = params;
-  const filtered = bills.filter(b => {
-    if (b['สถานะ'] !== 'ชำระแล้ว') return false;
-    if (month && !String(b['เดือน']).startsWith(month)) return false;
-    if (bld && b['อาคาร'] !== bld) return false;
-    return true;
-  });
-  const groups = bld ? [bld] : ['V1','V2','V3','V4'];
+  const {month} = params;
+  const filtered = bills; // caller pre-selects
+  const bldSet = [...new Set(filtered.map(b => b['อาคาร']))].filter(Boolean);
+  const groups = ['V1','V2','V3','V4'].filter(v => bldSet.includes(v));
   let out = '';
   groups.forEach(v => {
     const vb = filtered.filter(b => b['อาคาร'] === v);
@@ -2789,18 +2790,10 @@ function _buildTaxSaleReport(bills, params) {
 
 // ── Tax Buy Report ──────────────────────────────────────────
 function _buildTaxBuyReport(expenses, params) {
-  const {building: bld, month} = params;
-  const filtered = expenses.filter(e => {
-    if (month) {
-      const d = e['วันที่'] ? new Date(e['วันที่']) : null;
-      if (!d || isNaN(d)) return false;
-      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      if (!ym.startsWith(month)) return false;
-    }
-    if (bld && e['อาคาร'] !== bld) return false;
-    return true;
-  });
-  const groups = bld ? [bld] : ['V1','V2','V3','V4'];
+  const {month} = params;
+  const filtered = expenses; // caller pre-selects
+  const bldSet = [...new Set(filtered.map(e => e['อาคาร']))].filter(Boolean);
+  const groups = ['V1','V2','V3','V4'].filter(v => bldSet.includes(v));
   let out = '';
   groups.forEach(v => {
     const ve = filtered.filter(e => e['อาคาร'] === v);
@@ -2871,11 +2864,79 @@ function _buildTaxBuyReport(expenses, params) {
   return out || '<p style="text-align:center;color:#999;padding:40px">ไม่มีข้อมูล</p>';
 }
 
-// ── Tax event listeners ─────────────────────────────────────
-$('btn-preview-tsale').addEventListener('click', () => {
+// ── Tax list renderers ──────────────────────────────────────
+function renderTaxSaleList() {
   const month = $('tsale-month').value;
   const bld   = $('tsale-building').value;
-  const html  = _buildTaxSaleReport(S.bills, {month, building: bld});
+  const filtered = S.bills.filter(b =>
+    b['สถานะ'] === 'ชำระแล้ว' &&
+    (!month || String(b['เดือน']).startsWith(month)) &&
+    (!bld   || b['อาคาร'] === bld)
+  );
+  $('tsale-bill-list').innerHTML = filtered.length
+    ? filtered.map(b => `
+      <div class="print-list-item">
+        <input type="checkbox" class="tsale-check" data-id="${b['ID']}" id="tsc-${b['ID']}" checked>
+        <label for="tsc-${b['ID']}" style="flex:1;cursor:pointer">
+          <strong>${b['ห้อง']}</strong> (${b['อาคาร']}) — ${b['ผู้เช่า']||'ว่าง'} — ${b['เดือน']}
+          <span class="status status-paid" style="margin-left:8px">ชำระแล้ว</span>
+        </label>
+        <span class="fw-bold">${fmt(b['รวม'])} ฿</span>
+      </div>`).join('')
+    : '<div style="padding:16px;color:#999">ไม่มีบิลที่ชำระแล้วในช่วงที่เลือก</div>';
+}
+
+function renderTaxBuyList() {
+  const month = $('tbuy-month').value;
+  const bld   = $('tbuy-building').value;
+  const filtered = S.expenses.filter(e => {
+    if (month) {
+      const d = e['วันที่'] ? new Date(e['วันที่']) : null;
+      if (!d || isNaN(d)) return false;
+      const ym = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      if (!ym.startsWith(month)) return false;
+    }
+    return !bld || e['อาคาร'] === bld;
+  });
+  $('tbuy-exp-list').innerHTML = filtered.length
+    ? filtered.map(e => `
+      <div class="print-list-item">
+        <input type="checkbox" class="tbuy-check" data-id="${e['ID']}" id="tbc-${e['ID']}" checked>
+        <label for="tbc-${e['ID']}" style="flex:1;cursor:pointer">
+          <strong>${e['หมวดหมู่']||'-'}</strong> (${e['อาคาร']||''}) — ${e['ผู้รับเงิน']||''} — ${_fmtTaxDate(e['วันที่'])}
+        </label>
+        <span class="fw-bold">${fmt(e['จำนวนเงิน'])} ฿</span>
+      </div>`).join('')
+    : '<div style="padding:16px;color:#999">ไม่มีรายจ่ายในช่วงที่เลือก</div>';
+}
+
+['tsale-month','tsale-building'].forEach(id => {
+  const el = $(id); if (el) el.addEventListener('change', renderTaxSaleList);
+});
+['tbuy-month','tbuy-building'].forEach(id => {
+  const el = $(id); if (el) el.addEventListener('change', renderTaxBuyList);
+});
+
+$('btn-tsale-all').addEventListener('click', () => {
+  document.querySelectorAll('.tsale-check').forEach(c => c.checked = true);
+});
+$('btn-tsale-none').addEventListener('click', () => {
+  document.querySelectorAll('.tsale-check').forEach(c => c.checked = false);
+});
+$('btn-tbuy-all').addEventListener('click', () => {
+  document.querySelectorAll('.tbuy-check').forEach(c => c.checked = true);
+});
+$('btn-tbuy-none').addEventListener('click', () => {
+  document.querySelectorAll('.tbuy-check').forEach(c => c.checked = false);
+});
+
+// ── Tax preview buttons ─────────────────────────────────────
+$('btn-preview-tsale').addEventListener('click', () => {
+  const ids = new Set([...document.querySelectorAll('.tsale-check:checked')].map(c => String(c.dataset.id)));
+  if (!ids.size) { showAlert('กรุณาเลือกบิลอย่างน้อย 1 รายการ', 'error'); return; }
+  const bills = S.bills.filter(b => ids.has(String(b['ID'])));
+  const month = $('tsale-month').value;
+  const html  = _buildTaxSaleReport(bills, {month});
   _taxPrintSrc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <style>${_TAX_CSS}</style></head><body>
 <div class="page-container">${html}</div></body></html>`;
@@ -2885,9 +2946,11 @@ $('btn-preview-tsale').addEventListener('click', () => {
 });
 
 $('btn-preview-tbuy').addEventListener('click', () => {
+  const ids = new Set([...document.querySelectorAll('.tbuy-check:checked')].map(c => String(c.dataset.id)));
+  if (!ids.size) { showAlert('กรุณาเลือกรายจ่ายอย่างน้อย 1 รายการ', 'error'); return; }
+  const expenses = S.expenses.filter(e => ids.has(String(e['ID'])));
   const month = $('tbuy-month').value;
-  const bld   = $('tbuy-building').value;
-  const html  = _buildTaxBuyReport(S.expenses, {month, building: bld});
+  const html  = _buildTaxBuyReport(expenses, {month});
   _taxPrintSrc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
 <style>${_TAX_CSS}</style></head><body>
 <div class="page-container">${html}</div></body></html>`;
