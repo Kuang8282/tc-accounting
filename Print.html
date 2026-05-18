@@ -291,9 +291,9 @@ function calcVat(bill, nvItems) {
     const matched = nvItems.some(nv => (ex.cat||'').toLowerCase().includes(nv.toLowerCase()));
     if (matched) nvTotal += amt; else vatIncTotal += amt;
   });
-  const vatBase = vatIncTotal / 1.07;
-  const vat     = vatIncTotal - vatBase;
-  return { nvTotal, vatIncTotal, vatBase, vat, grandTotal: nvTotal + vatIncTotal };
+  const vatBase = vatIncTotal;
+  const vat     = Math.round(vatBase * 0.07 * 100) / 100;
+  return { nvTotal, vatIncTotal, vatBase, vat, grandTotal: nvTotal + vatBase + vat };
 }
 
 // ── Tab switching ─────────────────────────────────────────

@@ -1893,8 +1893,8 @@ function _calcVat(bill,nvItems) {
   if(nvItems.includes('ค่าเช่า'))nvTotal+=rent;else vatIncTotal+=rent;
   vatIncTotal+=water+elec;
   extras.forEach(ex=>{const amt=parseFloat(ex.amt)||0;const matched=nvItems.some(nv=>(ex.cat||'').toLowerCase().includes(nv.toLowerCase()));if(matched)nvTotal+=amt;else vatIncTotal+=amt;});
-  const vatBase=vatIncTotal/1.07,vat=vatIncTotal-vatBase;
-  return{nvTotal,vatIncTotal,vatBase,vat,grandTotal:nvTotal+vatIncTotal};
+  const vatBase=vatIncTotal,vat=Math.round(vatBase*0.07*100)/100;
+  return{nvTotal,vatIncTotal,vatBase,vat,grandTotal:nvTotal+vatBase+vat};
 }
 function _buildItemRows(bill) {
   const{extras}=_parseExtraItems(bill);
