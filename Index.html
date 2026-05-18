@@ -305,7 +305,8 @@ canvas{max-width:100%;}
           <thead>
             <tr>
               <th>วันที่</th><th>อาคาร</th><th>หมวดหมู่</th><th>ผู้รับเงิน</th>
-              <th class="text-right">จำนวนเงิน</th><th class="text-right">หัก ณ ที่จ่าย</th>
+              <th class="text-right">จำนวนเงิน</th><th class="text-right">VAT 7%</th>
+              <th class="text-right">หัก ณ ที่จ่าย</th>
               <th class="text-right">สุทธิ</th><th>หมายเหตุ</th><th>จัดการ</th>
             </tr>
           </thead>
@@ -825,6 +826,10 @@ canvas{max-width:100%;}
       <div class="form-group">
         <label>จำนวนเงิน (บาท) *</label>
         <input class="form-control" id="exp-amount" type="number" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label>ภาษีมูลค่าเพิ่ม 7% (บาท)</label>
+        <input class="form-control" id="exp-vat" type="number" step="0.01" value="0">
       </div>
       <div class="form-group">
         <label>ภาษีหัก ณ ที่จ่าย (บาท)</label>
@@ -1651,6 +1656,7 @@ function renderExpenses() {
     <td>${e['หมวดหมู่']||''}</td>
     <td>${e['ผู้รับเงิน']||''}</td>
     <td class="text-right">${fmt(e['จำนวนเงิน'])}</td>
+    <td class="text-right">${(parseFloat(e['ภาษีมูลค่าเพิ่ม'])||0)>0?fmt(e['ภาษีมูลค่าเพิ่ม']):'-'}</td>
     <td class="text-right">${fmt(e['ภาษีหัก ณ ที่จ่าย'])}</td>
     <td class="text-right fw-bold text-danger">${fmt(e['สุทธิ'])}</td>
     <td class="text-muted">${e['หมายเหตุ']||''}</td>
@@ -1672,6 +1678,7 @@ $('btn-add-expense').addEventListener('click', ()=>{
   S.editingExpenseId = null;
   document.querySelector('#modal-expense .modal-title').textContent = 'เพิ่มรายจ่าย';
   $('exp-date').value = todayStr();
+  $('exp-vat').value  = '0';
   $('exp-tax').value  = '0';
   $('exp-net').value  = '';
   openModal('modal-expense');
@@ -1686,6 +1693,7 @@ function openEditExpenseModal(id) {
   $('exp-cat').value      = exp['หมวดหมู่'] || '';
   $('exp-payee').value    = exp['ผู้รับเงิน'] || '';
   $('exp-amount').value   = exp['จำนวนเงิน'] || '';
+  $('exp-vat').value      = exp['ภาษีมูลค่าเพิ่ม'] || '0';
   $('exp-tax').value      = exp['ภาษีหัก ณ ที่จ่าย'] || '0';
   $('exp-net').value      = exp['สุทธิ'] || '';
   $('exp-note').value     = exp['หมายเหตุ'] || '';
@@ -1709,6 +1717,7 @@ $('btn-save-expense').addEventListener('click', async ()=>{
     'หมวดหมู่':             $('exp-cat').value,
     'ผู้รับเงิน':           $('exp-payee').value.trim(),
     'จำนวนเงิน':            parseFloat($('exp-amount').value)||0,
+    'ภาษีมูลค่าเพิ่ม':      parseFloat($('exp-vat').value)||0,
     'ภาษีหัก ณ ที่จ่าย':   parseFloat($('exp-tax').value)||0,
     'หมายเหตุ':             $('exp-note').value.trim()
   };
@@ -2801,11 +2810,10 @@ function _buildTaxBuyReport(expenses, params) {
     const co = S.companies[v] || {};
     let totNonVat=0, totBase=0, totVAT=0;
     const rows = ve.map((e,i) => {
-      const amt = parseFloat(e['จำนวนเงิน'])||0;
-      const hasVat = (parseFloat(e['ภาษีหัก ณ ที่จ่าย'])||0) > 0;
-      const vatBase = hasVat ? Math.round(amt/1.07*100)/100 : 0;
-      const vat     = hasVat ? Math.round((amt-vatBase)*100)/100 : 0;
-      const nonVat  = hasVat ? 0 : amt;
+      const amt    = parseFloat(e['จำนวนเงิน'])||0;
+      const vat    = parseFloat(e['ภาษีมูลค่าเพิ่ม'])||0;
+      const vatBase = vat > 0 ? Math.round((amt - vat)*100)/100 : 0;
+      const nonVat  = vat > 0 ? 0 : amt;
       totNonVat += nonVat; totBase += vatBase; totVAT += vat;
       return `<tr>
         <td class="tc">${i+1}</td>
