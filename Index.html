@@ -408,6 +408,26 @@ canvas{max-width:100%;}
       </div>
       <div class="print-list" id="print-bill-list"></div>
     </div>
+
+    <!-- Expense Report Print -->
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">📊 พิมพ์รายงานรายจ่าย</div>
+      <div class="search-bar" style="flex-wrap:wrap;gap:8px">
+        <label style="font-size:12px;font-weight:600;color:#555;align-self:center">จากเดือน</label>
+        <input type="month" class="form-control" id="exp-print-from" style="width:140px">
+        <label style="font-size:12px;font-weight:600;color:#555;align-self:center">ถึงเดือน</label>
+        <input type="month" class="form-control" id="exp-print-to" style="width:140px">
+        <select class="form-control" id="exp-print-building" style="width:130px">
+          <option value="">ทุกอาคาร (รวม)</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+        <select class="form-control" id="exp-print-cat" style="width:160px">
+          <option value="">ทุกหมวดหมู่</option>
+        </select>
+        <button class="btn btn-primary" id="btn-do-print-expense" style="margin-left:auto">🖨️ ตัวอย่าง / พิมพ์รายจ่าย</button>
+      </div>
+      <div id="exp-print-summary" style="margin-top:10px;font-size:13px;color:#555"></div>
+    </div>
   </div>
 </div>
 
@@ -508,6 +528,26 @@ canvas{max-width:100%;}
     <div class="modal-footer" style="gap:8px;flex-shrink:0">
       <button class="btn btn-outline btn-primary" data-close="modal-print-preview">ปิด</button>
       <button class="btn btn-primary" id="btn-print-confirm">🖨️ พิมพ์</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense Report Preview Modal -->
+<div class="modal-overlay" id="modal-expense-preview">
+  <div class="modal" style="max-width:1060px;width:98%;height:92vh;display:flex;flex-direction:column">
+    <div class="modal-header">
+      <span class="modal-title">📊 รายงานรายจ่าย — ตัวอย่างก่อนพิมพ์</span>
+      <button class="modal-close" data-close="modal-expense-preview">×</button>
+    </div>
+    <div style="display:flex;gap:10px;padding:6px 16px;background:#f5f5f5;border-bottom:1px solid #e0e0e0;flex-shrink:0;align-items:center;flex-wrap:wrap">
+      <span id="exp-preview-info" style="font-size:12px;color:#666"></span>
+    </div>
+    <div style="flex:1;overflow:hidden;background:#e0e0e0">
+      <iframe id="expense-preview-frame" style="width:100%;height:100%;border:none" src="about:blank"></iframe>
+    </div>
+    <div class="modal-footer" style="gap:8px;flex-shrink:0">
+      <button class="btn btn-outline btn-primary" data-close="modal-expense-preview">ปิด</button>
+      <button class="btn btn-primary" id="btn-print-expense-confirm">🖨️ พิมพ์</button>
     </div>
   </div>
 </div>
@@ -881,7 +921,7 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
     const sec = 'section-' + btn.dataset.section;
     document.getElementById(sec).classList.add('active');
     if(btn.dataset.section === 'overdue') renderOverdue();
-    if(btn.dataset.section === 'print-select') renderPrintList();
+    if(btn.dataset.section === 'print-select') { renderPrintList(); _populateExpenseCatDropdown(); _updateExpenseSummary(); }
     if(btn.dataset.section === 'dashboard') renderDashboard();
   });
 });
@@ -2101,6 +2141,222 @@ $('btn-print-confirm').addEventListener('click', ()=>{
   window.open('?page=print&ids=' + _printIds.join(',') + '&type=' + docType, '_blank');
 });
 
+// ============================================================
+// EXPENSE REPORT PRINT
+// ============================================================
+const _EXP_CSS = `@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sarabun',sans-serif;font-size:13px;background:#e0e0e0;color:#212121;padding:12px;}
+.page-container{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px;}
+.doc-page{background:#fff;width:100%;padding:8mm 10mm;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.rpt-header{border-bottom:2px solid #1a237e;padding-bottom:3mm;margin-bottom:4mm;}
+.rpt-title{font-size:16px;font-weight:700;color:#1a237e;text-align:center;}
+.rpt-subtitle{font-size:12px;text-align:center;color:#333;margin-top:1mm;}
+.rpt-meta{display:flex;justify-content:space-between;font-size:11px;color:#555;margin-top:3mm;}
+.rpt-group-title{font-size:13px;font-weight:700;color:#fff;background:#1a237e;padding:4px 8px;margin-top:4mm;margin-bottom:0;}
+.exp-table{width:100%;border-collapse:collapse;font-size:11px;}
+.exp-table th{background:#e8eaf6;color:#1a237e;padding:4px 5px;text-align:center;border:1px solid #9fa8da;font-size:11px;font-weight:700;}
+.exp-table th.tl{text-align:left;}
+.exp-table td{padding:3px 5px;border:1px solid #e0e0e0;vertical-align:middle;}
+.exp-table td.tr{text-align:right;}
+.exp-table td.tc{text-align:center;}
+.exp-table tr:nth-child(even){background:#fafafa;}
+.exp-table tr.subtotal-row td{font-weight:700;background:#e8eaf6;border-top:2px solid #9fa8da;font-size:12px;}
+.exp-table tr.grand-row td{font-weight:700;background:#1a237e;color:#fff;border-top:2px solid #1a237e;font-size:13px;}
+.sig-section{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8mm;margin-top:10mm;}
+.sig-col{text-align:center;font-size:11px;}
+.sig-line{border-bottom:1px dotted #555;height:20px;margin-bottom:2px;}
+.sig-date{font-size:10px;color:#444;margin-top:2px;}
+@media print{body{background:#fff;padding:0;}.doc-page{box-shadow:none;padding:5mm 7mm;}}`;
+
+function _getExpenseFilteredData() {
+  const from = $('exp-print-from').value;
+  const to   = $('exp-print-to').value;
+  const bld  = $('exp-print-building').value;
+  const cat  = $('exp-print-cat').value;
+  return S.expenses.filter(e => {
+    const d = e['วันที่'];
+    const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
+    if (from && dm < from) return false;
+    if (to   && dm > to)   return false;
+    if (bld  && e['อาคาร'] !== bld) return false;
+    if (cat  && e['หมวดหมู่'] !== cat) return false;
+    return true;
+  });
+}
+
+function _fmtDateShortThai(d) {
+  if (!d) return '';
+  try {
+    const dt = (d instanceof Date) ? d : new Date(d);
+    if (isNaN(dt)) return String(d);
+    return `${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()+543}`;
+  } catch(e){ return String(d); }
+}
+
+function _buildExpenseReport(expenses, params) {
+  const { from, to, bld, cat } = params;
+  const co = bld ? (S.companies[bld] || {}) : {};
+  const coName = bld ? (co.name || bld) : 'ทุกอาคาร (V1, V2, V3, V4)';
+  const period = [from, to].filter(Boolean).join(' ถึง ') || 'ทั้งหมด';
+
+  // Build table rows grouped by building when bld='all'
+  const buildings = bld ? [bld] : ['V1','V2','V3','V4'];
+  let allHtml = '';
+  let grandAmt = 0, grandWht = 0, grandNet = 0, grandCount = 0;
+
+  buildings.forEach(v => {
+    const rows = bld ? expenses : expenses.filter(e => e['อาคาร'] === v);
+    if (!rows.length) return;
+    let subAmt = 0, subWht = 0, subNet = 0;
+    const rowsHtml = rows.map((e, i) => {
+      const amt = parseFloat(e['จำนวนเงิน']) || 0;
+      const wht = parseFloat(e['ภาษีหัก ณ ที่จ่าย'] || e['ภาษีหัก']) || 0;
+      const net = parseFloat(e['สุทธิ']) || (amt - wht);
+      subAmt += amt; subWht += wht; subNet += net;
+      return `<tr>
+        <td class="tc">${i+1}</td>
+        <td class="tc">${_fmtDateShortThai(e['วันที่'])}</td>
+        ${!bld ? `<td class="tc">${e['อาคาร']||''}</td>` : ''}
+        <td>${e['หมวดหมู่']||''}</td>
+        <td>${e['ผู้รับเงิน']||''}</td>
+        <td class="tr">${_invFmt(amt)}</td>
+        <td class="tr">${wht ? _invFmt(wht) : '-'}</td>
+        <td class="tr">${_invFmt(net)}</td>
+        <td>${e['หมายเหตุ']||''}</td>
+      </tr>`;
+    }).join('');
+    grandAmt += subAmt; grandWht += subWht; grandNet += subNet; grandCount += rows.length;
+    const vCo = S.companies[v] || {};
+    allHtml += !bld ? `<tr class="subtotal-row"><td colspan="${bld?'7':'8'}" class="tr">รวม ${v} (${vCo.name||v})</td>${bld?'':'<td></td>'}<td class="tr" style="color:#c62828">${_invFmt(subAmt)}</td><td class="tr">${subWht?_invFmt(subWht):'-'}</td><td class="tr">${_invFmt(subNet)}</td><td></td></tr>` : '';
+    if (!bld) {
+      allHtml = `<tr style="background:#e8eaf6"><td colspan="9" style="font-weight:700;color:#1a237e;padding:4px 8px;font-size:12px">🏢 อาคาร ${v} — ${vCo.name||v}</td></tr>` + rowsHtml + (rows.length ? `<tr class="subtotal-row"><td colspan="6" class="tr">รวม ${v}</td><td class="tr">${subWht?_invFmt(subWht):'-'}</td><td class="tr" style="color:#c62828">${_invFmt(subNet)}</td><td></td></tr>` : '') + allHtml;
+    } else {
+      allHtml += rowsHtml;
+    }
+  });
+
+  // For single building, build simply
+  if (bld) {
+    let subAmt2 = 0, subWht2 = 0, subNet2 = 0;
+    const simpleRows = expenses.map((e,i) => {
+      const amt = parseFloat(e['จำนวนเงิน'])||0;
+      const wht = parseFloat(e['ภาษีหัก ณ ที่จ่าย']||e['ภาษีหัก'])||0;
+      const net = parseFloat(e['สุทธิ'])||(amt-wht);
+      subAmt2+=amt; subWht2+=wht; subNet2+=net;
+      return `<tr>
+        <td class="tc">${i+1}</td>
+        <td class="tc">${_fmtDateShortThai(e['วันที่'])}</td>
+        <td>${e['หมวดหมู่']||''}</td>
+        <td>${e['ผู้รับเงิน']||''}</td>
+        <td class="tr">${_invFmt(amt)}</td>
+        <td class="tr">${wht?_invFmt(wht):'-'}</td>
+        <td class="tr">${_invFmt(net)}</td>
+        <td>${e['หมายเหตุ']||''}</td>
+      </tr>`;
+    }).join('');
+    grandAmt = subAmt2; grandWht = subWht2; grandNet = subNet2; grandCount = expenses.length;
+    allHtml = simpleRows + `<tr class="grand-row">
+      <td colspan="4" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
+      <td class="tr">${_invFmt(grandAmt)}</td>
+      <td class="tr">${grandWht?_invFmt(grandWht):'-'}</td>
+      <td class="tr">${_invFmt(grandNet)}</td>
+      <td></td>
+    </tr>`;
+  } else {
+    allHtml += `<tr class="grand-row">
+      <td colspan="5" class="tr">รวมทั้งสิ้น (${grandCount} รายการ)</td>
+      <td class="tr">${_invFmt(grandAmt)}</td>
+      <td class="tr">${grandWht?_invFmt(grandWht):'-'}</td>
+      <td class="tr">${_invFmt(grandNet)}</td>
+      <td></td>
+    </tr>`;
+  }
+
+  const catLabel = cat ? ` / หมวดหมู่: ${cat}` : '';
+  return `<div class="doc-page">
+  <div class="rpt-header">
+    <div class="rpt-title">รายงานรายจ่าย</div>
+    <div class="rpt-subtitle">${coName}</div>
+    <div class="rpt-meta">
+      <div>ช่วงเวลา: <strong>${period}</strong>${catLabel}</div>
+      <div>จำนวน: <strong>${grandCount} รายการ</strong> &nbsp; รวมสุทธิ: <strong style="color:#c62828">${_invFmt(grandNet)} บาท</strong></div>
+    </div>
+  </div>
+  <table class="exp-table">
+    <thead><tr>
+      <th style="width:28px">ลำดับ</th>
+      <th style="width:70px">วันที่</th>
+      ${!bld ? '<th style="width:38px">อาคาร</th>' : ''}
+      <th class="tl" style="width:110px">หมวดหมู่</th>
+      <th class="tl">ผู้รับเงิน / รายละเอียด</th>
+      <th style="width:90px">จำนวนเงิน</th>
+      <th style="width:80px">ภาษีหัก ณ ที่จ่าย</th>
+      <th style="width:80px">สุทธิ</th>
+      <th class="tl" style="width:100px">หมายเหตุ</th>
+    </tr></thead>
+    <tbody>${allHtml}</tbody>
+  </table>
+  <div class="sig-section">
+    <div class="sig-col"><div class="sig-line"></div>ผู้จัดทำ<div class="sig-date">วันที่..../..../.....</div></div>
+    <div class="sig-col"><div class="sig-line"></div>ผู้ตรวจสอบ<div class="sig-date">วันที่..../..../.....</div></div>
+    <div class="sig-col"><div class="sig-line"></div>ผู้อนุมัติ<div class="sig-date">วันที่..../..../.....</div></div>
+  </div>
+</div>`;
+}
+
+function _populateExpenseCatDropdown() {
+  const cats = [...new Set(S.expenses.map(e => e['หมวดหมู่']).filter(Boolean))].sort();
+  const sel = $('exp-print-cat');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">ทุกหมวดหมู่</option>' + cats.map(c=>`<option>${c}</option>`).join('');
+  if (prev) sel.value = prev;
+}
+
+function _updateExpenseSummary() {
+  const expenses = _getExpenseFilteredData();
+  const total = expenses.reduce((s,e)=>s+(parseFloat(e['สุทธิ'])||parseFloat(e['จำนวนเงิน'])||0), 0);
+  $('exp-print-summary').textContent = expenses.length
+    ? `พบ ${expenses.length} รายการ  รวมสุทธิ: ${fmt(total)} บาท`
+    : 'ไม่มีรายจ่ายในช่วงที่เลือก';
+}
+
+['exp-print-from','exp-print-to','exp-print-building','exp-print-cat'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('change', _updateExpenseSummary);
+});
+
+$('btn-do-print-expense').addEventListener('click', () => {
+  const expenses = _getExpenseFilteredData();
+  if (!expenses.length) { showAlert('ไม่มีรายจ่ายในช่วงที่เลือก', 'error'); return; }
+  const params = {
+    from: $('exp-print-from').value,
+    to:   $('exp-print-to').value,
+    bld:  $('exp-print-building').value,
+    cat:  $('exp-print-cat').value,
+  };
+  const reportHtml = _buildExpenseReport(expenses, params);
+  const srcdoc = `<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>${_EXP_CSS}</style></head><body>
+<div class="page-container">${reportHtml}</div>
+</body></html>`;
+  $('expense-preview-frame').srcdoc = srcdoc;
+  const bldLabel = params.bld || 'ทุกอาคาร';
+  const period = [params.from, params.to].filter(Boolean).join(' ถึง ') || 'ทั้งหมด';
+  $('exp-preview-info').textContent = `${bldLabel}  |  ${period}  |  ${expenses.length} รายการ`;
+  openModal('modal-expense-preview');
+});
+
+$('btn-print-expense-confirm').addEventListener('click', () => {
+  const frame = $('expense-preview-frame');
+  if (!frame.srcdoc || frame.srcdoc === 'about:blank') return;
+  const win = window.open('', '_blank');
+  win.document.write(frame.srcdoc);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 600);
+});
 
 // ============================================================
 // EXTRA INCOME ITEMS in Bill Modal
