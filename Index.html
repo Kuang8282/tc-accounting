@@ -4001,7 +4001,7 @@ function generateAndPrintContract(d) {
       const n = Math.round(d.rent);
       if(!n) return 'ศูนย์บาทถ้วน';
       let s='', rem=n;
-      if(rem>=1000000){s+=b1000(Math.floor(rem/1000))+'ล้าน';rem%=1000000;} // simplified for common amounts
+      if(rem>=1000000){s+=b1000(Math.floor(rem/1000))+'ล้าน';rem%=1000000;}
       if(rem>=100000){s+=nums[Math.floor(rem/100000)]+'แสน';rem%=100000;}
       if(rem>=10000){s+=nums[Math.floor(rem/10000)]+'หมื่น';rem%=10000;}
       if(rem>=1000){s+=b1000(Math.floor(rem/1000))+'พัน';rem%=1000;}
@@ -4012,13 +4012,62 @@ function generateAndPrintContract(d) {
 
   const cotenantRows = d.cotenants.length
     ? d.cotenants.map((ct,i) => `<tr>
-        <td style="padding:3px 6px;border:1px solid #ccc">${i+1}. ${ct.name}</td>
-        <td style="padding:3px 6px;border:1px solid #ccc">${ct.id||'-'}</td>
-        <td style="padding:3px 6px;border:1px solid #ccc">${ct.phone||'-'}</td>
+        <td>${i+1}. ${ct.name}</td>
+        <td>${ct.id||'–'}</td>
+        <td>${ct.phone||'–'}</td>
       </tr>`).join('')
-    : `<tr><td colspan="3" style="padding:3px 6px;border:1px solid #ccc;color:#999">-</td></tr>`;
+    : `<tr><td colspan="3" style="color:#999;font-style:italic">ไม่มีผู้ร่วมพักอาศัย</td></tr>`;
 
-  const sigDate = d.contractDate ? thDate(d.contractDate) : '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+  const sigDate = d.contractDate ? thDate(d.contractDate) : '……………………………………';
+
+  // SVG logo — building silhouette with V mark
+  const logoSVG = `<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bldGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3949ab"/>
+        <stop offset="100%" stop-color="#1a237e"/>
+      </linearGradient>
+    </defs>
+    <!-- Base building -->
+    <rect x="8" y="28" width="56" height="38" rx="2" fill="url(#bldGrad)"/>
+    <!-- Roof / V chevron -->
+    <polygon points="4,30 36,8 68,30" fill="#283593"/>
+    <!-- V letter on chevron -->
+    <text x="36" y="26" text-anchor="middle" fill="#ffca28" font-size="15" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-1">V</text>
+    <!-- Windows row 1 -->
+    <rect x="14" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
+    <rect x="27" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
+    <rect x="40" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
+    <rect x="53" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
+    <!-- Windows row 2 -->
+    <rect x="14" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
+    <rect x="27" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
+    <rect x="40" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
+    <rect x="53" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
+    <!-- Door -->
+    <rect x="30" y="57" width="12" height="9" rx="1" fill="#1565c0"/>
+    <!-- Ground line -->
+    <line x1="4" y1="66" x2="68" y2="66" stroke="#1a237e" stroke-width="1.5"/>
+  </svg>`;
+
+  const pageHeader = `
+  <div class="page-header">
+    <div class="logo-area">
+      ${logoSVG}
+      <div class="brand-text">
+        <div class="brand-v">V RESIDENCE</div>
+        <div class="brand-sub">PLACE</div>
+      </div>
+    </div>
+    <div class="co-info">
+      <div class="co-name">${coName}</div>
+      <div class="co-addr">${coAddr} 12000</div>
+      ${co.phone ? `<div class="co-contact">โทร. ${co.phone}${co.fax ? ' | แฟกซ์ ' + co.fax : ''}</div>` : ''}
+      ${bank1 ? `<div class="co-bank">ธ. ${bank1}</div>` : ''}
+      ${bank2 ? `<div class="co-bank">${bank2}</div>` : ''}
+    </div>
+  </div>
+  <div class="header-rule"></div>`;
 
   const html = `<!DOCTYPE html>
 <html lang="th">
@@ -4026,208 +4075,298 @@ function generateAndPrintContract(d) {
 <meta charset="UTF-8">
 <title>สัญญาเช่าห้องพักอาศัย — ห้อง ${d.room} อาคาร ${d.building}</title>
 <style>
-  @page { size: A4; margin: 15mm 15mm 15mm 20mm; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+  @page { size: A4; margin: 12mm 14mm 14mm 18mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Sarabun', 'TH SarabunPSK', 'Arial', sans-serif; font-size: 14pt; color: #000; line-height: 1.6; }
-  h1 { text-align: center; font-size: 18pt; font-weight: 900; margin-bottom: 4px; }
-  h2 { text-align: center; font-size: 15pt; font-weight: 700; margin-bottom: 12px; }
-  .page { width: 100%; padding-bottom: 12px; }
-  .page-break { page-break-before: always; padding-top: 8px; }
-  .header-box { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12pt; }
-  .header-box table { width: 100%; }
-  .header-box td { vertical-align: top; padding: 2px 4px; }
-  .party { border: 1px solid #000; padding: 8px 12px; margin-bottom: 10px; font-size: 12.5pt; }
-  .party p { margin-bottom: 4px; }
+  body { font-family: 'Sarabun', 'TH SarabunPSK', sans-serif; font-size: 13.5pt; color: #1a1a1a; line-height: 1.65; background: #fff; }
+
+  /* ─── HEADER ─── */
+  .page-header { display: flex; align-items: center; gap: 16px; padding-bottom: 10px; }
+  .logo-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .brand-text { line-height: 1.1; }
+  .brand-v { font-size: 17pt; font-weight: 900; color: #1a237e; letter-spacing: 1px; }
+  .brand-sub { font-size: 10pt; font-weight: 700; color: #3949ab; letter-spacing: 3px; }
+  .co-info { flex: 1; text-align: right; }
+  .co-name { font-size: 12pt; font-weight: 800; color: #1a237e; }
+  .co-addr, .co-contact, .co-bank { font-size: 9.5pt; color: #444; line-height: 1.4; }
+  .header-rule { height: 4px; background: linear-gradient(to right, #1a237e, #3949ab, #ffca28); border-radius: 2px; margin-bottom: 10px; }
+
+  /* ─── PAGE ─── */
+  .page { width: 100%; page-break-after: always; }
+  .page:last-of-type { page-break-after: avoid; }
+
+  /* ─── CONTRACT TITLE ─── */
+  .contract-title-wrap { text-align: center; margin-bottom: 10px; }
+  .contract-title { font-size: 17pt; font-weight: 900; color: #1a237e; letter-spacing: 0.5px; }
+  .contract-sub { font-size: 11pt; color: #555; margin-top: 2px; }
+  .contract-page-no { display: inline-block; background: #e8eaf6; color: #3949ab; font-size: 10pt; font-weight: 700; border-radius: 10px; padding: 2px 14px; margin-top: 4px; }
+
+  /* ─── MADE-AT BOX ─── */
+  .made-at { display: flex; justify-content: space-between; background: #f5f6ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 8px 14px; margin-bottom: 10px; font-size: 12pt; }
+  .made-at-date { text-align: right; }
+
+  /* ─── PARTY BOX ─── */
+  .party-box { border: 1.5px solid #1a237e; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 12.5pt; background: #fafbff; }
+  .party-box .party-label { font-size: 10pt; font-weight: 800; color: #1a237e; background: #e8eaf6; display: inline-block; padding: 1px 10px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 1px; }
+  .party-box p { margin-bottom: 3px; }
+  .party-box .indent { padding-left: 2em; }
+  .party-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
+  .party-field { white-space: nowrap; }
+
+  /* ─── CO-TENANT TABLE ─── */
+  .ct-table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 12pt; }
+  .ct-table th { background: #1a237e; color: #fff; padding: 4px 10px; text-align: left; font-size: 11pt; font-weight: 600; }
+  .ct-table td { padding: 4px 10px; border-bottom: 1px solid #e0e0e0; }
+  .ct-table tr:last-child td { border-bottom: none; }
+  .ct-table tbody tr:nth-child(odd) { background: #f5f6ff; }
+
+  /* ─── ARTICLES ─── */
+  .section-heading { background: #1a237e; color: #fff; font-size: 12pt; font-weight: 700; padding: 5px 14px; border-radius: 4px; margin: 8px 0 6px; letter-spacing: 0.5px; }
   .articles { font-size: 13pt; }
-  .article { margin-bottom: 8px; }
-  .article .art-no { font-weight: 700; }
-  .sig-block { margin-top: 20px; }
-  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 12px; }
-  .sig-box { text-align: center; }
-  .sig-line { border-top: 1px solid #000; margin: 40px 20px 4px; }
-  .sig-name { font-size: 12.5pt; }
-  .sig-cap  { font-size: 12pt; color: #444; }
-  .sig-date { font-size: 12pt; margin-top: 6px; color: #555; }
-  .bank-info { font-size: 11.5pt; border: 1px solid #aaa; border-radius: 4px; padding: 8px 12px; margin: 10px 0; background: #fafafa; }
-  .indent { text-indent: 2em; }
-  .underline { text-decoration: underline; }
+  .article { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+  .art-num { flex-shrink: 0; width: 46px; background: #e8eaf6; color: #1a237e; font-weight: 800; font-size: 11pt; text-align: center; border-radius: 4px; padding: 1px 0; margin-top: 2px; }
+  .art-body { flex: 1; }
   .bold { font-weight: 700; }
-  tfoot td { font-weight: 700; background: #f0f0f0; }
+  .underline { text-decoration: underline; }
+  .warn { color: #c62828; font-weight: 700; }
+
+  /* ─── FINANCIAL SUMMARY ─── */
+  .fin-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 10px; }
+  .fin-card { border: 1px solid #c5cae9; border-radius: 6px; padding: 6px 10px; text-align: center; background: #f5f6ff; }
+  .fin-card .fin-label { font-size: 10pt; color: #555; }
+  .fin-card .fin-value { font-size: 14pt; font-weight: 800; color: #1a237e; }
+
+  /* ─── SIGNATURES ─── */
+  .sig-section { margin-top: 16px; border-top: 2px solid #1a237e; padding-top: 12px; }
+  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 14px; }
+  .sig-box { text-align: center; }
+  .sig-space { height: 44px; border-bottom: 1px solid #333; margin: 0 24px 6px; position: relative; }
+  .sig-name { font-size: 12.5pt; font-weight: 700; color: #1a237e; }
+  .sig-sub  { font-size: 11.5pt; color: #333; }
+  .sig-date { font-size: 11pt; color: #555; margin-top: 4px; }
+  .witness-row { border-top: 1px dashed #aaa; padding-top: 12px; margin-top: 4px; }
+  .seal-box { display: inline-block; width: 80px; height: 80px; border: 2px dashed #bbb; border-radius: 50%; line-height: 80px; font-size: 9pt; color: #bbb; text-align: center; float: right; margin-top: -20px; }
+
+  /* ─── FOOTER ─── */
+  .page-footer { font-size: 9pt; color: #888; text-align: center; margin-top: 10px; padding-top: 6px; border-top: 1px solid #ddd; }
+
+  /* ─── PRINT / SCREEN ─── */
+  .no-print { display: block; }
   @media print {
     .no-print { display: none !important; }
-    body { font-size: 13pt; }
+    body { font-size: 12.5pt; }
+    .page { page-break-after: always; }
+    .page:last-of-type { page-break-after: avoid; }
   }
 </style>
 </head>
 <body>
 
-<!-- PAGE 1 -->
+<!-- ══════════ PAGE 1 ══════════ -->
 <div class="page">
-  <h1>หนังสือสัญญาเช่าห้องพักอาศัยและกฎระเบียบ</h1>
-  <h2 style="color:#444;font-size:13pt;font-weight:400">( หน้า V1/1 )</h2>
+  ${pageHeader}
 
-  <div class="header-box">
-    <table>
-      <tr>
-        <td style="width:60%"><span class="bold">ทำที่:</span> ${coName}<br>${coAddr}</td>
-        <td style="text-align:right"><span class="bold">วันที่:</span> ${thDate(d.contractDate)}</td>
-      </tr>
-    </table>
+  <div class="contract-title-wrap">
+    <div class="contract-title">หนังสือสัญญาเช่าห้องพักอาศัยและกฎระเบียบ</div>
+    <div class="contract-sub">RESIDENTIAL LEASE AGREEMENT AND REGULATIONS</div>
+    <span class="contract-page-no">หน้า 1/2 &nbsp;(V1/1)</span>
   </div>
 
-  <div class="party">
-    <p><span class="bold">ผู้ให้เช่า:</span> ${coName} โดย ${_b(d.lessorSigner)} ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้ให้เช่า"</span></p>
-    <p style="padding-left:2em">ที่ตั้ง: ${coAddr}</p>
-    ${bank1 ? `<p style="padding-left:2em">ธนาคาร: ${bank1}</p>` : ''}
-    ${bank2 ? `<p style="padding-left:2em">${bank2}</p>` : ''}
-    <p style="margin-top:8px"><span class="bold">ผู้เช่า:</span> ${_b(d.tenant)} &nbsp; บัตรประชาชนเลขที่ ${_b(d.idcard, '160px')} &nbsp; โทร ${_b(d.phone, '120px')}</p>
-    <p style="padding-left:2em">ที่อยู่: ${_b(d.address, '300px')}</p>
-    <p style="padding-left:2em">คณะ/ผู้ปกครอง: ${_b(d.faculty, '200px')}</p>
-    <p style="padding-left:2em">ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้เช่า"</span></p>
+  <div class="made-at">
+    <div><span class="bold">ทำที่:</span> ${coName}<br><span style="font-size:11pt;color:#555">${coAddr}</span></div>
+    <div class="made-at-date"><span class="bold">วันที่:</span><br>${thDate(d.contractDate)}</div>
+  </div>
+
+  <div class="party-box">
+    <div class="party-label">▌ คู่สัญญา</div>
+    <p><span class="bold">ผู้ให้เช่า:</span> ${coName}</p>
+    <p class="indent">โดย <span class="bold">${_b(d.lessorSigner)}</span> ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้ให้เช่า"</span></p>
+    <p style="margin-top:8px"><span class="bold">ผู้เช่า:</span> ${_b(d.tenant)}</p>
+    <p class="indent">บัตรประชาชนเลขที่ ${_b(d.idcard,'180px')} &nbsp; โทรศัพท์ ${_b(d.phone,'120px')}</p>
+    <p class="indent">ที่อยู่: ${_b(d.address,'280px')}</p>
+    <p class="indent">คณะ/ผู้ปกครอง: ${_b(d.faculty,'200px')}</p>
+    <p class="indent">ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้เช่า"</span></p>
+
     <p style="margin-top:8px"><span class="bold">ผู้ร่วมพักอาศัย:</span></p>
-    <table style="width:100%;border-collapse:collapse;margin-top:4px;font-size:12.5pt">
+    <table class="ct-table">
       <thead>
-        <tr style="background:#f0f0f0">
-          <th style="padding:3px 6px;border:1px solid #ccc;text-align:left">ชื่อ-นามสกุล</th>
-          <th style="padding:3px 6px;border:1px solid #ccc;text-align:left">เลขบัตรประชาชน</th>
-          <th style="padding:3px 6px;border:1px solid #ccc;text-align:left">โทรศัพท์</th>
-        </tr>
+        <tr><th>ชื่อ–นามสกุล</th><th>เลขบัตรประชาชน</th><th>โทรศัพท์</th></tr>
       </thead>
       <tbody>${cotenantRows}</tbody>
     </table>
-    <p style="margin-top:8px">คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญาเช่า ดังมีข้อความต่อไปนี้</p>
+    <p style="margin-top:8px;font-style:italic;color:#333">คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญาเช่า ดังมีข้อความต่อไปนี้</p>
   </div>
 
+  <div class="fin-summary">
+    <div class="fin-card">
+      <div class="fin-label">ค่าเช่า / เดือน</div>
+      <div class="fin-value">${fmtMoney(d.rent)} ฿</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-label">เงินประกัน</div>
+      <div class="fin-value">${fmtMoney(d.deposit)} ฿</div>
+    </div>
+    <div class="fin-card">
+      <div class="fin-label">ค่าเช่าล่วงหน้า</div>
+      <div class="fin-value">${fmtMoney(d.advance)} ฿</div>
+    </div>
+  </div>
+
+  <div class="section-heading">▌ ข้อตกลงการเช่า</div>
   <div class="articles">
-    <div class="article"><span class="art-no">ข้อ 1.</span> ผู้ให้เช่าตกลงให้เช่า และผู้เช่าตกลงเช่า <span class="bold">ห้องพักอาศัยเลขที่ ${_b(d.room, '60px')} อาคาร ${_b(d.building, '60px')}</span> ของ ${coName} ตั้งอยู่ที่ ${coAddr} เพื่อใช้เป็นที่พักอาศัยเท่านั้น</div>
+    <div class="article"><div class="art-num">ข้อ 1</div><div class="art-body">ผู้ให้เช่าตกลงให้เช่า และผู้เช่าตกลงเช่า <span class="bold">ห้องพักอาศัยเลขที่ ${_b(d.room,'60px')} อาคาร ${_b(d.building,'60px')}</span> ของ ${coName} ตั้งอยู่ที่ ${coAddr} เพื่อใช้เป็นที่พักอาศัยเท่านั้น</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 2.</span> สัญญาเช่าฉบับนี้มีกำหนดระยะเวลา <span class="bold">1 ปี</span> ตั้งแต่วันที่ ${_b(thDate(d.start), '140px')} ถึงวันที่ ${_b(thDate(d.end), '140px')} เมื่อครบกำหนด หากผู้เช่าประสงค์จะต่อสัญญา ต้องแจ้งให้ผู้ให้เช่าทราบล่วงหน้าไม่น้อยกว่า 30 วัน ก่อนวันสิ้นสุดสัญญา</div>
+    <div class="article"><div class="art-num">ข้อ 2</div><div class="art-body">สัญญาเช่าฉบับนี้มีกำหนดระยะเวลา <span class="bold">1 ปี</span> ตั้งแต่วันที่ <span class="bold">${thDate(d.start)}</span> ถึงวันที่ <span class="bold">${thDate(d.end)}</span> เมื่อครบกำหนด หากผู้เช่าประสงค์จะต่อสัญญาต้องแจ้งล่วงหน้าไม่น้อยกว่า 30 วัน</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 3.</span> ผู้เช่าตกลงชำระค่าเช่าห้องพักในอัตราเดือนละ <span class="bold">${fmtMoney(d.rent)} บาท</span> (${rentThai}) โดยชำระล่วงหน้าทุกวันที่ 1–5 ของเดือน ผ่านธนาคาร หรือชำระ ณ สำนักงานผู้ให้เช่า</div>
+    <div class="article"><div class="art-num">ข้อ 3</div><div class="art-body">ผู้เช่าตกลงชำระค่าเช่าอัตราเดือนละ <span class="bold">${fmtMoney(d.rent)} บาท (${rentThai})</span> โดยชำระล่วงหน้าทุกวันที่ 1–5 ของเดือน ผ่านธนาคารหรือ ณ สำนักงานผู้ให้เช่า</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 4.</span> หากผู้เช่าชำระค่าเช่าล่าช้าเกิน 5 วัน ผู้ให้เช่ามีสิทธิ์คิดค่าปรับในอัตราร้อยละ 5 ต่อเดือนของยอดค่าเช่าที่ค้างชำระ โดยคิดตามส่วนสัดส่วนของจำนวนวันที่ล่าช้า</div>
+    <div class="article"><div class="art-num">ข้อ 4</div><div class="art-body">หากชำระค่าเช่าล่าช้าเกิน 5 วัน ผู้ให้เช่ามีสิทธิ์คิดค่าปรับร้อยละ 5 ต่อเดือนของยอดค้าง</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 5.</span> ผู้เช่าได้วางเงินประกันการเช่าจำนวน <span class="bold">${fmtMoney(d.deposit)} บาท</span> เงินประกันดังกล่าวผู้ให้เช่าจะคืนให้ผู้เช่าหลังสิ้นสุดสัญญาและผู้เช่าได้ส่งมอบห้องพักในสภาพเรียบร้อยครบถ้วน โดยจะหักค่าเสียหายหรือค่าซ่อมแซมที่เกิดขึ้นจากความประมาทของผู้เช่า (ถ้ามี)</div>
+    <div class="article"><div class="art-num">ข้อ 5</div><div class="art-body">ผู้เช่าได้วางเงินประกันจำนวน <span class="bold">${fmtMoney(d.deposit)} บาท</span> ซึ่งจะคืนหลังสิ้นสุดสัญญาและตรวจสอบห้องพักเรียบร้อยแล้ว โดยหักค่าเสียหาย (ถ้ามี)</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 6.</span> ผู้เช่าได้ชำระค่าเช่าล่วงหน้าจำนวน <span class="bold">${fmtMoney(d.advance)} บาท</span> ซึ่งถือเป็นส่วนหนึ่งของค่าเช่าตามสัญญา โดยจะนำมาหักเป็นค่าเช่าในเดือนสุดท้ายของสัญญา</div>
+    <div class="article"><div class="art-num">ข้อ 6</div><div class="art-body">ผู้เช่าได้ชำระค่าเช่าล่วงหน้าจำนวน <span class="bold">${fmtMoney(d.advance)} บาท</span> นำหักเป็นค่าเช่าในเดือนสุดท้ายของสัญญา</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 7.</span> ผู้เช่าตกลงชำระค่าน้ำประปาตามหน่วยที่ใช้จริง ในอัตราที่ผู้ให้เช่ากำหนด ซึ่งผู้ให้เช่าจะแจ้งให้ทราบล่วงหน้าหากมีการเปลี่ยนแปลงอัตรา ผู้เช่าต้องชำระพร้อมค่าเช่าในแต่ละเดือน</div>
+    <div class="article"><div class="art-num">ข้อ 7</div><div class="art-body">ผู้เช่าตกลงชำระค่าน้ำประปาตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด ชำระพร้อมค่าเช่าทุกเดือน</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 8.</span> ผู้เช่าตกลงชำระค่าไฟฟ้าตามหน่วยที่ใช้จริง ในอัตราที่ผู้ให้เช่ากำหนด ผู้เช่าต้องชำระพร้อมค่าเช่าในแต่ละเดือน</div>
+    <div class="article"><div class="art-num">ข้อ 8</div><div class="art-body">ผู้เช่าตกลงชำระค่าไฟฟ้าตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด ชำระพร้อมค่าเช่าทุกเดือน</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 9.</span> ผู้เช่าจะรักษาห้องพักและทรัพย์สินในห้องพักให้อยู่ในสภาพดี หากเกิดความเสียหายจากการกระทำหรือความประมาทเลินเล่อของผู้เช่า หรือบุคคลที่ผู้เช่านำเข้ามาในห้องพัก ผู้เช่าต้องรับผิดชอบค่าซ่อมแซมทั้งหมด</div>
+    <div class="article"><div class="art-num">ข้อ 9</div><div class="art-body">ผู้เช่าจะรักษาห้องพักและทรัพย์สินในห้องพักให้อยู่ในสภาพดี หากเกิดความเสียหายจากความประมาทของผู้เช่าหรือบุคคลที่ผู้เช่านำเข้ามา ผู้เช่าต้องรับผิดชอบค่าซ่อมแซมทั้งหมด</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 10.</span> ผู้เช่าจะไม่ดัดแปลง ต่อเติม รื้อถอน หรือเปลี่ยนแปลงส่วนใดส่วนหนึ่งของห้องพัก โดยไม่ได้รับอนุญาตจากผู้ให้เช่าเป็นลายลักษณ์อักษร</div>
+    <div class="article"><div class="art-num">ข้อ 10</div><div class="art-body">ผู้เช่าจะไม่ดัดแปลง ต่อเติม รื้อถอน หรือเปลี่ยนแปลงส่วนใดของห้องพัก โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษรจากผู้ให้เช่า</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 11.</span> ผู้เช่าจะไม่โอนสิทธิการเช่า ให้เช่าช่วง หรืออนุญาตให้บุคคลอื่นใช้ห้องพักแทน โดยไม่ได้รับความยินยอมจากผู้ให้เช่า</div>
+    <div class="article"><div class="art-num">ข้อ 11</div><div class="art-body">ผู้เช่าจะไม่โอนสิทธิการเช่า ให้เช่าช่วง หรืออนุญาตให้บุคคลอื่นใช้ห้องพักแทน โดยไม่ได้รับความยินยอมจากผู้ให้เช่า</div></div>
 
-    <div class="article"><span class="art-no">ข้อ 12.</span> เมื่อสิ้นสุดสัญญาเช่า ผู้เช่าต้องส่งมอบห้องพักในสภาพเรียบร้อย พร้อมทรัพย์สินและอุปกรณ์ครบถ้วน ภายใน 24 ชั่วโมงนับแต่วันที่สัญญาสิ้นสุด หากผู้เช่าไม่ยอมออก ผู้ให้เช่ามีสิทธิ์ดำเนินการทางกฎหมายและคิดค่าเสียหาย</div>
+    <div class="article"><div class="art-num">ข้อ 12</div><div class="art-body">เมื่อสิ้นสุดสัญญา ผู้เช่าต้องส่งมอบห้องพักในสภาพเรียบร้อยพร้อมอุปกรณ์ครบถ้วน ภายใน 24 ชั่วโมง หากไม่ยอมออกผู้ให้เช่ามีสิทธิ์ดำเนินการตามกฎหมาย</div></div>
   </div>
+
+  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} | ${coName} | หน้า 1 จาก 2</div>
 </div>
 
-<!-- PAGE 2 -->
-<div class="page page-break">
-  <h1>กฎระเบียบการพักอาศัย</h1>
-  <h2 style="color:#444;font-size:13pt;font-weight:400">( หน้า V2/1 )</h2>
+<!-- ══════════ PAGE 2 ══════════ -->
+<div class="page">
+  ${pageHeader}
 
-  <div class="articles">
-    <div class="article"><span class="art-no">ข้อ 13.</span> ผู้เช่าและผู้ร่วมพักอาศัยทุกคนต้องปฏิบัติตามกฎระเบียบของอาคารอย่างเคร่งครัด การฝ่าฝืนถือเป็นการผิดสัญญา</div>
-
-    <div class="article"><span class="art-no">ข้อ 14.</span> <span class="bold">ห้าม</span>นำสัตว์เลี้ยงทุกชนิดเข้ามาในพื้นที่อาคารและห้องพักโดยเด็ดขาด</div>
-
-    <div class="article"><span class="art-no">ข้อ 15.</span> <span class="bold">ห้าม</span>ทำเสียงดังรบกวนผู้อื่น โดยเฉพาะช่วงเวลา 22:00 น. – 07:00 น. รวมถึงการเปิดเพลง ดนตรี หรือโทรทัศน์เสียงดัง</div>
-
-    <div class="article"><span class="art-no">ข้อ 16.</span> <span class="bold">ห้าม</span>นำบุคคลภายนอกเข้าพักค้างคืนในห้องพักโดยไม่ได้รับอนุญาตจากผู้ให้เช่า บุคคลที่จะเข้าพักต้องลงทะเบียนที่สำนักงานก่อนทุกครั้ง</div>
-
-    <div class="article"><span class="art-no">ข้อ 17.</span> ผู้เช่าต้องแจ้งรายชื่อผู้ร่วมพักอาศัยทุกคนพร้อมสำเนาบัตรประชาชนแก่ผู้ให้เช่า และต้องแจ้งทุกครั้งที่มีการเปลี่ยนแปลง</div>
-
-    <div class="article"><span class="art-no">ข้อ 18.</span> <span class="bold">ห้าม</span>นำสิ่งผิดกฎหมาย อาวุธ วัตถุระเบิด สารเสพติด หรือวัสดุไวไฟทุกชนิดเข้ามาในอาคาร</div>
-
-    <div class="article"><span class="art-no">ข้อ 19.</span> <span class="bold">ห้าม</span>ประกอบกิจการใดๆ ในห้องพักที่ไม่ใช่เพื่อพักอาศัย รวมถึงการค้าขาย รับจ้าง หรือการประกอบอาชีพที่กระทบผู้อื่น</div>
-
-    <div class="article"><span class="art-no">ข้อ 20.</span> ผู้เช่าต้องทิ้งขยะในถังที่จัดไว้ให้เท่านั้น <span class="bold">ห้าม</span>ทิ้งขยะในบริเวณทางเดิน ระเบียง หรือพื้นที่ส่วนรวม</div>
-
-    <div class="article"><span class="art-no">ข้อ 21.</span> ผู้เช่าต้องรักษาความสะอาดบริเวณหน้าห้องพักและพื้นที่ส่วนรวมให้สะอาดเป็นระเบียบเรียบร้อยอยู่เสมอ</div>
-
-    <div class="article"><span class="art-no">ข้อ 22.</span> การจอดยานพาหนะต้องปฏิบัติตามระเบียบที่ผู้ให้เช่ากำหนด จอดในที่ที่จัดไว้เท่านั้น <span class="bold">ห้าม</span>จอดขวางทางเข้า-ออกหรือพื้นที่ฉุกเฉิน</div>
-
-    <div class="article"><span class="art-no">ข้อ 23.</span> <span class="bold">ห้าม</span>ติดตั้งเสาอากาศ จานดาวเทียม เครื่องปรับอากาศเพิ่มเติม หรืออุปกรณ์ใดๆ บนผนัง เพดาน หรือหลังคา โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษรจากผู้ให้เช่า</div>
-
-    <div class="article"><span class="art-no">ข้อ 24.</span> ผู้ให้เช่ามีสิทธิ์เข้าตรวจสอบห้องพักเพื่อดูแลบำรุงรักษาได้ โดยแจ้งให้ผู้เช่าทราบล่วงหน้าอย่างน้อย 24 ชั่วโมง ยกเว้นกรณีฉุกเฉิน</div>
-
-    <div class="article"><span class="art-no">ข้อ 25.</span> ผู้เช่าต้องดูแลกุญแจ บัตรคีย์การ์ด และอุปกรณ์เข้าออก หากสูญหายต้องแจ้งให้ผู้ให้เช่าทราบทันทีและชำระค่าทดแทนตามที่กำหนด</div>
-
-    <div class="article"><span class="art-no">ข้อ 26.</span> หากผู้เช่าประสงค์จะยกเลิกสัญญาก่อนกำหนด ต้องแจ้งล่วงหน้าเป็นลายลักษณ์อักษรไม่น้อยกว่า 30 วัน และยินยอมให้ผู้ให้เช่าหักเงินมัดจำหรือเงินประกันตามความเสียหายที่เกิดขึ้น</div>
-
-    <div class="article"><span class="art-no">ข้อ 27.</span> ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาได้ทันทีโดยไม่ต้องแจ้งล่วงหน้า หากผู้เช่าฝ่าฝืนข้อตกลงในสัญญาหรือกระทำผิดกฎระเบียบในลักษณะร้ายแรง</div>
-
-    <div class="article"><span class="art-no">ข้อ 28.</span> กรณีผู้เช่าค้างชำระค่าเช่าหรือค่าบริการต่างๆ ติดต่อกันเกิน 2 เดือน ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาและดำเนินการขนย้ายทรัพย์สินออกจากห้องพักโดยถูกต้องตามกฎหมาย</div>
-
-    <div class="article"><span class="art-no">ข้อ 29.</span> ผู้ร่วมพักอาศัยที่ระบุในสัญญาเท่านั้นมีสิทธิ์พักอาศัยในห้องพัก หากมีการเปลี่ยนแปลงต้องแจ้งให้ผู้ให้เช่าทราบและได้รับอนุมัติก่อน</div>
-
-    <div class="article"><span class="art-no">ข้อ 30.</span> <span class="bold">ห้าม</span>สูบบุหรี่หรือบุหรี่ไฟฟ้าภายในห้องพัก ทางเดิน ลิฟต์ และพื้นที่ส่วนรวมทุกแห่ง ยกเว้นบริเวณที่กำหนดไว้เท่านั้น</div>
-
-    <div class="article"><span class="art-no">ข้อ 31.</span> กรณีเกิดเพลิงไหม้ อุบัติเหตุ หรือภัยพิบัติ ผู้เช่าต้องปฏิบัติตามคำสั่งของเจ้าหน้าที่อาคารและเจ้าหน้าที่ที่มีอำนาจโดยทันที</div>
-
-    <div class="article"><span class="art-no">ข้อ 32.</span> ข้อพิพาทใดๆ ที่เกิดจากสัญญาฉบับนี้ คู่สัญญาจะพยายามระงับโดยวิธีเจรจาประนีประนอมก่อน หากตกลงกันไม่ได้ให้นำคดีขึ้นสู่ศาลจังหวัดปทุมธานี ซึ่งมีเขตอำนาจ</div>
-
-    <div class="article"><span class="art-no">ข้อ 33.</span> สัญญาฉบับนี้จัดทำเป็น 2 ฉบับ มีข้อความตรงกันทุกประการ คู่สัญญาแต่ละฝ่ายถือไว้ฝ่ายละ 1 ฉบับ โดยทั้งสองฝ่ายได้อ่านและเข้าใจข้อความในสัญญาโดยตลอดแล้ว จึงได้ลงลายมือชื่อไว้เป็นหลักฐาน</div>
-
-    <div class="article"><span class="art-no">ข้อ 34.</span> สัญญาฉบับนี้มีผลบังคับใช้นับตั้งแต่วันที่ผู้เช่าลงลายมือชื่อ และถือว่าผู้เช่าได้อ่านและเข้าใจข้อกำหนดทุกข้อในสัญญาและกฎระเบียบฉบับนี้แล้วทุกประการ</div>
+  <div class="contract-title-wrap">
+    <div class="contract-title">กฎระเบียบการพักอาศัย</div>
+    <div class="contract-sub">RESIDENTIAL REGULATIONS</div>
+    <span class="contract-page-no">หน้า 2/2 &nbsp;(V2/1)</span>
   </div>
 
-  <div class="sig-block">
+  <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:7px 14px;margin-bottom:8px;font-size:12pt;color:#5d4037">
+    <span class="bold">ห้อง:</span> ${_b(d.room,'50px')} &nbsp;|&nbsp;
+    <span class="bold">อาคาร:</span> ${_b(d.building,'50px')} &nbsp;|&nbsp;
+    <span class="bold">ผู้เช่า:</span> ${_b(d.tenant,'160px')} &nbsp;|&nbsp;
+    <span class="bold">ระยะสัญญา:</span> ${thDate(d.start)} – ${thDate(d.end)}
+  </div>
+
+  <div class="section-heading">▌ กฎระเบียบอาคาร</div>
+  <div class="articles">
+    <div class="article"><div class="art-num">ข้อ 13</div><div class="art-body">ผู้เช่าและผู้ร่วมพักทุกคนต้องปฏิบัติตามกฎระเบียบของอาคารอย่างเคร่งครัด การฝ่าฝืนถือเป็นการผิดสัญญา</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 14</div><div class="art-body"><span class="warn">ห้าม</span>นำสัตว์เลี้ยงทุกชนิดเข้ามาในพื้นที่อาคารและห้องพักโดยเด็ดขาด</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 15</div><div class="art-body"><span class="warn">ห้าม</span>ทำเสียงดังรบกวนผู้อื่น โดยเฉพาะช่วงเวลา <span class="bold">22:00 น. – 07:00 น.</span></div></div>
+
+    <div class="article"><div class="art-num">ข้อ 16</div><div class="art-body"><span class="warn">ห้าม</span>นำบุคคลภายนอกเข้าพักค้างคืนโดยไม่ได้รับอนุญาต บุคคลเข้าพักต้องลงทะเบียนที่สำนักงานก่อน</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 17</div><div class="art-body">ผู้เช่าต้องแจ้งรายชื่อผู้ร่วมพักพร้อมสำเนาบัตรประชาชนแก่ผู้ให้เช่า และแจ้งทุกครั้งที่มีการเปลี่ยนแปลง</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 18</div><div class="art-body"><span class="warn">ห้าม</span>นำสิ่งผิดกฎหมาย อาวุธ วัตถุระเบิด สารเสพติด หรือวัสดุไวไฟเข้ามาในอาคาร</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 19</div><div class="art-body"><span class="warn">ห้าม</span>ประกอบกิจการค้าขาย รับจ้าง หรืออาชีพใดๆ ที่กระทบผู้อื่นในห้องพัก</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 20</div><div class="art-body">ผู้เช่าต้องทิ้งขยะในจุดที่กำหนด <span class="warn">ห้าม</span>ทิ้งขยะในทางเดิน ระเบียง หรือพื้นที่ส่วนรวม</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 21</div><div class="art-body">ผู้เช่าต้องรักษาความสะอาดบริเวณหน้าห้องพักและพื้นที่ส่วนรวมให้เป็นระเบียบเรียบร้อยอยู่เสมอ</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 22</div><div class="art-body">การจอดยานพาหนะต้องปฏิบัติตามระเบียบที่กำหนด <span class="warn">ห้าม</span>จอดขวางทางเข้าออกหรือพื้นที่ฉุกเฉิน</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 23</div><div class="art-body"><span class="warn">ห้าม</span>ติดตั้งเสาอากาศ จานดาวเทียม หรืออุปกรณ์ใดๆ บนผนัง เพดาน หรือหลังคา โดยไม่ได้รับอนุญาต</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 24</div><div class="art-body">ผู้ให้เช่ามีสิทธิ์เข้าตรวจสอบห้องพักโดยแจ้งล่วงหน้า 24 ชั่วโมง ยกเว้นกรณีฉุกเฉิน</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 25</div><div class="art-body">ผู้เช่าต้องดูแลกุญแจและบัตรคีย์การ์ด หากสูญหายต้องแจ้งทันทีและชำระค่าทดแทนตามที่กำหนด</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 26</div><div class="art-body">หากผู้เช่าประสงค์ยกเลิกสัญญาก่อนกำหนด ต้องแจ้งล่วงหน้าไม่น้อยกว่า 30 วัน และยินยอมให้หักเงินประกันตามความเสียหาย</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 27</div><div class="art-body">ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาทันที หากผู้เช่าฝ่าฝืนข้อตกลงหรือกระทำผิดกฎระเบียบในลักษณะร้ายแรง</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 28</div><div class="art-body">กรณีค้างชำระติดต่อกันเกิน 2 เดือน ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาและขนย้ายทรัพย์สินออกได้โดยชอบด้วยกฎหมาย</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 29</div><div class="art-body">เฉพาะผู้ร่วมพักที่ระบุในสัญญาเท่านั้นมีสิทธิ์พักอาศัย หากมีการเปลี่ยนแปลงต้องแจ้งและได้รับอนุมัติก่อน</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 30</div><div class="art-body"><span class="warn">ห้าม</span>สูบบุหรี่หรือบุหรี่ไฟฟ้าในห้องพัก ลิฟต์ และพื้นที่ส่วนรวม ยกเว้นบริเวณที่กำหนด</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 31</div><div class="art-body">กรณีเกิดเพลิงไหม้หรือภัยพิบัติ ผู้เช่าต้องปฏิบัติตามคำสั่งของเจ้าหน้าที่อาคารโดยทันที</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 32</div><div class="art-body">ข้อพิพาทจากสัญญานี้ให้ระงับโดยการเจรจาก่อน หากไม่สำเร็จให้นำขึ้นสู่ศาลจังหวัดปทุมธานี</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 33</div><div class="art-body">สัญญาฉบับนี้จัดทำ 2 ฉบับ มีข้อความตรงกัน คู่สัญญาแต่ละฝ่ายถือไว้ฝ่ายละ 1 ฉบับ</div></div>
+
+    <div class="article"><div class="art-num">ข้อ 34</div><div class="art-body">สัญญานี้มีผลตั้งแต่วันที่ผู้เช่าลงลายมือชื่อ ถือว่าผู้เช่าได้อ่านและเข้าใจข้อกำหนดทุกข้อแล้ว</div></div>
+  </div>
+
+  <!-- SIGNATURES -->
+  <div class="sig-section">
+    <div class="seal-box">ประทับตรา<br>บริษัท</div>
     <div class="sig-grid">
       <div class="sig-box">
-        <div class="sig-line"></div>
-        <div class="sig-name bold">ผู้ให้เช่า</div>
-        <div class="sig-cap">(${d.lessorSigner})</div>
-        <div class="sig-cap">${coName}</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">ผู้ให้เช่า</div>
+        <div class="sig-sub">(${d.lessorSigner})</div>
+        <div class="sig-sub" style="font-size:10.5pt;color:#555">${coName}</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>
       <div class="sig-box">
-        <div class="sig-line"></div>
-        <div class="sig-name bold">ผู้เช่า</div>
-        <div class="sig-cap">(${d.tenant || '...................................'})</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">ผู้เช่า</div>
+        <div class="sig-sub">(${d.tenant || '……………………………………………'})</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>
     </div>
+
     ${d.cotenants.length ? `
-    <div class="sig-grid" style="margin-top:16px">
+    <div class="sig-grid" style="margin-top:0">
       ${d.cotenants.map((ct, i) => `
       <div class="sig-box">
-        <div class="sig-line"></div>
-        <div class="sig-name bold">ผู้ร่วมพักอาศัย ${i+1}</div>
-        <div class="sig-cap">(${ct.name})</div>
+        <div class="sig-space"></div>
+        <div class="sig-name">ผู้ร่วมพักอาศัย ${i+1}</div>
+        <div class="sig-sub">(${ct.name})</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>`).join('')}
     </div>` : ''}
-    <div style="margin-top:20px;padding-top:12px;border-top:1px dashed #aaa">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+    <div class="witness-row">
+      <div class="sig-grid">
         <div class="sig-box">
-          <div class="sig-line"></div>
-          <div class="sig-name bold">พยาน (ฝ่ายผู้ให้เช่า)</div>
-          <div class="sig-cap">(...................................)</div>
+          <div class="sig-space"></div>
+          <div class="sig-name">พยาน (ฝ่ายผู้ให้เช่า)</div>
+          <div class="sig-sub">(……………………………………………)</div>
         </div>
         <div class="sig-box">
-          <div class="sig-line"></div>
-          <div class="sig-name bold">พยาน (ฝ่ายผู้เช่า)</div>
-          <div class="sig-cap">(...................................)</div>
+          <div class="sig-space"></div>
+          <div class="sig-name">พยาน (ฝ่ายผู้เช่า)</div>
+          <div class="sig-sub">(……………………………………………)</div>
         </div>
       </div>
     </div>
   </div>
+
+  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} | ${coName} | หน้า 2 จาก 2</div>
 </div>
 
-<div class="no-print" style="text-align:center;margin:20px;padding:16px;background:#e3f2fd;border-radius:8px">
-  <button onclick="window.print()" style="background:#1a237e;color:#fff;border:none;padding:10px 28px;border-radius:6px;font-size:15px;cursor:pointer;font-family:inherit">🖨️ พิมพ์สัญญา</button>
-  <button onclick="window.close()" style="background:#fff;color:#1a237e;border:1px solid #1a237e;padding:10px 20px;border-radius:6px;font-size:15px;cursor:pointer;margin-left:12px;font-family:inherit">✕ ปิด</button>
+<!-- PRINT TOOLBAR -->
+<div class="no-print" style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to right,#1a237e,#3949ab);padding:12px 24px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 -2px 12px rgba(0,0,0,.3)">
+  <span style="color:#fff;font-size:13pt;font-family:inherit">ห้อง ${d.room} | ${d.tenant} | ${coName}</span>
+  <button onclick="window.print()" style="background:#ffca28;color:#1a237e;border:none;padding:9px 28px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:800">🖨️ พิมพ์สัญญา</button>
+  <button onclick="window.close()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);padding:9px 20px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit">✕ ปิด</button>
 </div>
+<div class="no-print" style="height:64px"></div>
 
 </body>
 </html>`;
 
-  const win = window.open('', '_blank', 'width=850,height=1100,scrollbars=yes');
+  const win = window.open('', '_blank', 'width=860,height=1100,scrollbars=yes');
   if (!win) { showAlert('กรุณาอนุญาต popup เพื่อพิมพ์สัญญา', 'error'); return; }
   win.document.write(html);
   win.document.close();
