@@ -1665,9 +1665,9 @@ $('btn-confirm-pay').addEventListener('click', async () => {
 // INCOME
 // ============================================================
 function renderIncome() {
-  const month  = $('income-filter-month').value;
-  const bld    = $('income-filter-building').value;
-  const cat    = $('income-filter-cat').value;
+  const month = $('income-filter-month').value;
+  const bld   = $('income-filter-building').value;
+  const cat   = $('income-filter-cat').value;
 
   const filtered = S.income.filter(i => {
     const d = i['วันที่'];
