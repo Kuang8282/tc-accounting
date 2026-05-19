@@ -1902,6 +1902,18 @@ $('btn-load-report').addEventListener('click', async ()=>{
 function renderMonthlyReport(rep) {
   const c = $('report-monthly-content');
   const blds = ['V1','V2','V3','V4'];
+
+  // Aggregate other income per building from the returned array
+  const otherByBld = {};
+  blds.forEach(v => { otherByBld[v] = 0; });
+  (rep.otherIncome||[]).forEach(i => {
+    const v = i['อาคาร']||'';
+    if (otherByBld[v] !== undefined) otherByBld[v] += parseFloat(i['จำนวนเงิน'])||0;
+  });
+  const otherNoBuilding = (rep.otherIncome||[])
+    .filter(i => !blds.includes(i['อาคาร']))
+    .reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
+
   let html = `<div class="stat-grid">
     <div class="stat-card income"><div class="label">รายรับรวม</div><div class="value">${fmt(rep.grandIncome)} ฿</div></div>
     <div class="stat-card expense"><div class="label">รายจ่ายรวม</div><div class="value">${fmt(rep.totalExpense)} ฿</div></div>
@@ -1909,16 +1921,35 @@ function renderMonthlyReport(rep) {
     <div class="stat-card"><div class="label">บิลค้างชำระ</div><div class="value text-danger">${rep.overdueCount} ห้อง</div></div>
   </div>`;
 
+  const grandBillInc  = blds.reduce((s,v)=>s+(rep.summary[v]||{}).totalIncome||0, 0);
+  const grandOtherInc = (rep.totalOtherIncome||0);
   html += `<div class="table-wrap"><table>
-    <thead><tr><th>อาคาร</th><th class="text-right">ค่าห้อง</th><th class="text-right">ค่าน้ำ</th><th class="text-right">ค่าไฟ</th><th class="text-right">อื่นๆ</th><th class="text-right">รวมรายรับ</th></tr></thead>
+    <thead><tr>
+      <th>อาคาร</th><th class="text-right">ค่าห้อง</th><th class="text-right">ค่าน้ำ</th>
+      <th class="text-right">ค่าไฟ</th><th class="text-right">อื่นๆ(บิล)</th>
+      <th class="text-right">รายรับอื่นๆ</th><th class="text-right">รวมรายรับ</th>
+    </tr></thead>
     <tbody>
     ${blds.map(v => {
       const s = rep.summary[v]||{};
+      const oth = otherByBld[v]||0;
+      const rowTotal = (s.totalIncome||0) + oth;
       return `<tr><td class="fw-bold">${v} (${(S.companies[v]||{}).name||''})</td>
         <td class="text-right">${fmt(s.rent)}</td><td class="text-right">${fmt(s.water)}</td>
         <td class="text-right">${fmt(s.elec)}</td><td class="text-right">${fmt(s.other)}</td>
-        <td class="text-right fw-bold">${fmt(s.totalIncome)}</td></tr>`;
+        <td class="text-right text-success">${oth?fmt(oth):'-'}</td>
+        <td class="text-right fw-bold">${fmt(rowTotal)}</td></tr>`;
     }).join('')}
+    ${otherNoBuilding ? `<tr style="background:#f3f4fb"><td colspan="5" style="color:#555">รายรับอื่นๆ (ไม่ระบุอาคาร)</td>
+      <td class="text-right text-success">${fmt(otherNoBuilding)}</td><td class="text-right fw-bold">${fmt(otherNoBuilding)}</td></tr>` : ''}
+    <tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td>รวม</td><td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).rent||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).water||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).elec||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).other||0),0))}</td>
+      <td class="text-right text-success">${fmt(grandOtherInc)}</td>
+      <td class="text-right">${fmt(rep.grandIncome)}</td>
+    </tr>
     </tbody>
   </table></div>`;
   c.innerHTML = html;
@@ -1943,21 +1974,35 @@ function renderRoomReport() {
 function renderBuildingReport() {
   const blds = ['V1','V2','V3','V4'];
   const stats = {};
-  blds.forEach(v=>{ stats[v]={income:0,expense:0,rooms:0,rented:0}; });
+  blds.forEach(v=>{ stats[v]={income:0,billIncome:0,otherIncome:0,expense:0,rooms:0,rented:0}; });
   S.rooms.forEach(r=>{ if(stats[r['อาคาร']]) { stats[r['อาคาร']].rooms++; if(r['สถานะ']==='ทำสัญญา') stats[r['อาคาร']].rented++; } });
-  S.bills.filter(b=>b['สถานะ']==='ชำระแล้ว').forEach(b=>{ if(stats[b['อาคาร']]) stats[b['อาคาร']].income+=parseFloat(b['รวม'])||0; });
+  S.bills.filter(b=>b['สถานะ']==='ชำระแล้ว').forEach(b=>{ if(stats[b['อาคาร']]) { const a=parseFloat(b['รวม'])||0; stats[b['อาคาร']].billIncome+=a; stats[b['อาคาร']].income+=a; } });
+  S.income.filter(i=>!_isBillAutoInc(i)).forEach(i=>{ if(stats[i['อาคาร']]) { const a=parseFloat(i['จำนวนเงิน'])||0; stats[i['อาคาร']].otherIncome+=a; stats[i['อาคาร']].income+=a; } });
   S.expenses.forEach(e=>{ if(stats[e['อาคาร']]) stats[e['อาคาร']].expense+=parseFloat(e['จำนวนเงิน'])||0; });
   $('report-buildings-content').innerHTML = `<div class="table-wrap"><table>
-    <thead><tr><th>อาคาร</th><th>ชื่อบริษัท</th><th class="text-right">ห้องทั้งหมด</th><th class="text-right">ทำสัญญา</th><th class="text-right">รายรับ</th><th class="text-right">รายจ่าย</th><th class="text-right">กำไร</th></tr></thead>
+    <thead><tr><th>อาคาร</th><th>ชื่อบริษัท</th><th class="text-right">ห้องทั้งหมด</th><th class="text-right">ทำสัญญา</th>
+      <th class="text-right">รายรับค่าเช่า</th><th class="text-right">รายรับอื่นๆ</th>
+      <th class="text-right">รายรับรวม</th><th class="text-right">รายจ่าย</th><th class="text-right">กำไร</th></tr></thead>
     <tbody>${blds.map(v=>{
       const s=stats[v]; const co=S.companies[v]||{};
       const profit=s.income-s.expense;
       return `<tr><td class="fw-bold">${v}</td><td>${co.name||''}</td>
         <td class="text-right">${s.rooms}</td><td class="text-right">${s.rented}</td>
-        <td class="text-right text-success">${fmt(s.income)}</td>
+        <td class="text-right text-success">${fmt(s.billIncome)}</td>
+        <td class="text-right" style="color:#43a047">${s.otherIncome?fmt(s.otherIncome):'-'}</td>
+        <td class="text-right fw-bold text-success">${fmt(s.income)}</td>
         <td class="text-right text-danger">${fmt(s.expense)}</td>
         <td class="text-right fw-bold ${profit>=0?'text-success':'text-danger'}">${fmt(profit)}</td></tr>`;
-    }).join('')}</tbody>
+    }).join('')}
+    <tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td colspan="4">รวม</td>
+      <td class="text-right text-success">${fmt(blds.reduce((s,v)=>s+stats[v].billIncome,0))}</td>
+      <td class="text-right" style="color:#43a047">${fmt(blds.reduce((s,v)=>s+stats[v].otherIncome,0))}</td>
+      <td class="text-right fw-bold text-success">${fmt(blds.reduce((s,v)=>s+stats[v].income,0))}</td>
+      <td class="text-right text-danger">${fmt(blds.reduce((s,v)=>s+stats[v].expense,0))}</td>
+      <td class="text-right fw-bold">${fmt(blds.reduce((s,v)=>s+stats[v].income-stats[v].expense,0))}</td>
+    </tr>
+    </tbody>
   </table></div>`;
 }
 
