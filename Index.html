@@ -116,6 +116,22 @@ canvas{max-width:100%;}
 .text-success{color:var(--success);}
 .text-danger{color:var(--danger);}
 .fw-bold{font-weight:700;}
+/* P&L TABLE */
+.pl-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1200px;}
+.pl-table th{background:var(--primary);color:#fff;padding:5px 8px;text-align:right;white-space:nowrap;position:sticky;top:0;z-index:2;}
+.pl-table th:first-child{text-align:left;position:sticky;left:0;z-index:3;min-width:200px;}
+.pl-table td{padding:4px 8px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap;}
+.pl-table td:first-child{text-align:left;position:sticky;left:0;background:#fff;z-index:1;border-right:1px solid #ddd;}
+.pl-table tr:hover td{background:#f3f4fa;}
+.pl-table tr:hover td:first-child{background:#f3f4fa;}
+.pl-section-header td{background:#1a237e!important;color:#fff!important;font-weight:700;font-size:12px;padding:5px 8px;}
+.pl-total-row td{background:#e8f5e9!important;font-weight:700;color:#1b5e20;border-top:2px solid #2e7d32;}
+.pl-expense-total td{background:#ffebee!important;font-weight:700;color:#b71c1c;border-top:2px solid #c62828;}
+.pl-profit-row td{background:#e3f2fd!important;font-weight:800;font-size:13px;color:#0d47a1;border-top:2px solid #1565c0;}
+.pl-profit-neg td{background:#ffebee!important;font-weight:800;font-size:13px;color:#c62828;border-top:2px solid #c62828;}
+.pl-num-pos{color:#2e7d32;}
+.pl-num-neg{color:#c62828;}
+.pl-sub{padding-left:1.5em!important;}
 .mb-1{margin-bottom:8px;}
 .mb-2{margin-bottom:16px;}
 .flex-end{display:flex;justify-content:flex-end;gap:8px;}
@@ -363,6 +379,7 @@ canvas{max-width:100%;}
         <button class="sub-tab" data-sub="report-rooms">สรุปรายห้อง</button>
         <button class="sub-tab" data-sub="report-buildings">แยกตามอาคาร</button>
         <button class="sub-tab" data-sub="report-all">รายการทั้งหมด</button>
+        <button class="sub-tab" data-sub="report-pl">📈 บัญชีกำไร-ขาดทุน</button>
       </div>
 
       <div id="report-monthly" class="sub-content active">
@@ -400,6 +417,17 @@ canvas{max-width:100%;}
           </select>
         </div>
         <div id="report-all-content"></div>
+      </div>
+
+      <div id="report-pl" class="sub-content">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+          <label style="font-weight:600;font-size:13px">ปี:</label>
+          <select class="form-control" id="pl-year" style="max-width:130px"></select>
+          <button class="btn btn-primary btn-sm" id="btn-render-pl">📊 แสดงรายงาน</button>
+          <button class="btn btn-outline btn-primary btn-sm" id="btn-print-pl">🖨️ พิมพ์</button>
+          <span id="pl-status" class="text-muted" style="font-size:12px"></span>
+        </div>
+        <div id="pl-content" style="overflow-x:auto"></div>
       </div>
     </div>
   </div>
@@ -1149,6 +1177,7 @@ window.addEventListener('load', async () => {
   renderOverdue();
   updateOverdueBadge();
   setDefaultDates();
+  _plInitYears();
 
   // แจ้งถ้าไม่มีห้อง
   if (S.rooms.length === 0) {
@@ -1217,6 +1246,7 @@ document.querySelectorAll('.sub-tab').forEach(btn => {
     if(btn.dataset.sub === 'report-rooms') renderRoomReport();
     if(btn.dataset.sub === 'report-buildings') renderBuildingReport();
     if(btn.dataset.sub === 'report-all') renderAllReport();
+    if(btn.dataset.sub === 'report-pl') { _plInitYears(); renderPLReport(); }
   });
 });
 
@@ -4372,6 +4402,295 @@ function generateAndPrintContract(d) {
   win.document.close();
   win.focus();
 }
+
+// ============================================================
+// P&L REPORT (บัญชีกำไร-ขาดทุน)
+// ============================================================
+
+// ── Income row definitions ──────────────────────────────────
+const _PL_INC = [
+  { label:'ค่าเช่า-ค่าน้ำ-ค่าไฟ V1',          type:'bills',  bld:'V1' },
+  { label:'ค่าเช่า-ค่าน้ำ-ค่าไฟ V2',          type:'bills',  bld:'V2' },
+  { label:'ค่าเช่า-ค่าน้ำ-ค่าไฟ V3',          type:'bills',  bld:'V3' },
+  { label:'ค่าเช่า-ค่าน้ำ-ค่าไฟ V4',          type:'bills',  bld:'V4' },
+  { label:'ค่าคูปองอินเตอร์เน็ต V1-V2',        type:'income', cats:['คูปองอินเตอร์เน็ต'], blds:['V1','V2'] },
+  { label:'ค่าคูปองอินเตอร์เน็ต V3-V4',        type:'income', cats:['คูปองอินเตอร์เน็ต'], blds:['V3','V4'] },
+  { label:'ค่าปรับ/ส่วนลด',                    type:'income', cats:['ค่าปรับ'] },
+  { label:'ค่าคีย์การ์ด',                       type:'income', cats:['ค่าคีย์การ์ด'] },
+  { label:'ค่าทำความสะอาด',                    type:'income', cats:['ค่าทำความสะอาด'] },
+  { label:'ค่าปรับล่าช้า',                      type:'bills_penalty' },
+  { label:'ค่าเช่าที่จอดรถ',                   type:'income', cats:['ค่าจอดรถ'] },
+  { label:'ค่าทำสัญญา/ต่อสัญญา',              type:'income', cats:['จอง/ทำสัญญา','ค่าต่อสัญญา'] },
+  { label:'รายรับ-ดอกเบี้ย',                   type:'income', cats:['ดอกเบี้ย'] },
+  { label:'รายรับอื่นๆ',                        type:'income', cats:['อื่นๆ','ค่าบริการ','เงินมัดจำ','ค่าประกัน','ค่าขยะ','ค่าส่วนกลาง','ค่าตกแต่ง'] },
+  { label:'ค่าเช่าเครื่องซักผ้า V1-V2',        type:'income', cats:['เครื่องซักผ้า'], blds:['V1','V2'] },
+  { label:'ค่าเช่าเครื่องซักผ้า V3-V4',        type:'income', cats:['เครื่องซักผ้า'], blds:['V3','V4'] },
+];
+
+// ── Expense row definitions ─────────────────────────────────
+const _PL_EXP = [
+  { label:'คืนเงินประกันห้อง',                 cats:['เงินประกันคืน'] },
+  { label:'ค่าประกันอาคาร',                    cats:['ค่าประกันภัยอาคาร'] },
+  { label:'ค่าน้ำประปา V1',                    cats:['ค่าน้ำประปา V1'] },
+  { label:'ค่าน้ำประปา V2',                    cats:['ค่าน้ำประปา V2'] },
+  { label:'ค่าน้ำประปา V3',                    cats:['ค่าน้ำประปา V3'] },
+  { label:'ค่าน้ำประปา V4',                    cats:['ค่าน้ำประปา V4'] },
+  { label:'ค่าบริการเก็บขยะ',                  cats:['ค่าขยะ'] },
+  { label:'ค่าบริการอินเตอร์เน็ต V1',          cats:['ค่าอินเตอร์เน็ตสำนักงาน'], bld:'V1' },
+  { label:'ค่าบริการอินเตอร์เน็ต V3',          cats:['ค่าอินเตอร์เน็ตสำนักงาน'], bld:'V3' },
+  { label:'ค่าบริการอินเตอร์เน็ต V4',          cats:['ค่าอินเตอร์เน็ตสำนักงาน'], bld:'V4' },
+  { label:'ค่าไฟฟ้า V1',                       cats:['ค่าไฟฟ้า V1'] },
+  { label:'ค่าไฟฟ้า V2',                       cats:['ค่าไฟฟ้า V2'] },
+  { label:'ค่าไฟฟ้า V3',                       cats:['ค่าไฟฟ้า V3'] },
+  { label:'ค่าไฟฟ้า V4',                       cats:['ค่าไฟฟ้า V4'] },
+  { label:'เงินเดือนพนักงาน V1',               cats:['เงินเดือน','ค่าแรงรายวัน','ค่าล่วงเวลา'], bld:'V1' },
+  { label:'เงินเดือนพนักงาน V2',               cats:['เงินเดือน','ค่าแรงรายวัน','ค่าล่วงเวลา'], bld:'V2' },
+  { label:'เงินเดือนพนักงาน V3',               cats:['เงินเดือน','ค่าแรงรายวัน','ค่าล่วงเวลา'], bld:'V3' },
+  { label:'เงินเดือนพนักงาน V4',               cats:['เงินเดือน','ค่าแรงรายวัน','ค่าล่วงเวลา'], bld:'V4' },
+  { label:'ค่าดูแลรักษารถตู้ ฮน-3748',         cats:['ค่าซ่อม ฮน3748'] },
+  { label:'ค่าดูแลรักษารถตู้ ฮพ-5886',         cats:['ค่าซ่อม ฮพ5886'] },
+  { label:'ค่าน้ำมันรถตู้ ฮน-3748',            cats:['ค่าน้ำมัน ฮน3748'] },
+  { label:'ค่าน้ำมันรถตู้ ฮพ-5886',            cats:['ค่าน้ำมัน ฮพ5886'] },
+  { label:'ค่าเบี้ยประกันรถ ฮน-3748',          cats:['ค่าประกันรถ ฮน3748'] },
+  { label:'ค่าเบี้ยประกันรถ ฮพ-5886',          cats:['ค่าประกันรถ ฮพ5886'] },
+  { label:'ค่าเครื่องมือ/อุปกรณ์ซ่อมทั่วไป',  cats:['ค่าเครื่องมือช่าง','ค่าอะไหล่/อุปกรณ์','ค่าวัสดุก่อสร้าง'] },
+  { label:'ค่าซ่อมระบบความปลอดภัย',            cats:['ค่ารักษาความปลอดภัย'] },
+  { label:'ค่าซ่อม/บำรุงระบบแอร์',            cats:['ค่าซ่อมแซม V1','ค่าซ่อมแซม V2','ค่าซ่อมแซม V3','ค่าซ่อมแซม V4'] },
+  { label:'ค่าเครื่องมือทำความสะอาด',          cats:['ค่าทำความสะอาด'] },
+  { label:'ค่าบำรุงรักษาลิฟท์',               cats:['ค่าบำรุงลิฟท์ V1','ค่าบำรุงลิฟท์ V2','ค่าบำรุงลิฟท์ V3','ค่าบำรุงลิฟท์ V4'] },
+  { label:'ค่าดูแลสระว่ายน้ำ/ซาวน่า',         cats:['ค่าบำรุงสระว่ายน้ำ','ค่าสารเคมีสระว่ายน้ำ'] },
+  { label:'ค่าอุปกรณ์สวน',                     cats:['ค่าบำรุงสวน','ค่าปุ๋ย/ยาฆ่าแมลง'] },
+  { label:'ค่าผลไม้-ดอกไม้',                   cats:['ค่าน้ำดื่ม/ชา/กาแฟ'] },
+  { label:'ค่าธรรมเนียมธนาคาร',               cats:['ค่าธรรมเนียมธนาคาร V1','ค่าธรรมเนียมธนาคาร V2','ค่าธรรมเนียมธนาคาร V3','ค่าธรรมเนียมธนาคาร V4'] },
+  { label:'ค่าบริการทำบัญชี',                  cats:['ค่าบัญชี/สอบบัญชี'] },
+  { label:'ค่าประกันสังคม',                    cats:['ประกันสังคม','กองทุนสำรองเลี้ยงชีพ'] },
+  { label:'ภาษีมูลค่าเพิ่ม',                   cats:['ภาษีมูลค่าเพิ่ม'] },
+  { label:'ภาษีที่ดิน/โรงเรือน/ป้าย',         cats:['ภาษีโรงเรือน/สิ่งปลูกสร้าง','ภาษีที่ดิน','ภาษีป้าย'] },
+  { label:'ภาษีเงินได้นิติบุคคล',              cats:['ภาษีเงินได้นิติบุคคล'] },
+  { label:'ภาษีหัก ณ ที่จ่าย',                cats:['ภาษีหัก ณ ที่จ่าย'] },
+  { label:'ค่าโทรศัพท์',                       cats:['ค่าโทรศัพท์สำนักงาน'] },
+  { label:'ค่าใช้จ่ายเบ็ดเตล็ด',              cats:['อื่นๆ'] },
+  { label:'สวัสดิการพนักงาน',                  cats:['สวัสดิการพนักงาน','ค่าอาหารพนักงาน','ค่าเครื่องแบบ'] },
+  { label:'เครื่องซักผ้าหยอดเหรียญ',           cats:['เครื่องซักผ้า'] },
+  { label:'ค่าอุปกรณ์สำนักงาน',               cats:['ค่าเครื่องเขียน/สำนักงาน','ค่าเช่าเครื่องถ่ายเอกสาร'] },
+];
+
+const _PL_MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function _plGetYears() {
+  const years = new Set();
+  const curY  = new Date().getFullYear();
+  years.add(curY); years.add(curY-1); years.add(curY+543); years.add(curY+543-1);
+  S.bills.forEach(b => { const y = (b['เดือน']||'').slice(0,4); if(y) years.add(parseInt(y)); });
+  S.income.forEach(i => { const y = (i['วันที่']||'').slice(0,4); if(y) years.add(parseInt(y)); });
+  S.expenses.forEach(e => { const y = (e['วันที่']||'').slice(0,4); if(y) years.add(parseInt(y)); });
+  return [...years].filter(y=>y>1900).sort((a,b)=>b-a);
+}
+
+function _plInitYears() {
+  const sel = $('pl-year');
+  if (!sel) return;
+  const years = _plGetYears();
+  const curY  = new Date().getFullYear();
+  sel.innerHTML = years.map(y => `<option value="${y}"${y===curY?'selected':''}>${y}</option>`).join('');
+}
+
+function _plYM(year, month1based) {
+  return `${year}-${String(month1based).padStart(2,'0')}`;
+}
+
+function _plSumBills(bld, ym) {
+  return S.bills.filter(b =>
+    b['สถานะ'] === 'ชำระแล้ว' &&
+    b['อาคาร'] === bld &&
+    (b['เดือน']||'').slice(0,7) === ym
+  ).reduce((s,b) => s + (parseFloat(b['ค่าห้อง'])||0) + (parseFloat(b['ค่าน้ำ'])||0) + (parseFloat(b['ค่าไฟ'])||0), 0);
+}
+
+function _plSumBillsPenalty(ym) {
+  let total = 0;
+  S.bills.filter(b =>
+    b['สถานะ'] === 'ชำระแล้ว' &&
+    (b['เดือน']||'').slice(0,7) === ym
+  ).forEach(b => {
+    const noteRaw = b['หมายเหตุบิล'] || '';
+    const m = noteRaw.match(/^(\[[\s\S]*?\])/);
+    if (m) {
+      try {
+        JSON.parse(m[1]).forEach(ex => {
+          if ((ex.cat||'').includes('ปรับ')) total += parseFloat(ex.amt)||0;
+        });
+      } catch(e) {}
+    }
+  });
+  return total;
+}
+
+function _plSumIncome(cats, blds, ym) {
+  return S.income.filter(i => {
+    if (_isBillAutoInc(i)) return false;
+    if (cats && !cats.includes(i['หมวดหมู่'])) return false;
+    if (blds && !blds.includes(i['อาคาร'])) return false;
+    return (i['วันที่']||'').slice(0,7) === ym;
+  }).reduce((s,i) => s + (parseFloat(i['จำนวนเงิน'])||0), 0);
+}
+
+function _plSumExpense(cats, bld, ym) {
+  return S.expenses.filter(e => {
+    if (cats && !cats.includes(e['หมวดหมู่'])) return false;
+    if (bld && e['อาคาร'] !== bld) return false;
+    return (e['วันที่']||'').slice(0,7) === ym;
+  }).reduce((s,e) => s + (parseFloat(e['จำนวนเงิน'])||0), 0);
+}
+
+function _plCalcRow(rowDef, year) {
+  const vals = [];
+  for (let m = 1; m <= 12; m++) {
+    const ym = _plYM(year, m);
+    let v = 0;
+    if (rowDef.type === 'bills')         v = _plSumBills(rowDef.bld, ym);
+    else if (rowDef.type === 'bills_penalty') v = _plSumBillsPenalty(ym);
+    else if (rowDef.type === 'income')   v = _plSumIncome(rowDef.cats, rowDef.blds||null, ym);
+    else /* expense */                   v = _plSumExpense(rowDef.cats, rowDef.bld||null, ym);
+    vals.push(v);
+  }
+  return vals;
+}
+
+function _plFmt(n) {
+  if (!n) return '<span style="color:#bbb">–</span>';
+  const cls = n >= 0 ? 'pl-num-pos' : 'pl-num-neg';
+  return `<span class="${cls}">${Number(n).toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0})}</span>`;
+}
+
+function renderPLReport() {
+  const year = parseInt($('pl-year').value);
+  if (!year) return;
+  $('pl-status').textContent = 'กำลังคำนวณ...';
+
+  // Compute all income rows
+  const incData  = _PL_INC.map(r => _plCalcRow(r, year));
+  // Compute all expense rows
+  const expData  = _PL_EXP.map(r => _plCalcRow({...r, type:'expense'}, year));
+
+  // Monthly totals
+  const incTotals = Array(12).fill(0).map((_,m) => incData.reduce((s,row)=>s+row[m], 0));
+  const expTotals = Array(12).fill(0).map((_,m) => expData.reduce((s,row)=>s+row[m], 0));
+  const plTotals  = incTotals.map((v,m) => v - expTotals[m]);
+
+  const incYearTotal = incTotals.reduce((s,v)=>s+v,0);
+  const expYearTotal = expTotals.reduce((s,v)=>s+v,0);
+  const plYearTotal  = incYearTotal - expYearTotal;
+
+  // Build header
+  let html = `<table class="pl-table">
+<thead>
+  <tr>
+    <th>รายการ</th>
+    ${_PL_MONTHS_SHORT.map(m=>`<th>${m}</th>`).join('')}
+    <th style="background:#1565c0">รวมปี ${year}</th>
+  </tr>
+</thead>
+<tbody>`;
+
+  // ── INCOME SECTION ──
+  html += `<tr class="pl-section-header"><td colspan="14">💰 รายรับ</td></tr>`;
+  _PL_INC.forEach((r, i) => {
+    const row  = incData[i];
+    const tot  = row.reduce((s,v)=>s+v,0);
+    if (!tot && row.every(v=>!v)) return; // skip zero rows
+    html += `<tr>
+      <td class="pl-sub">${r.label}</td>
+      ${row.map(v=>_plFmt(v)).map(v=>`<td>${v}</td>`).join('')}
+      <td><strong>${_plFmt(tot)}</strong></td>
+    </tr>`;
+  });
+  html += `<tr class="pl-total-row">
+    <td>รวมรายรับ</td>
+    ${incTotals.map(v=>`<td><strong>${_plFmt(v)}</strong></td>`).join('')}
+    <td><strong>${_plFmt(incYearTotal)}</strong></td>
+  </tr>`;
+
+  // ── EXPENSE SECTION ──
+  html += `<tr class="pl-section-header"><td colspan="14">💸 รายจ่าย</td></tr>`;
+  _PL_EXP.forEach((r, i) => {
+    const row  = expData[i];
+    const tot  = row.reduce((s,v)=>s+v,0);
+    if (!tot && row.every(v=>!v)) return;
+    html += `<tr>
+      <td class="pl-sub">${r.label}</td>
+      ${row.map(v=>_plFmt(v)).map(v=>`<td>${v}</td>`).join('')}
+      <td><strong>${_plFmt(tot)}</strong></td>
+    </tr>`;
+  });
+  html += `<tr class="pl-expense-total">
+    <td>รวมรายจ่าย</td>
+    ${expTotals.map(v=>`<td><strong>${_plFmt(v)}</strong></td>`).join('')}
+    <td><strong>${_plFmt(expYearTotal)}</strong></td>
+  </tr>`;
+
+  // ── P&L ROW ──
+  const plRowClass = plYearTotal >= 0 ? 'pl-profit-row' : 'pl-profit-neg';
+  html += `<tr class="${plRowClass}">
+    <td>📈 กำไร-ขาดทุน</td>
+    ${plTotals.map(v=>`<td><strong>${_plFmt(v)}</strong></td>`).join('')}
+    <td><strong>${_plFmt(plYearTotal)}</strong></td>
+  </tr>`;
+
+  // ── % MARGIN ROW ──
+  html += `<tr style="background:#f5f5f5;font-size:11px">
+    <td style="color:#555">% กำไร/รายรับ</td>
+    ${incTotals.map((inc,m) => {
+      const pct = inc > 0 ? ((plTotals[m]/inc)*100).toFixed(1) : '–';
+      const col = plTotals[m] >= 0 ? '#2e7d32' : '#c62828';
+      return `<td style="color:${col}">${pct !== '–' ? pct+'%' : '–'}</td>`;
+    }).join('')}
+    <td style="color:${plYearTotal>=0?'#2e7d32':'#c62828'};font-weight:700">${incYearTotal>0?((plYearTotal/incYearTotal)*100).toFixed(1)+'%':'–'}</td>
+  </tr>`;
+
+  html += '</tbody></table>';
+
+  $('pl-content').innerHTML = html;
+
+  const nonZeroInc = incData.filter(r=>r.some(v=>v)).length;
+  const nonZeroExp = expData.filter(r=>r.some(v=>v)).length;
+  $('pl-status').textContent = `ปี ${year} | รายรับ ${nonZeroInc} รายการ | รายจ่าย ${nonZeroExp} รายการ | กำไร ${Number(plYearTotal).toLocaleString('th-TH',{maximumFractionDigits:0})} ฿`;
+}
+
+$('btn-render-pl').addEventListener('click', renderPLReport);
+
+$('btn-print-pl').addEventListener('click', () => {
+  const year = ($('pl-year')||{}).value || '';
+  const content = ($('pl-content')||{}).innerHTML || '';
+  if (!content.includes('<table')) { showAlert('กรุณาแสดงรายงานก่อนพิมพ์', 'error'); return; }
+  const win = window.open('', '_blank', 'width=1200,height=900,scrollbars=yes');
+  if (!win) { showAlert('กรุณาอนุญาต popup เพื่อพิมพ์', 'error'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<title>บัญชีกำไร-ขาดทุน ปี ${year}</title>
+<style>
+@page{size:A3 landscape;margin:10mm}
+body{font-family:'Sarabun',sans-serif;font-size:10pt}
+table{width:100%;border-collapse:collapse;font-size:9pt}
+th{background:#1a237e;color:#fff;padding:3px 6px;text-align:right;white-space:nowrap}
+th:first-child{text-align:left}
+td{padding:3px 6px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap}
+td:first-child{text-align:left}
+.pl-section-header td{background:#1a237e!important;color:#fff!important;font-weight:700}
+.pl-total-row td{background:#e8f5e9!important;font-weight:700;border-top:2px solid #2e7d32}
+.pl-expense-total td{background:#ffebee!important;font-weight:700;border-top:2px solid #c62828}
+.pl-profit-row td{background:#e3f2fd!important;font-weight:800;font-size:11pt;border-top:2px solid #1565c0}
+.pl-profit-neg td{background:#ffebee!important;font-weight:800;font-size:11pt;border-top:2px solid #c62828}
+.pl-num-pos{color:#2e7d32}.pl-num-neg{color:#c62828}.pl-sub{padding-left:1em!important}
+h2{text-align:center;margin-bottom:8px}
+</style></head><body>
+<h2>บัญชีกำไร-ขาดทุน ปี ${year} — V-Residence Place Co.,Ltd.</h2>
+${content}
+</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 400);
+});
+
 
 </script>
 </body>
