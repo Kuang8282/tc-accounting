@@ -295,6 +295,12 @@ canvas{max-width:100%;}
           <option value="">ทุกอาคาร</option>
           <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
         </select>
+        <select class="form-control" id="income-filter-status">
+          <option value="">ทุกสถานะ</option>
+          <option value="ชำระแล้ว">ชำระแล้ว</option>
+          <option value="รอชำระ">รอชำระ</option>
+          <option value="ค้างชำระ">ค้างชำระ</option>
+        </select>
         <select class="form-control" id="income-filter-cat">
           <option value="">ทุกหมวด</option>
         </select>
@@ -305,7 +311,7 @@ canvas{max-width:100%;}
           <thead>
             <tr>
               <th>เดือน/วันที่</th><th>อาคาร</th><th>ห้อง</th><th>ผู้เช่า/เกี่ยวข้อง</th>
-              <th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th><th>หมายเหตุ</th><th>จัดการ</th>
+              <th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th><th>สถานะ/หมายเหตุ</th><th>จัดการ</th>
             </tr>
           </thead>
           <tbody id="income-tbody"></tbody>
@@ -1703,21 +1709,24 @@ function _incDateMonth(i) {
 }
 
 function renderIncome() {
-  const month = $('income-filter-month').value;
-  const bld   = $('income-filter-building').value;
-  const cat   = $('income-filter-cat').value;
+  const month  = $('income-filter-month').value;
+  const bld    = $('income-filter-building').value;
+  const cat    = $('income-filter-cat').value;
+  const status = $('income-filter-status').value;
 
   const _BILL_CATS = ['ค่าห้อง','ค่าน้ำ','ค่าไฟ','ค่าอื่นๆ'];
   const rows = [];
 
-  // Bill income — expand each paid bill into per-category rows
+  // Bill rows — all statuses unless filtered
   S.bills.filter(b => {
-    if (b['สถานะ'] !== 'ชำระแล้ว') return false;
+    if (status && b['สถานะ'] !== status) return false;
+    if (!status && b['สถานะ'] === '') return false; // skip bills with no status
     if (month && (b['เดือน']||'').slice(0,7) !== month) return false;
     if (bld && b['อาคาร'] !== bld) return false;
-    if (cat && !_BILL_CATS.includes(cat)) return false; // category is other-income type
+    if (cat && !_BILL_CATS.includes(cat)) return false;
     return true;
   }).forEach(b => {
+    const isPaid = b['สถานะ'] === 'ชำระแล้ว';
     _BILL_CATS.forEach(c => {
       const amt = parseFloat(b[c]) || 0;
       if (!amt) return;
@@ -1729,63 +1738,74 @@ function renderIncome() {
         person: b['ผู้เช่า'] || '',
         category: c,
         amount: amt,
-        note: '',
+        note: b['สถานะ'],
         isBill: true,
+        isPaid,
         id: null
       });
     });
   });
 
-  // Other income — manual entries only (exclude auto-generated บิลเดือน)
-  S.income.filter(i => {
-    if (_isBillAutoInc(i)) return false;
-    if (month && _incDateMonth(i) !== month) return false;
-    if (bld && i['อาคาร'] !== bld) return false;
-    if (cat && _BILL_CATS.includes(cat)) return false; // category is bill type
-    if (cat && i['หมวดหมู่'] !== cat) return false;
-    return true;
-  }).forEach(i => {
-    rows.push({
-      date: fmtDate(i['วันที่']),
-      building: i['อาคาร'] || '',
-      room: i['ห้อง'] || '',
-      person: i['ผู้เกี่ยวข้อง'] || '',
-      category: i['หมวดหมู่'] || '',
-      amount: parseFloat(i['จำนวนเงิน']) || 0,
-      note: i['หมายเหตุ'] || '',
-      isBill: false,
-      id: i['ID']
+  // Other income — manual entries only (no status filter applies)
+  if (!status || status === 'ชำระแล้ว') {
+    S.income.filter(i => {
+      if (_isBillAutoInc(i)) return false;
+      if (month && _incDateMonth(i) !== month) return false;
+      if (bld && i['อาคาร'] !== bld) return false;
+      if (cat && _BILL_CATS.includes(cat)) return false;
+      if (cat && i['หมวดหมู่'] !== cat) return false;
+      return true;
+    }).forEach(i => {
+      rows.push({
+        date: fmtDate(i['วันที่']),
+        building: i['อาคาร'] || '',
+        room: i['ห้อง'] || '',
+        person: i['ผู้เกี่ยวข้อง'] || '',
+        category: i['หมวดหมู่'] || '',
+        amount: parseFloat(i['จำนวนเงิน']) || 0,
+        note: i['หมายเหตุ'] || '',
+        isBill: false,
+        isPaid: true,
+        id: i['ID']
+      });
     });
-  });
+  }
 
-  const total = rows.reduce((s,r) => s + r.amount, 0);
-  $('income-total').textContent = `รวม: ${fmt(total)} ฿  |  ${rows.length} รายการ`;
+  const paidTotal  = rows.filter(r=>r.isPaid).reduce((s,r)=>s+r.amount, 0);
+  const totalAll   = rows.reduce((s,r)=>s+r.amount, 0);
+  $('income-total').textContent = `รวม: ${fmt(totalAll)} ฿  |  ชำระแล้ว: ${fmt(paidTotal)} ฿  |  ${rows.length} รายการ`;
 
   $('income-tbody').innerHTML = rows.map(r => {
     const billBadge = r.isBill
       ? `<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:1px 5px;border-radius:8px;margin-left:4px">บิล</span>`
       : '';
-    return `<tr ${r.isBill ? 'style="background:#f9fbff"' : ''}>
+    const statusColor = r.isBill
+      ? (r.isPaid ? 'color:#2e7d32' : r.note==='ค้างชำระ' ? 'color:#c62828' : 'color:#e65100')
+      : '';
+    const rowBg = r.isBill
+      ? (r.isPaid ? 'background:#f9fbff' : r.note==='ค้างชำระ' ? 'background:#fff5f5' : 'background:#fff8f0')
+      : '';
+    return `<tr style="${rowBg}">
       <td>${r.date}</td>
       <td>${r.building}</td>
       <td>${r.room}</td>
       <td>${r.person}</td>
       <td>${r.category}${billBadge}</td>
-      <td class="text-right fw-bold text-success">${fmt(r.amount)}</td>
-      <td class="text-muted">${r.note}</td>
+      <td class="text-right fw-bold" style="${r.isPaid?'color:#2e7d32':'color:#999'}">${fmt(r.amount)}</td>
+      <td class="text-muted" style="${statusColor};font-size:0.85rem">${r.note}</td>
       <td>${r.isBill ? '' : `<button class="btn btn-sm btn-danger" data-action="del-income" data-id="${r.id}">🗑</button>`}</td>
     </tr>`;
   }).join('') || '<tr><td colspan="8" class="text-muted text-center">ไม่มีข้อมูล</td></tr>';
 
   $('income-tfoot').innerHTML = `
     <tr style="background:#e8f5e9;font-weight:700;border-top:2px solid #2e7d32">
-      <td colspan="5">รวม (${rows.length} รายการ)</td>
-      <td class="text-right text-success">${fmt(total)} ฿</td>
+      <td colspan="5">รวมทั้งหมด (${rows.length} รายการ)</td>
+      <td class="text-right text-success">${fmt(totalAll)} ฿</td>
       <td colspan="2"></td>
     </tr>`;
 }
 
-['income-filter-month','income-filter-building','income-filter-cat'].forEach(id=>{
+['income-filter-month','income-filter-building','income-filter-cat','income-filter-status'].forEach(id=>{
   const el=$(id); if(el){ el.addEventListener('change',renderIncome); el.addEventListener('input',renderIncome); }
 });
 
