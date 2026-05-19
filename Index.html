@@ -371,6 +371,10 @@ canvas{max-width:100%;}
       </div>
 
       <div id="report-buildings" class="sub-content">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <input type="month" class="form-control" id="report-buildings-month" style="max-width:180px">
+          <button class="btn btn-secondary btn-sm" id="btn-buildings-clear-month">แสดงทั้งหมด</button>
+        </div>
         <div id="report-buildings-content"></div>
       </div>
 
@@ -1943,10 +1947,10 @@ function renderMonthlyReport(rep) {
     ${otherNoBuilding ? `<tr style="background:#f3f4fb"><td colspan="5" style="color:#555">รายรับอื่นๆ (ไม่ระบุอาคาร)</td>
       <td class="text-right text-success">${fmt(otherNoBuilding)}</td><td class="text-right fw-bold">${fmt(otherNoBuilding)}</td></tr>` : ''}
     <tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
-      <td>รวม</td><td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).rent||0),0))}</td>
-      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).water||0),0))}</td>
-      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).elec||0),0))}</td>
-      <td class="text-right">${fmt(blds.reduce((s,v)=>(s+(rep.summary[v]||{}).other||0),0))}</td>
+      <td>รวม</td><td class="text-right">${fmt(blds.reduce((s,v)=>s+((rep.summary[v]||{}).rent||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>s+((rep.summary[v]||{}).water||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>s+((rep.summary[v]||{}).elec||0),0))}</td>
+      <td class="text-right">${fmt(blds.reduce((s,v)=>s+((rep.summary[v]||{}).other||0),0))}</td>
       <td class="text-right text-success">${fmt(grandOtherInc)}</td>
       <td class="text-right">${fmt(rep.grandIncome)}</td>
     </tr>
@@ -1973,13 +1977,31 @@ function renderRoomReport() {
 
 function renderBuildingReport() {
   const blds = ['V1','V2','V3','V4'];
+  const filterMonth = ($('report-buildings-month')||{}).value || '';
   const stats = {};
   blds.forEach(v=>{ stats[v]={income:0,billIncome:0,otherIncome:0,expense:0,rooms:0,rented:0}; });
   S.rooms.forEach(r=>{ if(stats[r['อาคาร']]) { stats[r['อาคาร']].rooms++; if(r['สถานะ']==='ทำสัญญา') stats[r['อาคาร']].rented++; } });
-  S.bills.filter(b=>b['สถานะ']==='ชำระแล้ว').forEach(b=>{ if(stats[b['อาคาร']]) { const a=parseFloat(b['รวม'])||0; stats[b['อาคาร']].billIncome+=a; stats[b['อาคาร']].income+=a; } });
-  S.income.filter(i=>!_isBillAutoInc(i)).forEach(i=>{ if(stats[i['อาคาร']]) { const a=parseFloat(i['จำนวนเงิน'])||0; stats[i['อาคาร']].otherIncome+=a; stats[i['อาคาร']].income+=a; } });
-  S.expenses.forEach(e=>{ if(stats[e['อาคาร']]) stats[e['อาคาร']].expense+=parseFloat(e['จำนวนเงิน'])||0; });
+  S.bills.filter(b=>{
+    if(b['สถานะ']!=='ชำระแล้ว') return false;
+    if(filterMonth && b['เดือน']!==filterMonth) return false;
+    return true;
+  }).forEach(b=>{ if(stats[b['อาคาร']]) { const a=parseFloat(b['รวม'])||0; stats[b['อาคาร']].billIncome+=a; stats[b['อาคาร']].income+=a; } });
+  S.income.filter(i=>{
+    if(_isBillAutoInc(i)) return false;
+    if(!filterMonth) return true;
+    const d=i['วันที่']; if(!d) return false;
+    const dt=(d instanceof Date)?d:new Date(d);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`===filterMonth;
+  }).forEach(i=>{ if(stats[i['อาคาร']]) { const a=parseFloat(i['จำนวนเงิน'])||0; stats[i['อาคาร']].otherIncome+=a; stats[i['อาคาร']].income+=a; } });
+  S.expenses.filter(e=>{
+    if(!filterMonth) return true;
+    const d=e['วันที่']; if(!d) return false;
+    const dt=(d instanceof Date)?d:new Date(d);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`===filterMonth;
+  }).forEach(e=>{ if(stats[e['อาคาร']]) stats[e['อาคาร']].expense+=parseFloat(e['จำนวนเงิน'])||0; });
+  const monthLabel = filterMonth ? ` — ${filterMonth}` : ' — ทั้งหมด';
   $('report-buildings-content').innerHTML = `<div class="table-wrap"><table>
+    <caption style="caption-side:top;text-align:left;padding:4px 0;color:#555;font-size:0.85rem">ข้อมูล${monthLabel}</caption>
     <thead><tr><th>อาคาร</th><th>ชื่อบริษัท</th><th class="text-right">ห้องทั้งหมด</th><th class="text-right">ทำสัญญา</th>
       <th class="text-right">รายรับค่าเช่า</th><th class="text-right">รายรับอื่นๆ</th>
       <th class="text-right">รายรับรวม</th><th class="text-right">รายจ่าย</th><th class="text-right">กำไร</th></tr></thead>
@@ -2014,27 +2036,43 @@ function renderAllReport() {
   let html = '';
   if(!type||type==='bills') {
     let rows = S.bills.filter(b=>(!bld||b['อาคาร']===bld)&&(!search||(b['ห้อง']+'').includes(search)||(b['ผู้เช่า']||'').toLowerCase().includes(search)));
+    const sumBills = rows.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+    const sumPaid  = rows.filter(b=>b['สถานะ']==='ชำระแล้ว').reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
     html += `<div class="card-title" style="margin-top:8px">📋 บิลห้อง (${rows.length} รายการ)</div>
     <div class="table-wrap"><table><thead><tr><th>เดือน</th><th>ห้อง</th><th>อาคาร</th><th>ผู้เช่า</th><th class="text-right">รวม</th><th>สถานะ</th></tr></thead>
     <tbody>${rows.map(b=>`<tr><td>${b['เดือน']}</td><td>${b['ห้อง']}</td><td>${b['อาคาร']}</td><td>${b['ผู้เช่า']||''}</td>
       <td class="text-right">${fmt(b['รวม'])}</td><td><span class="status ${b['สถานะ']==='ชำระแล้ว'?'status-paid':'status-pending'}">${b['สถานะ']}</span></td></tr>`).join('')}
-    </tbody></table></div>`;
+    </tbody>
+    <tfoot><tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td colspan="4">รวม (ชำระแล้ว ${fmt(sumPaid)} ฿)</td>
+      <td class="text-right">${fmt(sumBills)} ฿</td><td></td>
+    </tr></tfoot></table></div>`;
   }
   if(!type||type==='income') {
     let rows = S.income.filter(i=>!_isBillAutoInc(i)&&(!bld||i['อาคาร']===bld)&&(!search||(i['หมวดหมู่']||'').toLowerCase().includes(search)||(i['ผู้เกี่ยวข้อง']||'').toLowerCase().includes(search)));
+    const sumInc = rows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
     html += `<div class="card-title" style="margin-top:16px">💰 รายรับอื่นๆ (${rows.length} รายการ)</div>
     <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>อาคาร</th><th>ห้อง</th><th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th></tr></thead>
     <tbody>${rows.map(i=>`<tr><td>${fmtDate(i['วันที่'])}</td><td>${i['อาคาร']||''}</td><td>${i['ห้อง']||''}</td><td>${i['หมวดหมู่']||''}</td>
       <td class="text-right text-success">${fmt(i['จำนวนเงิน'])}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    </tbody>
+    <tfoot><tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td colspan="4">รวม</td>
+      <td class="text-right text-success">${fmt(sumInc)} ฿</td>
+    </tr></tfoot></table></div>`;
   }
   if(!type||type==='expenses') {
     let rows = S.expenses.filter(e=>(!bld||e['อาคาร']===bld)&&(!search||(e['หมวดหมู่']||'').toLowerCase().includes(search)||(e['ผู้รับเงิน']||'').toLowerCase().includes(search)));
+    const sumExp = rows.reduce((s,e)=>s+(parseFloat(e['จำนวนเงิน'])||0),0);
     html += `<div class="card-title" style="margin-top:16px">💸 รายจ่าย (${rows.length} รายการ)</div>
     <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>อาคาร</th><th>หมวดหมู่</th><th>ผู้รับเงิน</th><th class="text-right">จำนวนเงิน</th><th class="text-right">สุทธิ</th></tr></thead>
     <tbody>${rows.map(e=>`<tr><td>${fmtDate(e['วันที่'])}</td><td>${e['อาคาร']||''}</td><td>${e['หมวดหมู่']||''}</td><td>${e['ผู้รับเงิน']||''}</td>
       <td class="text-right text-danger">${fmt(e['จำนวนเงิน'])}</td><td class="text-right">${fmt(e['สุทธิ'])}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    </tbody>
+    <tfoot><tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td colspan="4">รวม</td>
+      <td class="text-right text-danger">${fmt(sumExp)} ฿</td><td></td>
+    </tr></tfoot></table></div>`;
   }
   $('report-all-content').innerHTML = html || '<p class="text-muted">ไม่มีข้อมูล</p>';
 }
@@ -2042,6 +2080,13 @@ function renderAllReport() {
 ['report-all-search','report-all-building','report-all-type'].forEach(id=>{
   const el=$(id); if(el){ el.addEventListener('input',renderAllReport); el.addEventListener('change',renderAllReport); }
 });
+
+{
+  const bm = $('report-buildings-month');
+  if(bm) bm.addEventListener('change', renderBuildingReport);
+  const bc = $('btn-buildings-clear-month');
+  if(bc) bc.addEventListener('click', ()=>{ const m=$('report-buildings-month'); if(m) m.value=''; renderBuildingReport(); });
+}
 
 // ============================================================
 // PRINT SELECTOR
