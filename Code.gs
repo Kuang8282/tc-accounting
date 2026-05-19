@@ -726,14 +726,6 @@ function updateBillStatus(billId, status, payDate) {
         const payCol    = BILL_HEADERS.indexOf('วันที่ชำระ') + 1;
         sh.getRange(i + 1, statusCol).setValue(status);
         sh.getRange(i + 1, payCol).setValue(payDate || new Date());
-        // Auto-save to other income if paid
-        if (status === 'ชำระแล้ว') {
-          const bill = {};
-          BILL_HEADERS.forEach((h, j) => { bill[h] = rows[i][j]; });
-          bill['สถานะ'] = status;
-          bill['วันที่ชำระ'] = payDate || new Date();
-          _autoSaveIncomeFromBill(bill);
-        }
         return { success: true };
       }
     }
@@ -741,38 +733,10 @@ function updateBillStatus(billId, status, payDate) {
   } catch (err) { return { success: false, message: err.message }; }
 }
 
-function _autoSaveIncomeFromBill(bill) {
-  // Internal: save income entries from paid bill (no try/catch - caller handles)
-  const payDate = bill['วันที่ชำระ'] || new Date();
-  const room   = bill['ห้อง'];
-  const bld    = bill['อาคาร'];
-  const tenant = bill['ผู้เช่า'];
-  const entries = [
-    { cat: 'ค่าห้อง', amt: parseFloat(bill['ค่าห้อง']) || 0 },
-    { cat: 'ค่าน้ำ',  amt: parseFloat(bill['ค่าน้ำ'])  || 0 },
-    { cat: 'ค่าไฟ',   amt: parseFloat(bill['ค่าไฟ'])   || 0 }
-  ];
-  // Parse extra items stored as JSON prefix in หมายเหตุบิล
-  const note = bill['หมายเหตุบิล'] || '';
-  const jsonMatch = note.match(/^(\[.*?\])/);
-  if (jsonMatch) {
-    try {
-      const extras = JSON.parse(jsonMatch[1]);
-      extras.forEach(ex => { if (parseFloat(ex.amt) > 0) entries.push({ cat: ex.cat || 'อื่นๆ', amt: parseFloat(ex.amt) }); });
-    } catch(e) {
-      if (parseFloat(bill['ค่าอื่นๆ']) > 0) entries.push({ cat: 'อื่นๆ', amt: parseFloat(bill['ค่าอื่นๆ']) });
-    }
-  } else if (parseFloat(bill['ค่าอื่นๆ']) > 0) {
-    entries.push({ cat: 'อื่นๆ', amt: parseFloat(bill['ค่าอื่นๆ']) });
-  }
-  const sh = getSheet(SHEETS.OTHER_INCOME);
-  if (!sh) return;
-  entries.forEach(e => {
-    if (e.amt > 0) {
-      const id = nextId(sh);
-      sh.appendRow([id, payDate, bld, room, tenant, e.cat, e.amt, `บิลเดือน ${bill['เดือน']}`]);
-    }
-  });
+// Auto-generated bill income entries are identified by this note prefix
+const BILL_AUTO_NOTE = 'บิลเดือน';
+function _isBillAutoEntry(i) {
+  return String(i['หมายเหตุ']||'').startsWith(BILL_AUTO_NOTE);
 }
 
 function deleteBill(billId) {
@@ -922,9 +886,9 @@ function getMonthlyReport(month) {
   try {
     const bills       = getBills().filter(b => b['เดือน'] === month);
     const otherIncome = getOtherIncome().filter(i => {
+      if (_isBillAutoEntry(i)) return false;
       const d = i['วันที่'];
       if (!d) return false;
-      if (i['หมวดหมู่'] === 'ค่าห้อง') return false;
       const dt = (d instanceof Date) ? d : new Date(d);
       return Utilities.formatDate(dt, 'Asia/Bangkok', 'yyyy-MM') === month;
     });
@@ -1062,7 +1026,7 @@ function getDashboardData() {
 
     const trend = months6.map(m => {
       const mBills   = bills.filter(b => b['เดือน'] === m && b['สถานะ'] === 'ชำระแล้ว');
-      const mInc     = income.filter(i => { const d=i['วันที่']; if(!d||i['หมวดหมู่']==='ค่าห้อง') return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
+      const mInc     = income.filter(i => { if(_isBillAutoEntry(i)) return false; const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
       const mExp     = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
       const billInc  = mBills.reduce((s,b) => s+(parseFloat(b['รวม'])||0), 0);
       const otherInc = mInc.reduce((s,i) => s+(parseFloat(i['จำนวนเงิน'])||0), 0);
@@ -1075,7 +1039,7 @@ function getDashboardData() {
     const curBills = bills.filter(b => b['เดือน'] === curMonth);
     const paidBills = curBills.filter(b => b['สถานะ'] === 'ชำระแล้ว');
     const overdueBills = bills.filter(b => b['สถานะ'] === 'รอชำระ' || b['สถานะ'] === 'ค้างชำระ');
-    const curInc  = income.filter(i => { const d=i['วันที่']; if(!d||i['หมวดหมู่']==='ค่าห้อง') return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
+    const curInc  = income.filter(i => { if(_isBillAutoEntry(i)) return false; const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
     const curExp  = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
 
     const monthIncome  = paidBills.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0) + curInc.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);

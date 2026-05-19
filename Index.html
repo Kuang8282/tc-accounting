@@ -1682,12 +1682,16 @@ $('btn-confirm-pay').addEventListener('click', async () => {
 // ============================================================
 // INCOME
 // ============================================================
+// Auto-generated income entries from bill payment — identified by note prefix
+const _isBillAutoInc = i => String(i['หมายเหตุ']||'').startsWith('บิลเดือน');
+
 function renderIncome() {
   const month = $('income-filter-month').value;
   const bld   = $('income-filter-building').value;
   const cat   = $('income-filter-cat').value;
 
   const filtered = S.income.filter(i => {
+    if (_isBillAutoInc(i)) return false;
     const d = i['วันที่'];
     const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
     return (!month||dm===month) && (!bld||i['อาคาร']===bld) && (!cat||i['หมวดหมู่']===cat);
@@ -1972,7 +1976,7 @@ function renderAllReport() {
     </tbody></table></div>`;
   }
   if(!type||type==='income') {
-    let rows = S.income.filter(i=>(!bld||i['อาคาร']===bld)&&(!search||(i['หมวดหมู่']||'').toLowerCase().includes(search)||(i['ผู้เกี่ยวข้อง']||'').toLowerCase().includes(search)));
+    let rows = S.income.filter(i=>!_isBillAutoInc(i)&&(!bld||i['อาคาร']===bld)&&(!search||(i['หมวดหมู่']||'').toLowerCase().includes(search)||(i['ผู้เกี่ยวข้อง']||'').toLowerCase().includes(search)));
     html += `<div class="card-title" style="margin-top:16px">💰 รายรับอื่นๆ (${rows.length} รายการ)</div>
     <div class="table-wrap"><table><thead><tr><th>วันที่</th><th>อาคาร</th><th>ห้อง</th><th>หมวดหมู่</th><th class="text-right">จำนวนเงิน</th></tr></thead>
     <tbody>${rows.map(i=>`<tr><td>${fmtDate(i['วันที่'])}</td><td>${i['อาคาร']||''}</td><td>${i['ห้อง']||''}</td><td>${i['หมวดหมู่']||''}</td>
@@ -3300,7 +3304,7 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
     });
   });
   S.income.forEach(i => {
-    if (i['หมวดหมู่'] === 'ค่าห้อง') return;  // already in bills — skip to avoid double-count
+    if (_isBillAutoInc(i)) return;  // auto-generated from bill payment — skip to avoid double-count
     const ym = _cmpYM(i['วันที่']); if (!ym) return;
     recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:i['อาคาร']||'',
                category: i['หมวดหมู่']||'รายรับอื่นๆ', income:parseFloat(i['จำนวนเงิน'])||0, expense:0});
