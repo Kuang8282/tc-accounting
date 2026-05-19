@@ -309,6 +309,7 @@ canvas{max-width:100%;}
             </tr>
           </thead>
           <tbody id="income-tbody"></tbody>
+          <tfoot id="income-tfoot"></tfoot>
         </table>
       </div>
     </div>
@@ -1689,24 +1690,30 @@ $('btn-confirm-pay').addEventListener('click', async () => {
 // Auto-generated income entries from bill payment — identified by note prefix
 const _isBillAutoInc = i => String(i['หมายเหตุ']||'').startsWith('บิลเดือน');
 
+function _incDateMonth(i) {
+  const d = i['วันที่'];
+  if (!d) return '';
+  if (d instanceof Date) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  return String(d).slice(0, 7);
+}
+
 function renderIncome() {
   const month = $('income-filter-month').value;
   const bld   = $('income-filter-building').value;
   const cat   = $('income-filter-cat').value;
 
   const filtered = S.income.filter(i => {
-    const d = i['วันที่'];
-    const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
-    // if filtering by category, auto-entries have no matching category in the dropdown — skip them
-    if(cat && _isBillAutoInc(i)) return false;
-    return (!month||dm===month) && (!bld||i['อาคาร']===bld) && (!cat||i['หมวดหมู่']===cat);
+    const dm = _incDateMonth(i);
+    if (cat && _isBillAutoInc(i)) return false;
+    return (!month || dm === month) && (!bld || i['อาคาร'] === bld) && (!cat || i['หมวดหมู่'] === cat);
   });
 
-  // total counts only manual entries (auto-entries = บิลเดือน are already counted in bills)
   const manualRows = filtered.filter(i => !_isBillAutoInc(i));
-  const total = manualRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
-  const autoCount = filtered.length - manualRows.length;
-  $('income-total').textContent = `รวม: ${fmt(total)} ฿${autoCount ? ` (ยกเว้นจากบิล ${autoCount} รายการ)` : ''}`;
+  const autoRows   = filtered.filter(i =>  _isBillAutoInc(i));
+  const manualTotal = manualRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
+  const autoTotal   = autoRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
+
+  $('income-total').textContent = `รวม (manual): ${fmt(manualTotal)} ฿  |  แสดง ${filtered.length} รายการ`;
 
   $('income-tbody').innerHTML = filtered.map(i => {
     const isAuto = _isBillAutoInc(i);
@@ -1723,6 +1730,16 @@ function renderIncome() {
       <td>${isAuto ? '' : `<button class="btn btn-sm btn-danger" data-action="del-income" data-id="${i['ID']}">🗑</button>`}</td>
     </tr>`;
   }).join('');
+
+  $('income-tfoot').innerHTML = `
+    ${autoRows.length ? `<tr style="background:#f3f9ff;color:#1565c0;font-size:0.85rem">
+      <td colspan="5" style="padding-left:8px">จากบิล (${autoRows.length} รายการ — ไม่นับซ้ำในรวม)</td>
+      <td class="text-right text-muted">${fmt(autoTotal)}</td><td colspan="2"></td>
+    </tr>` : ''}
+    <tr style="background:#e8f5e9;font-weight:700;border-top:2px solid #2e7d32">
+      <td colspan="5">รวมรายรับอื่นๆ (${manualRows.length} รายการ)</td>
+      <td class="text-right text-success">${fmt(manualTotal)} ฿</td><td colspan="2"></td>
+    </tr>`;
 }
 
 ['income-filter-month','income-filter-building','income-filter-cat'].forEach(id=>{
