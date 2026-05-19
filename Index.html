@@ -285,8 +285,15 @@ canvas{max-width:100%;}
 
   <!-- ====== OTHER INCOME ====== -->
   <div id="section-income" class="section">
+    <!-- Building income summary -->
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-title" style="font-size:0.95rem">📊 รายรับรวมต่ออาคาร (บิล + รายรับอื่นๆ)
+        <span id="income-summary-month-label" style="font-weight:400;font-size:0.8rem;margin-left:8px;color:#666"></span>
+      </div>
+      <div id="income-building-summary"></div>
+    </div>
     <div class="card">
-      <div class="card-title">💰 รายรับอื่นๆ
+      <div class="card-title">💰 รายรับอื่นๆ (ชีต OTHER_INCOME)
         <button class="btn btn-success btn-sm" id="btn-add-income" style="margin-left:auto">+ เพิ่มรายรับ</button>
       </div>
       <div class="search-bar">
@@ -1697,6 +1704,61 @@ function _incDateMonth(i) {
   return String(d).slice(0, 7);
 }
 
+function renderIncomeSummary(month) {
+  const blds = ['V1','V2','V3','V4'];
+  const stats = {};
+  blds.forEach(v => { stats[v] = { bill: 0, other: 0 }; });
+
+  // Bill income (paid bills only, filtered by month if set)
+  S.bills.filter(b => {
+    if (b['สถานะ'] !== 'ชำระแล้ว') return false;
+    if (!month) return true;
+    return (b['เดือน'] || '').slice(0, 7) === month;
+  }).forEach(b => {
+    if (stats[b['อาคาร']]) stats[b['อาคาร']].bill += parseFloat(b['รวม']) || 0;
+  });
+
+  // Other income (manual only, filtered by month if set)
+  S.income.filter(i => {
+    if (_isBillAutoInc(i)) return false;
+    if (!month) return true;
+    return _incDateMonth(i) === month;
+  }).forEach(i => {
+    if (stats[i['อาคาร']]) stats[i['อาคาร']].other += parseFloat(i['จำนวนเงิน']) || 0;
+  });
+
+  const label = month ? `เดือน ${month}` : 'ทั้งหมด';
+  $('income-summary-month-label').textContent = `(${label})`;
+
+  const totalBill  = blds.reduce((s,v)=>s+stats[v].bill, 0);
+  const totalOther = blds.reduce((s,v)=>s+stats[v].other, 0);
+
+  $('income-building-summary').innerHTML = `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>อาคาร</th>
+      <th class="text-right">รายรับบิล (ชำระแล้ว)</th>
+      <th class="text-right">รายรับอื่นๆ (manual)</th>
+      <th class="text-right">รวมรายรับ</th>
+    </tr></thead>
+    <tbody>${blds.map(v => {
+      const s = stats[v];
+      const total = s.bill + s.other;
+      return `<tr>
+        <td class="fw-bold">${v}</td>
+        <td class="text-right text-success">${s.bill ? fmt(s.bill) : '<span class="text-muted">-</span>'}</td>
+        <td class="text-right" style="color:#43a047">${s.other ? fmt(s.other) : '<span class="text-muted">-</span>'}</td>
+        <td class="text-right fw-bold">${total ? fmt(total) : '<span class="text-muted">-</span>'}</td>
+      </tr>`;
+    }).join('')}</tbody>
+    <tfoot><tr style="background:#e8eaf6;font-weight:700;border-top:2px solid #1a237e">
+      <td>รวม</td>
+      <td class="text-right text-success">${fmt(totalBill)}</td>
+      <td class="text-right" style="color:#43a047">${fmt(totalOther)}</td>
+      <td class="text-right">${fmt(totalBill + totalOther)}</td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
 function renderIncome() {
   const month = $('income-filter-month').value;
   const bld   = $('income-filter-building').value;
@@ -1713,7 +1775,8 @@ function renderIncome() {
   const manualTotal = manualRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
   const autoTotal   = autoRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0), 0);
 
-  $('income-total').textContent = `รวม (manual): ${fmt(manualTotal)} ฿  |  แสดง ${filtered.length} รายการ`;
+  $('income-total').textContent = `รวม: ${fmt(manualTotal)} ฿  |  แสดง ${filtered.length} รายการ`;
+  renderIncomeSummary(month);
 
   $('income-tbody').innerHTML = filtered.map(i => {
     const isAuto = _isBillAutoInc(i);
