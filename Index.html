@@ -1695,25 +1695,34 @@ function renderIncome() {
   const cat   = $('income-filter-cat').value;
 
   const filtered = S.income.filter(i => {
-    if (_isBillAutoInc(i)) return false;
     const d = i['วันที่'];
     const dm = d ? (d instanceof Date ? d.toISOString().slice(0,7) : String(d).slice(0,7)) : '';
+    // if filtering by category, auto-entries have no matching category in the dropdown — skip them
+    if(cat && _isBillAutoInc(i)) return false;
     return (!month||dm===month) && (!bld||i['อาคาร']===bld) && (!cat||i['หมวดหมู่']===cat);
   });
 
-  const total = filtered.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
-  $('income-total').textContent = `รวม: ${fmt(total)} ฿`;
+  // total counts only manual entries (auto-entries = บิลเดือน are already counted in bills)
+  const manualRows = filtered.filter(i => !_isBillAutoInc(i));
+  const total = manualRows.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
+  const autoCount = filtered.length - manualRows.length;
+  $('income-total').textContent = `รวม: ${fmt(total)} ฿${autoCount ? ` (ยกเว้นจากบิล ${autoCount} รายการ)` : ''}`;
 
-  $('income-tbody').innerHTML = filtered.map(i=>`<tr>
-    <td>${fmtDate(i['วันที่'])}</td>
-    <td>${i['อาคาร']||''}</td>
-    <td>${i['ห้อง']||''}</td>
-    <td>${i['ผู้เกี่ยวข้อง']||''}</td>
-    <td>${i['หมวดหมู่']||''}</td>
-    <td class="text-right fw-bold text-success">${fmt(i['จำนวนเงิน'])}</td>
-    <td class="text-muted">${i['หมายเหตุ']||''}</td>
-    <td><button class="btn btn-sm btn-danger" data-action="del-income" data-id="${i['ID']}">🗑</button></td>
-  </tr>`).join('');
+  $('income-tbody').innerHTML = filtered.map(i => {
+    const isAuto = _isBillAutoInc(i);
+    const rowStyle = isAuto ? 'style="opacity:0.6;background:#fafafa"' : '';
+    const autoBadge = isAuto ? `<span style="font-size:10px;background:#e3f2fd;color:#1565c0;padding:1px 5px;border-radius:8px;margin-left:4px">จากบิล</span>` : '';
+    return `<tr ${rowStyle}>
+      <td>${fmtDate(i['วันที่'])}</td>
+      <td>${i['อาคาร']||''}</td>
+      <td>${i['ห้อง']||''}</td>
+      <td>${i['ผู้เกี่ยวข้อง']||''}</td>
+      <td>${i['หมวดหมู่']||''}${autoBadge}</td>
+      <td class="text-right fw-bold ${isAuto?'text-muted':'text-success'}">${fmt(i['จำนวนเงิน'])}</td>
+      <td class="text-muted">${i['หมายเหตุ']||''}</td>
+      <td>${isAuto ? '' : `<button class="btn btn-sm btn-danger" data-action="del-income" data-id="${i['ID']}">🗑</button>`}</td>
+    </tr>`;
+  }).join('');
 }
 
 ['income-filter-month','income-filter-building','income-filter-cat'].forEach(id=>{
