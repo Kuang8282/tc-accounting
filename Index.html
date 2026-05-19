@@ -1717,33 +1717,50 @@ function renderIncome() {
   const _BILL_CATS = ['ค่าห้อง','ค่าน้ำ','ค่าไฟ','ค่าอื่นๆ'];
   const rows = [];
 
-  // Bill rows — all statuses unless filtered
+  // Bill rows — all statuses unless filtered; category filtering done per-row in forEach
   S.bills.filter(b => {
     if (status && b['สถานะ'] !== status) return false;
-    if (!status && b['สถานะ'] === '') return false; // skip bills with no status
+    if (!status && b['สถานะ'] === '') return false;
     if (month && (b['เดือน']||'').slice(0,7) !== month) return false;
     if (bld && b['อาคาร'] !== bld) return false;
-    if (cat && !_BILL_CATS.includes(cat)) return false;
     return true;
   }).forEach(b => {
     const isPaid = b['สถานะ'] === 'ชำระแล้ว';
-    _BILL_CATS.forEach(c => {
+    const base = { date: b['เดือน']||'', building: b['อาคาร']||'', room: b['ห้อง']||'',
+                   person: b['ผู้เช่า']||'', note: b['สถานะ'], isBill: true, isPaid, id: null };
+
+    // ค่าห้อง, ค่าน้ำ, ค่าไฟ — simple columns
+    ['ค่าห้อง','ค่าน้ำ','ค่าไฟ'].forEach(c => {
       const amt = parseFloat(b[c]) || 0;
       if (!amt) return;
       if (cat && cat !== c) return;
-      rows.push({
-        date: b['เดือน'] || '',
-        building: b['อาคาร'] || '',
-        room: b['ห้อง'] || '',
-        person: b['ผู้เช่า'] || '',
-        category: c,
-        amount: amt,
-        note: b['สถานะ'],
-        isBill: true,
-        isPaid,
-        id: null
-      });
+      rows.push({...base, category: c, amount: amt});
     });
+
+    // ค่าอื่นๆ — parse extra items JSON from หมายเหตุบิล if available
+    const extraAmt = parseFloat(b['ค่าอื่นๆ']) || 0;
+    if (extraAmt) {
+      const noteRaw = b['หมายเหตุบิล'] || '';
+      const jsonMatch = noteRaw.match(/^(\[[\s\S]*?\])/);
+      let extraItems = [];
+      if (jsonMatch) { try { extraItems = JSON.parse(jsonMatch[1]); } catch(e) {} }
+
+      if (extraItems.length) {
+        // show each sub-item individually
+        extraItems.forEach(ex => {
+          const exAmt = parseFloat(ex.amt) || 0;
+          if (!exAmt) return;
+          const exCat = ex.cat || 'ค่าอื่นๆ';
+          if (cat && cat !== exCat && cat !== 'ค่าอื่นๆ') return;
+          if (cat === 'ค่าอื่นๆ' && exCat !== 'ค่าอื่นๆ') return;
+          rows.push({...base, category: exCat, amount: exAmt,
+                     note: `${b['สถานะ']}${ex.desc ? ' · '+ex.desc : ''}`});
+        });
+      } else {
+        // no sub-items, show as ค่าอื่นๆ
+        if (!cat || cat === 'ค่าอื่นๆ') rows.push({...base, category: 'ค่าอื่นๆ', amount: extraAmt});
+      }
+    }
   });
 
   // Other income — manual entries only (no status filter applies)
@@ -1752,7 +1769,9 @@ function renderIncome() {
       if (_isBillAutoInc(i)) return false;
       if (month && _incDateMonth(i) !== month) return false;
       if (bld && i['อาคาร'] !== bld) return false;
-      if (cat && _BILL_CATS.includes(cat)) return false;
+      // skip S.income rows only when filtering by a bill-column category (ค่าห้อง/ค่าน้ำ/ค่าไฟ)
+      // ค่าอื่นๆ can exist in both bills and income entries so allow it through
+      if (cat && ['ค่าห้อง','ค่าน้ำ','ค่าไฟ'].includes(cat)) return false;
       if (cat && i['หมวดหมู่'] !== cat) return false;
       return true;
     }).forEach(i => {
