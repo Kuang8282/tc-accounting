@@ -3282,6 +3282,7 @@ function _cmpBuildDatasets(xaxis, groupby, metrics, selectedYears, selectedBuild
     });
   });
   S.income.forEach(i => {
+    if (i['หมวดหมู่'] === 'ค่าห้อง') return;  // already in bills — skip to avoid double-count
     const ym = _cmpYM(i['วันที่']); if (!ym) return;
     recs.push({year:ym.slice(0,4), month:parseInt(ym.slice(5,7)), building:i['อาคาร']||'',
                category: i['หมวดหมู่']||'รายรับอื่นๆ', income:parseFloat(i['จำนวนเงิน'])||0, expense:0});

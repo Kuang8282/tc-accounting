@@ -924,6 +924,7 @@ function getMonthlyReport(month) {
     const otherIncome = getOtherIncome().filter(i => {
       const d = i['วันที่'];
       if (!d) return false;
+      if (i['หมวดหมู่'] === 'ค่าห้อง') return false;
       const dt = (d instanceof Date) ? d : new Date(d);
       return Utilities.formatDate(dt, 'Asia/Bangkok', 'yyyy-MM') === month;
     });
@@ -1061,7 +1062,7 @@ function getDashboardData() {
 
     const trend = months6.map(m => {
       const mBills   = bills.filter(b => b['เดือน'] === m && b['สถานะ'] === 'ชำระแล้ว');
-      const mInc     = income.filter(i => { const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
+      const mInc     = income.filter(i => { const d=i['วันที่']; if(!d||i['หมวดหมู่']==='ค่าห้อง') return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
       const mExp     = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===m; });
       const billInc  = mBills.reduce((s,b) => s+(parseFloat(b['รวม'])||0), 0);
       const otherInc = mInc.reduce((s,i) => s+(parseFloat(i['จำนวนเงิน'])||0), 0);
@@ -1074,7 +1075,7 @@ function getDashboardData() {
     const curBills = bills.filter(b => b['เดือน'] === curMonth);
     const paidBills = curBills.filter(b => b['สถานะ'] === 'ชำระแล้ว');
     const overdueBills = bills.filter(b => b['สถานะ'] === 'รอชำระ' || b['สถานะ'] === 'ค้างชำระ');
-    const curInc  = income.filter(i => { const d=i['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
+    const curInc  = income.filter(i => { const d=i['วันที่']; if(!d||i['หมวดหมู่']==='ค่าห้อง') return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
     const curExp  = expenses.filter(e => { const d=e['วันที่']; if(!d) return false; const dt=(d instanceof Date)?d:new Date(d); return Utilities.formatDate(dt,'Asia/Bangkok','yyyy-MM')===curMonth; });
 
     const monthIncome  = paidBills.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0) + curInc.reduce((s,i)=>s+(parseFloat(i['จำนวนเงิน'])||0),0);
