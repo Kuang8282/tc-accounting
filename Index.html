@@ -233,6 +233,7 @@ canvas{max-width:100%;}
             </tr>
           </thead>
           <tbody id="bills-tbody"></tbody>
+          <tfoot id="bills-tfoot"></tfoot>
         </table>
       </div>
     </div>
@@ -1298,7 +1299,24 @@ function renderBills() {
                   (b['ผู้เช่า']||'').toLowerCase().includes(search))
   );
 
-  $('bill-count').textContent = `แสดง ${filtered.length} รายการ`;
+  const sumRent  = filtered.reduce((s,b)=>s+(parseFloat(b['ค่าห้อง'])||0),0);
+  const sumWater = filtered.reduce((s,b)=>s+(parseFloat(b['ค่าน้ำ'])||0),0);
+  const sumElec  = filtered.reduce((s,b)=>s+(parseFloat(b['ค่าไฟ'])||0),0);
+  const sumOther = filtered.reduce((s,b)=>s+(parseFloat(b['ค่าอื่นๆ'])||0),0);
+  const sumTotal = filtered.reduce((s,b)=>s+(parseFloat(b['รวม'])||0),0);
+
+  $('bill-count').textContent = `แสดง ${filtered.length} รายการ | รวม ${fmt(sumTotal)} ฿`;
+  $('bills-tfoot').innerHTML = `<tr style="background:#1a237e;color:#fff;font-weight:700">
+    <td colspan="4" style="padding:5px 8px;text-align:center">รวมทั้งหมด</td>
+    <td class="text-right" style="padding:5px 8px">${fmt(sumRent)}</td>
+    <td colspan="1" style="padding:5px 8px"></td>
+    <td class="text-right" style="padding:5px 8px">${fmt(sumWater)}</td>
+    <td colspan="1" style="padding:5px 8px"></td>
+    <td class="text-right" style="padding:5px 8px">${fmt(sumElec)}</td>
+    <td class="text-right" style="padding:5px 8px">${fmt(sumOther)}</td>
+    <td class="text-right" style="padding:5px 8px;font-size:14px">${fmt(sumTotal)}</td>
+    <td colspan="3" style="padding:5px 8px"></td>
+  </tr>`;
 
   const tbody = $('bills-tbody');
   tbody.innerHTML = filtered.map(b => {
