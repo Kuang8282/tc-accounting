@@ -80,11 +80,13 @@ function doGet(e) {
       return HtmlService.createTemplateFromFile('Print')
         .evaluate()
         .setTitle('TC พิมพ์เอกสาร')
+        .setSandboxMode(HtmlService.SandboxMode.IFRAME)
         .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
     }
     return HtmlService.createTemplateFromFile('Index')
       .evaluate()
       .setTitle('TC Accounting System')
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME)
       .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
   } catch (err) {
     return HtmlService.createHtmlOutput('<p>Error: ' + err.message + '</p>');
