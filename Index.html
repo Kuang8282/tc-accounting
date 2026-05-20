@@ -3882,8 +3882,17 @@ function openContractPrint(room) {
   _cpCotenantCount = 0;
   $('cp-cotenants').innerHTML = '';
 
+  // GAS returns Sheets dates as Date objects — convert to YYYY-MM-DD for input[type=date]
+  const toISO = d => {
+    if (!d) return '';
+    if (d instanceof Date) return d.toISOString().slice(0, 10);
+    const s = String(d).slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : '';
+  };
+
   const today = todayStr();
-  const contractDate = room['วันทำสัญญา'] || today;
+  const contractDate = toISO(room['วันทำสัญญา']) || today;
+
   $('cp-date').value = contractDate;
   $('cp-room').value = room['เลขห้อง'] || '';
   $('cp-building').value = room['อาคาร'] || '';
@@ -3894,7 +3903,7 @@ function openContractPrint(room) {
   $('cp-faculty').value = '';
   $('cp-start').value = contractDate;
 
-  // auto-compute end date = start + 1 year
+  // auto-compute end date = start + 1 year - 1 day
   if (contractDate) {
     const endDate = new Date(contractDate);
     endDate.setFullYear(endDate.getFullYear() + 1);
@@ -3963,9 +3972,14 @@ $('btn-print-contract').addEventListener('click', () => {
   const end = $('cp-end').value;
   const rent = parseFloat($('cp-rent').value) || 0;
 
-  if (!tenant || !start || !end || !rent) {
-    showAlert('กรุณากรอกข้อมูลที่จำเป็น: ชื่อผู้เช่า, วันเริ่ม-สิ้นสุดสัญญา, ค่าเช่า', 'error');
-    return;
+  if (!tenant) {
+    showAlert('กรุณากรอกชื่อผู้เช่า', 'error'); return;
+  }
+  if (!start || !end) {
+    showAlert('กรุณาเลือกวันเริ่ม-สิ้นสุดสัญญา', 'error'); return;
+  }
+  if (!rent) {
+    showAlert('กรุณากรอกค่าเช่า/เดือน', 'error'); return;
   }
 
   const cotenants = [];
@@ -3993,6 +4007,7 @@ $('btn-print-contract').addEventListener('click', () => {
     company: co
   };
 
+  closeModal('modal-contract-print');
   generateAndPrintContract(data);
 });
 
