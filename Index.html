@@ -4040,59 +4040,23 @@ function generateAndPrintContract(d) {
     } catch(e){ return ''; }
   })();
 
-  const cotenantRows = d.cotenants.length
-    ? d.cotenants.map((ct,i) => `<tr>
-        <td>${i+1}. ${ct.name}</td>
-        <td>${ct.id||'–'}</td>
-        <td>${ct.phone||'–'}</td>
-      </tr>`).join('')
-    : `<tr><td colspan="3" style="color:#999;font-style:italic">ไม่มีผู้ร่วมพักอาศัย</td></tr>`;
+  const cotenantLines = d.cotenants.length
+    ? d.cotenants.map((ct,i) =>
+        `<div class="ct-row">${i+1}. <span class="bold">${ct.name}</span>${ct.id ? ' &nbsp;บัตร: '+ct.id : ''}${ct.phone ? ' &nbsp;โทร: '+ct.phone : ''}</div>`
+      ).join('')
+    : `<div class="ct-row" style="color:#999;font-style:italic">ไม่มีผู้ร่วมพักอาศัย</div>`;
 
   const sigDate = d.contractDate ? thDate(d.contractDate) : '……………………………………';
 
-  // SVG logo — building silhouette with V mark
-  const logoSVG = `<svg width="72" height="72" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="bldGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#3949ab"/>
-        <stop offset="100%" stop-color="#1a237e"/>
-      </linearGradient>
-    </defs>
-    <!-- Base building -->
-    <rect x="8" y="28" width="56" height="38" rx="2" fill="url(#bldGrad)"/>
-    <!-- Roof / V chevron -->
-    <polygon points="4,30 36,8 68,30" fill="#283593"/>
-    <!-- V letter on chevron -->
-    <text x="36" y="26" text-anchor="middle" fill="#ffca28" font-size="15" font-weight="900" font-family="Arial,sans-serif" letter-spacing="-1">V</text>
-    <!-- Windows row 1 -->
-    <rect x="14" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
-    <rect x="27" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
-    <rect x="40" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
-    <rect x="53" y="34" width="9" height="8" rx="1" fill="#90caf9" opacity="0.9"/>
-    <!-- Windows row 2 -->
-    <rect x="14" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
-    <rect x="27" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
-    <rect x="40" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
-    <rect x="53" y="47" width="9" height="8" rx="1" fill="#bbdefb" opacity="0.7"/>
-    <!-- Door -->
-    <rect x="30" y="57" width="12" height="9" rx="1" fill="#1565c0"/>
-    <!-- Ground line -->
-    <line x1="4" y1="66" x2="68" y2="66" stroke="#1a237e" stroke-width="1.5"/>
-  </svg>`;
+  const LOGO_B64 = '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';
 
   const pageHeader = `
   <div class="page-header">
-    <div class="logo-area">
-      ${logoSVG}
-      <div class="brand-text">
-        <div class="brand-v">V RESIDENCE</div>
-        <div class="brand-sub">PLACE</div>
-      </div>
-    </div>
+    <img src="data:image/png;base64,${LOGO_B64}" class="logo-img" alt="V Residence Logo">
     <div class="co-info">
       <div class="co-name">${coName}</div>
-      <div class="co-addr">${coAddr} 12000</div>
-      ${co.phone ? `<div class="co-contact">โทร. ${co.phone}${co.fax ? ' | แฟกซ์ ' + co.fax : ''}</div>` : ''}
+      <div class="co-detail">${coAddr} 12000</div>
+      ${co.phone ? `<div class="co-detail">โทร. ${co.phone}${co.fax ? '&ensp;แฟกซ์ ' + co.fax : ''}</div>` : ''}
       ${bank1 ? `<div class="co-bank">ธ. ${bank1}</div>` : ''}
       ${bank2 ? `<div class="co-bank">${bank2}</div>` : ''}
     </div>
@@ -4105,86 +4069,84 @@ function generateAndPrintContract(d) {
 <meta charset="UTF-8">
 <title>สัญญาเช่าห้องพักอาศัย — ห้อง ${d.room} อาคาร ${d.building}</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
-  @page { size: A4; margin: 12mm 14mm 14mm 18mm; }
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:ital,wght@0,400;0,600;0,700;0,800;1,400&display=swap');
+  @page { size: A4; margin: 12mm 14mm 14mm 16mm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Sarabun', 'TH SarabunPSK', sans-serif; font-size: 13.5pt; color: #1a1a1a; line-height: 1.65; background: #fff; }
+  body { font-family: 'Sarabun', 'TH SarabunPSK', sans-serif; font-size: 13pt; color: #111; line-height: 1.65; background: #fff; }
 
   /* ─── HEADER ─── */
-  .page-header { display: flex; align-items: center; gap: 16px; padding-bottom: 10px; }
-  .logo-area { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .brand-text { line-height: 1.1; }
-  .brand-v { font-size: 17pt; font-weight: 900; color: #1a237e; letter-spacing: 1px; }
-  .brand-sub { font-size: 10pt; font-weight: 700; color: #3949ab; letter-spacing: 3px; }
-  .co-info { flex: 1; text-align: right; }
-  .co-name { font-size: 12pt; font-weight: 800; color: #1a237e; }
-  .co-addr, .co-contact, .co-bank { font-size: 9.5pt; color: #444; line-height: 1.4; }
-  .header-rule { height: 4px; background: linear-gradient(to right, #1a237e, #3949ab, #ffca28); border-radius: 2px; margin-bottom: 10px; }
+  .page-header { display: flex; align-items: center; gap: 14px; padding-bottom: 8px; }
+  .logo-img { height: 68px; width: auto; flex-shrink: 0; }
+  .co-info { flex: 1; }
+  .co-name { font-size: 13pt; font-weight: 800; color: #0d1d6e; line-height: 1.3; }
+  .co-detail { font-size: 9.5pt; color: #333; line-height: 1.4; }
+  .co-bank { font-size: 9pt; color: #555; line-height: 1.4; }
+  .header-rule { height: 3px; background: linear-gradient(to right,#0d1d6e 60%,#4c9be8 100%); margin-bottom: 8px; }
 
   /* ─── PAGE ─── */
   .page { width: 100%; page-break-after: always; }
   .page:last-of-type { page-break-after: avoid; }
 
-  /* ─── CONTRACT TITLE ─── */
-  .contract-title-wrap { text-align: center; margin-bottom: 10px; }
-  .contract-title { font-size: 17pt; font-weight: 900; color: #1a237e; letter-spacing: 0.5px; }
-  .contract-sub { font-size: 11pt; color: #555; margin-top: 2px; }
-  .contract-page-no { display: inline-block; background: #e8eaf6; color: #3949ab; font-size: 10pt; font-weight: 700; border-radius: 10px; padding: 2px 14px; margin-top: 4px; }
+  /* ─── TITLE ─── */
+  .contract-title-wrap { text-align: center; margin: 4px 0 10px; }
+  .contract-title { font-size: 17pt; font-weight: 900; color: #0d1d6e; letter-spacing: 0.5px; }
+  .contract-sub { font-size: 10.5pt; color: #666; margin-top: 1px; letter-spacing: 0.5px; }
 
-  /* ─── MADE-AT BOX ─── */
-  .made-at { display: flex; justify-content: space-between; background: #f5f6ff; border: 1px solid #c5cae9; border-radius: 6px; padding: 8px 14px; margin-bottom: 10px; font-size: 12pt; }
-  .made-at-date { text-align: right; }
+  /* ─── MADE-AT ─── */
+  .made-at { display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px solid #c5cae9; padding-bottom: 5px; margin-bottom: 8px; font-size: 12.5pt; }
 
-  /* ─── PARTY BOX ─── */
-  .party-box { border: 1.5px solid #1a237e; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; font-size: 12.5pt; background: #fafbff; }
-  .party-box .party-label { font-size: 10pt; font-weight: 800; color: #1a237e; background: #e8eaf6; display: inline-block; padding: 1px 10px; border-radius: 4px; margin-bottom: 6px; letter-spacing: 1px; }
-  .party-box p { margin-bottom: 3px; }
-  .party-box .indent { padding-left: 2em; }
-  .party-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 3px; }
-  .party-field { white-space: nowrap; }
+  /* ─── PARTY BLOCK ─── */
+  .party-block { font-size: 12.5pt; margin-bottom: 8px; }
+  .party-block p { margin-bottom: 3px; }
+  .party-label { font-size: 10pt; font-weight: 800; color: #fff; background: #0d1d6e;
+    display: inline-block; padding: 1px 12px; border-radius: 3px; margin: 6px 0 4px; }
+  .indent { padding-left: 2em; }
+  .ct-row { padding-left: 2em; margin-bottom: 2px; font-size: 12pt; }
 
-  /* ─── CO-TENANT TABLE ─── */
-  .ct-table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 12pt; }
-  .ct-table th { background: #1a237e; color: #fff; padding: 4px 10px; text-align: left; font-size: 11pt; font-weight: 600; }
-  .ct-table td { padding: 4px 10px; border-bottom: 1px solid #e0e0e0; }
-  .ct-table tr:last-child td { border-bottom: none; }
-  .ct-table tbody tr:nth-child(odd) { background: #f5f6ff; }
+  /* ─── FIN SUMMARY ─── */
+  .fin-table { width: 100%; border-collapse: collapse; margin: 8px 0 10px; font-size: 12.5pt; }
+  .fin-table th { background: #0d1d6e; color: #fff; padding: 5px 12px; text-align: center; font-weight: 700; font-size: 11pt; border: 1px solid #0d1d6e; }
+  .fin-table td { padding: 5px 12px; text-align: center; border: 1px solid #c5cae9; }
+  .fin-table td.big { font-size: 14pt; font-weight: 800; color: #0d1d6e; }
 
   /* ─── ARTICLES ─── */
-  .section-heading { background: #1a237e; color: #fff; font-size: 12pt; font-weight: 700; padding: 5px 14px; border-radius: 4px; margin: 8px 0 6px; letter-spacing: 0.5px; }
-  .articles { font-size: 13pt; }
-  .article { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
-  .art-num { flex-shrink: 0; width: 46px; background: #e8eaf6; color: #1a237e; font-weight: 800; font-size: 11pt; text-align: center; border-radius: 4px; padding: 1px 0; margin-top: 2px; }
+  .section-heading { background: #0d1d6e; color: #fff; font-size: 11.5pt; font-weight: 700;
+    padding: 4px 12px; border-radius: 3px; margin: 8px 0 5px; }
+  .articles { font-size: 12.5pt; }
+  .article { display: flex; gap: 6px; margin-bottom: 4px; align-items: flex-start; }
+  .art-num { flex-shrink: 0; min-width: 44px; font-weight: 800; color: #0d1d6e; padding-top: 1px; }
   .art-body { flex: 1; }
   .bold { font-weight: 700; }
-  .underline { text-decoration: underline; }
-  .warn { color: #c62828; font-weight: 700; }
-
-  /* ─── FINANCIAL SUMMARY ─── */
-  .fin-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0 10px; }
-  .fin-card { border: 1px solid #c5cae9; border-radius: 6px; padding: 6px 10px; text-align: center; background: #f5f6ff; }
-  .fin-card .fin-label { font-size: 10pt; color: #555; }
-  .fin-card .fin-value { font-size: 14pt; font-weight: 800; color: #1a237e; }
+  .uline { text-decoration: underline; }
+  .warn { color: #b71c1c; font-weight: 700; }
 
   /* ─── SIGNATURES ─── */
-  .sig-section { margin-top: 16px; border-top: 2px solid #1a237e; padding-top: 12px; }
-  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 14px; }
+  .sig-section { margin-top: 14px; border-top: 2px solid #0d1d6e; padding-top: 12px; }
+  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 12px; }
   .sig-box { text-align: center; }
-  .sig-space { height: 44px; border-bottom: 1px solid #333; margin: 0 24px 6px; position: relative; }
-  .sig-name { font-size: 12.5pt; font-weight: 700; color: #1a237e; }
-  .sig-sub  { font-size: 11.5pt; color: #333; }
-  .sig-date { font-size: 11pt; color: #555; margin-top: 4px; }
-  .witness-row { border-top: 1px dashed #aaa; padding-top: 12px; margin-top: 4px; }
-  .seal-box { display: inline-block; width: 80px; height: 80px; border: 2px dashed #bbb; border-radius: 50%; line-height: 80px; font-size: 9pt; color: #bbb; text-align: center; float: right; margin-top: -20px; }
+  .sig-line { height: 42px; border-bottom: 1px solid #333; margin: 0 20px 5px; }
+  .sig-title { font-size: 12.5pt; font-weight: 700; color: #0d1d6e; }
+  .sig-name  { font-size: 12pt; color: #222; }
+  .sig-co    { font-size: 10pt; color: #555; }
+  .sig-date  { font-size: 11pt; color: #555; margin-top: 2px; }
+  .witness-row { border-top: 1px dashed #bbb; padding-top: 10px; margin-top: 2px; }
+  .seal-circle { float: right; width: 72px; height: 72px; border: 2px dashed #bbb; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 8.5pt; color: #bbb;
+    text-align: center; line-height: 1.3; margin-top: -16px; }
+
+  /* ─── REF BAR (page 2) ─── */
+  .ref-bar { background: #f0f2ff; border: 1px solid #c5cae9; border-radius: 4px;
+    padding: 5px 12px; margin-bottom: 8px; font-size: 12pt; display: flex; flex-wrap: wrap; gap: 12px; }
 
   /* ─── FOOTER ─── */
-  .page-footer { font-size: 9pt; color: #888; text-align: center; margin-top: 10px; padding-top: 6px; border-top: 1px solid #ddd; }
+  .page-footer { font-size: 9pt; color: #888; text-align: center; margin-top: 8px;
+    padding-top: 5px; border-top: 1px solid #ddd; }
 
-  /* ─── PRINT / SCREEN ─── */
   .no-print { display: block; }
   @media print {
     .no-print { display: none !important; }
-    body { font-size: 12.5pt; }
+    body { font-size: 12pt; }
     .page { page-break-after: always; }
     .page:last-of-type { page-break-after: avoid; }
   }
@@ -4199,77 +4161,69 @@ function generateAndPrintContract(d) {
   <div class="contract-title-wrap">
     <div class="contract-title">หนังสือสัญญาเช่าห้องพักอาศัยและกฎระเบียบ</div>
     <div class="contract-sub">RESIDENTIAL LEASE AGREEMENT AND REGULATIONS</div>
-    <span class="contract-page-no">หน้า 1/2 &nbsp;(V1/1)</span>
   </div>
 
   <div class="made-at">
-    <div><span class="bold">ทำที่:</span> ${coName}<br><span style="font-size:11pt;color:#555">${coAddr}</span></div>
-    <div class="made-at-date"><span class="bold">วันที่:</span><br>${thDate(d.contractDate)}</div>
+    <div><span class="bold">ทำที่:</span> ${coName}&ensp;<span style="font-size:11pt;color:#555">${coAddr}</span></div>
+    <div><span class="bold">วันที่:</span> ${thDate(d.contractDate)}</div>
   </div>
 
-  <div class="party-box">
-    <div class="party-label">▌ คู่สัญญา</div>
-    <p><span class="bold">ผู้ให้เช่า:</span> ${coName}</p>
-    <p class="indent">โดย <span class="bold">${_b(d.lessorSigner)}</span> ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้ให้เช่า"</span></p>
-    <p style="margin-top:8px"><span class="bold">ผู้เช่า:</span> ${_b(d.tenant)}</p>
-    <p class="indent">บัตรประชาชนเลขที่ ${_b(d.idcard,'180px')} &nbsp; โทรศัพท์ ${_b(d.phone,'120px')}</p>
-    <p class="indent">ที่อยู่: ${_b(d.address,'280px')}</p>
-    <p class="indent">คณะ/ผู้ปกครอง: ${_b(d.faculty,'200px')}</p>
+  <div class="party-block">
+    <span class="party-label">ผู้ให้เช่า</span>
+    <p>${coName} &emsp; โดย <span class="bold">${_b(d.lessorSigner)}</span> ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้ให้เช่า"</span></p>
+
+    <span class="party-label">ผู้เช่า</span>
+    <p><span class="bold">${_b(d.tenant,'180px')}</span></p>
+    <p class="indent">บัตรประชาชนเลขที่ ${_b(d.idcard,'180px')}&ensp;โทรศัพท์ ${_b(d.phone,'120px')}</p>
+    <p class="indent">ที่อยู่ ${_b(d.address,'260px')}</p>
+    <p class="indent">คณะ/ผู้ปกครอง ${_b(d.faculty,'180px')}</p>
     <p class="indent">ซึ่งต่อไปในสัญญาจะเรียกว่า <span class="bold">"ผู้เช่า"</span></p>
 
-    <p style="margin-top:8px"><span class="bold">ผู้ร่วมพักอาศัย:</span></p>
-    <table class="ct-table">
-      <thead>
-        <tr><th>ชื่อ–นามสกุล</th><th>เลขบัตรประชาชน</th><th>โทรศัพท์</th></tr>
-      </thead>
-      <tbody>${cotenantRows}</tbody>
-    </table>
-    <p style="margin-top:8px;font-style:italic;color:#333">คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญาเช่า ดังมีข้อความต่อไปนี้</p>
+    <span class="party-label">ผู้ร่วมพักอาศัย</span>
+    ${cotenantLines}
   </div>
 
-  <div class="fin-summary">
-    <div class="fin-card">
-      <div class="fin-label">ค่าเช่า / เดือน</div>
-      <div class="fin-value">${fmtMoney(d.rent)} ฿</div>
-    </div>
-    <div class="fin-card">
-      <div class="fin-label">เงินประกัน</div>
-      <div class="fin-value">${fmtMoney(d.deposit)} ฿</div>
-    </div>
-    <div class="fin-card">
-      <div class="fin-label">ค่าเช่าล่วงหน้า</div>
-      <div class="fin-value">${fmtMoney(d.advance)} ฿</div>
-    </div>
-  </div>
+  <table class="fin-table">
+    <thead><tr>
+      <th>ค่าเช่า / เดือน</th>
+      <th>เงินประกัน</th>
+      <th>ค่าเช่าล่วงหน้า</th>
+    </tr></thead>
+    <tbody><tr>
+      <td class="big">${fmtMoney(d.rent)} บาท</td>
+      <td class="big">${fmtMoney(d.deposit)} บาท</td>
+      <td class="big">${fmtMoney(d.advance)} บาท</td>
+    </tr></tbody>
+  </table>
 
   <div class="section-heading">▌ ข้อตกลงการเช่า</div>
   <div class="articles">
-    <div class="article"><div class="art-num">ข้อ 1</div><div class="art-body">ผู้ให้เช่าตกลงให้เช่า และผู้เช่าตกลงเช่า <span class="bold">ห้องพักอาศัยเลขที่ ${_b(d.room,'60px')} อาคาร ${_b(d.building,'60px')}</span> ของ ${coName} ตั้งอยู่ที่ ${coAddr} เพื่อใช้เป็นที่พักอาศัยเท่านั้น</div></div>
+    <div class="article"><div class="art-num">ข้อ 1.</div><div class="art-body">ผู้ให้เช่าตกลงให้เช่า และผู้เช่าตกลงเช่า <span class="bold">ห้องพักอาศัยเลขที่ ${_b(d.room,'55px')} อาคาร ${_b(d.building,'55px')}</span> ของ${coName} ตั้งอยู่ที่ ${coAddr} เพื่อใช้เป็นที่พักอาศัยเท่านั้น</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 2</div><div class="art-body">สัญญาเช่าฉบับนี้มีกำหนดระยะเวลา <span class="bold">1 ปี</span> ตั้งแต่วันที่ <span class="bold">${thDate(d.start)}</span> ถึงวันที่ <span class="bold">${thDate(d.end)}</span> เมื่อครบกำหนด หากผู้เช่าประสงค์จะต่อสัญญาต้องแจ้งล่วงหน้าไม่น้อยกว่า 30 วัน</div></div>
+    <div class="article"><div class="art-num">ข้อ 2.</div><div class="art-body">สัญญาเช่าฉบับนี้มีกำหนดระยะเวลา <span class="bold">1 ปี</span> ตั้งแต่วันที่ <span class="bold">${thDate(d.start)}</span> ถึงวันที่ <span class="bold">${thDate(d.end)}</span> หากครบกำหนดแล้วผู้เช่ายังคงพักอาศัยอยู่โดยผู้ให้เช่ามิได้โต้แย้ง ให้ถือว่าได้ต่อสัญญารายเดือนตามเงื่อนไขเดิม</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 3</div><div class="art-body">ผู้เช่าตกลงชำระค่าเช่าอัตราเดือนละ <span class="bold">${fmtMoney(d.rent)} บาท (${rentThai})</span> โดยชำระล่วงหน้าทุกวันที่ 1–5 ของเดือน ผ่านธนาคารหรือ ณ สำนักงานผู้ให้เช่า</div></div>
+    <div class="article"><div class="art-num">ข้อ 3.</div><div class="art-body">ผู้เช่าตกลงชำระค่าเช่าในอัตราเดือนละ <span class="bold">${fmtMoney(d.rent)} บาท (${rentThai})</span> โดยชำระล่วงหน้าทุกวันที่ 1–5 ของเดือน ผ่านธนาคาร (${bank1||'–'}) หรือ ณ สำนักงานของผู้ให้เช่า</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 4</div><div class="art-body">หากชำระค่าเช่าล่าช้าเกิน 5 วัน ผู้ให้เช่ามีสิทธิ์คิดค่าปรับร้อยละ 5 ต่อเดือนของยอดค้าง</div></div>
+    <div class="article"><div class="art-num">ข้อ 4.</div><div class="art-body">หากผู้เช่าชำระค่าเช่าล่าช้าเกินกว่าวันที่ 5 ของเดือน ผู้ให้เช่ามีสิทธิ์คิดค่าปรับ <span class="warn">ร้อยละ 5 ต่อเดือน</span>ของค่าเช่าที่ค้างชำระ นับตั้งแต่วันที่ 6 เป็นต้นไป</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 5</div><div class="art-body">ผู้เช่าได้วางเงินประกันจำนวน <span class="bold">${fmtMoney(d.deposit)} บาท</span> ซึ่งจะคืนหลังสิ้นสุดสัญญาและตรวจสอบห้องพักเรียบร้อยแล้ว โดยหักค่าเสียหาย (ถ้ามี)</div></div>
+    <div class="article"><div class="art-num">ข้อ 5.</div><div class="art-body">ผู้เช่าได้วางเงินประกันความเสียหายจำนวน <span class="bold">${fmtMoney(d.deposit)} บาท</span> ไว้กับผู้ให้เช่า ผู้ให้เช่าจะคืนเงินประกันภายใน 30 วัน หลังสิ้นสุดสัญญาและตรวจสอบสภาพห้องพักเรียบร้อยแล้ว โดยหักค่าเสียหาย (ถ้ามี) เงินประกันนี้ไม่ถือเป็นค่าเช่าในกรณีใดทั้งสิ้น</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 6</div><div class="art-body">ผู้เช่าได้ชำระค่าเช่าล่วงหน้าจำนวน <span class="bold">${fmtMoney(d.advance)} บาท</span> นำหักเป็นค่าเช่าในเดือนสุดท้ายของสัญญา</div></div>
+    <div class="article"><div class="art-num">ข้อ 6.</div><div class="art-body">ผู้เช่าได้ชำระค่าเช่าล่วงหน้าจำนวน <span class="bold">${fmtMoney(d.advance)} บาท</span> ให้ผู้ให้เช่าแล้ว ซึ่งจะนำหักเป็นค่าเช่าในเดือนสุดท้ายของสัญญา</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 7</div><div class="art-body">ผู้เช่าตกลงชำระค่าน้ำประปาตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด ชำระพร้อมค่าเช่าทุกเดือน</div></div>
+    <div class="article"><div class="art-num">ข้อ 7.</div><div class="art-body">ผู้เช่าตกลงชำระค่าน้ำประปาตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด โดยชำระพร้อมค่าเช่าทุกเดือน</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 8</div><div class="art-body">ผู้เช่าตกลงชำระค่าไฟฟ้าตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด ชำระพร้อมค่าเช่าทุกเดือน</div></div>
+    <div class="article"><div class="art-num">ข้อ 8.</div><div class="art-body">ผู้เช่าตกลงชำระค่าไฟฟ้าตามหน่วยที่ใช้จริงในอัตราที่ผู้ให้เช่ากำหนด โดยชำระพร้อมค่าเช่าทุกเดือน</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 9</div><div class="art-body">ผู้เช่าจะรักษาห้องพักและทรัพย์สินในห้องพักให้อยู่ในสภาพดี หากเกิดความเสียหายจากความประมาทของผู้เช่าหรือบุคคลที่ผู้เช่านำเข้ามา ผู้เช่าต้องรับผิดชอบค่าซ่อมแซมทั้งหมด</div></div>
+    <div class="article"><div class="art-num">ข้อ 9.</div><div class="art-body">ผู้เช่าจะรักษาห้องพักและทรัพย์สินของผู้ให้เช่าให้อยู่ในสภาพเรียบร้อย หากเกิดความเสียหายอันเนื่องจากความประมาทหรือการกระทำของผู้เช่าหรือบุคคลที่ผู้เช่าพามา ผู้เช่าต้องรับผิดชอบค่าซ่อมแซมทั้งหมด</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 10</div><div class="art-body">ผู้เช่าจะไม่ดัดแปลง ต่อเติม รื้อถอน หรือเปลี่ยนแปลงส่วนใดของห้องพัก โดยไม่ได้รับอนุญาตเป็นลายลักษณ์อักษรจากผู้ให้เช่า</div></div>
+    <div class="article"><div class="art-num">ข้อ 10.</div><div class="art-body">ผู้เช่าจะไม่ดัดแปลง ต่อเติม รื้อถอน หรือเปลี่ยนแปลงสิ่งใดในห้องพักโดยเด็ดขาด นอกจากได้รับอนุญาตเป็นลายลักษณ์อักษรจากผู้ให้เช่า</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 11</div><div class="art-body">ผู้เช่าจะไม่โอนสิทธิการเช่า ให้เช่าช่วง หรืออนุญาตให้บุคคลอื่นใช้ห้องพักแทน โดยไม่ได้รับความยินยอมจากผู้ให้เช่า</div></div>
+    <div class="article"><div class="art-num">ข้อ 11.</div><div class="art-body">ผู้เช่าจะไม่โอนสิทธิการเช่า ให้เช่าช่วง หรืออนุญาตให้บุคคลอื่นใช้ห้องพัก ไม่ว่ากรณีใดทั้งสิ้น เว้นแต่ได้รับความยินยอมเป็นหนังสือจากผู้ให้เช่า</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 12</div><div class="art-body">เมื่อสิ้นสุดสัญญา ผู้เช่าต้องส่งมอบห้องพักในสภาพเรียบร้อยพร้อมอุปกรณ์ครบถ้วน ภายใน 24 ชั่วโมง หากไม่ยอมออกผู้ให้เช่ามีสิทธิ์ดำเนินการตามกฎหมาย</div></div>
+    <div class="article"><div class="art-num">ข้อ 12.</div><div class="art-body">เมื่อสัญญาสิ้นสุดลง ผู้เช่าต้องส่งมอบห้องพักในสภาพเรียบร้อยพร้อมอุปกรณ์ครบถ้วนภายใน 24 ชั่วโมง นับจากวันสิ้นสุดสัญญา หากไม่ยอมออกจากห้องพักผู้ให้เช่ามีสิทธิ์ดำเนินการตามกฎหมาย</div></div>
   </div>
 
-  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} | ${coName} | หน้า 1 จาก 2</div>
+  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} &nbsp;|&nbsp; ${coName} &nbsp;|&nbsp; หน้า 1 จาก 2</div>
 </div>
 
 <!-- ══════════ PAGE 2 ══════════ -->
@@ -4279,78 +4233,77 @@ function generateAndPrintContract(d) {
   <div class="contract-title-wrap">
     <div class="contract-title">กฎระเบียบการพักอาศัย</div>
     <div class="contract-sub">RESIDENTIAL REGULATIONS</div>
-    <span class="contract-page-no">หน้า 2/2 &nbsp;(V2/1)</span>
   </div>
 
-  <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:7px 14px;margin-bottom:8px;font-size:12pt;color:#5d4037">
-    <span class="bold">ห้อง:</span> ${_b(d.room,'50px')} &nbsp;|&nbsp;
-    <span class="bold">อาคาร:</span> ${_b(d.building,'50px')} &nbsp;|&nbsp;
-    <span class="bold">ผู้เช่า:</span> ${_b(d.tenant,'160px')} &nbsp;|&nbsp;
-    <span class="bold">ระยะสัญญา:</span> ${thDate(d.start)} – ${thDate(d.end)}
+  <div class="ref-bar">
+    <span><span class="bold">ห้อง:</span> ${_b(d.room,'45px')}</span>
+    <span><span class="bold">อาคาร:</span> ${_b(d.building,'45px')}</span>
+    <span><span class="bold">ผู้เช่า:</span> ${_b(d.tenant,'160px')}</span>
+    <span><span class="bold">ระยะสัญญา:</span> ${thDate(d.start)} – ${thDate(d.end)}</span>
   </div>
 
   <div class="section-heading">▌ กฎระเบียบอาคาร</div>
   <div class="articles">
-    <div class="article"><div class="art-num">ข้อ 13</div><div class="art-body">ผู้เช่าและผู้ร่วมพักทุกคนต้องปฏิบัติตามกฎระเบียบของอาคารอย่างเคร่งครัด การฝ่าฝืนถือเป็นการผิดสัญญา</div></div>
+    <div class="article"><div class="art-num">ข้อ 13.</div><div class="art-body">ผู้เช่าและผู้ร่วมพักทุกคนต้องปฏิบัติตามกฎระเบียบของอาคารอย่างเคร่งครัด การฝ่าฝืนถือเป็นการผิดสัญญา</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 14</div><div class="art-body"><span class="warn">ห้าม</span>นำสัตว์เลี้ยงทุกชนิดเข้ามาในพื้นที่อาคารและห้องพักโดยเด็ดขาด</div></div>
+    <div class="article"><div class="art-num">ข้อ 14.</div><div class="art-body"><span class="warn">ห้าม</span>นำสัตว์เลี้ยงทุกชนิดเข้ามาในพื้นที่อาคารและห้องพักโดยเด็ดขาด</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 15</div><div class="art-body"><span class="warn">ห้าม</span>ทำเสียงดังรบกวนผู้อื่น โดยเฉพาะช่วงเวลา <span class="bold">22:00 น. – 07:00 น.</span></div></div>
+    <div class="article"><div class="art-num">ข้อ 15.</div><div class="art-body"><span class="warn">ห้าม</span>ทำเสียงดังรบกวนความสงบของผู้อื่น โดยเฉพาะในช่วง <span class="bold">22:00 น. – 07:00 น.</span></div></div>
 
-    <div class="article"><div class="art-num">ข้อ 16</div><div class="art-body"><span class="warn">ห้าม</span>นำบุคคลภายนอกเข้าพักค้างคืนโดยไม่ได้รับอนุญาต บุคคลเข้าพักต้องลงทะเบียนที่สำนักงานก่อน</div></div>
+    <div class="article"><div class="art-num">ข้อ 16.</div><div class="art-body"><span class="warn">ห้าม</span>นำบุคคลภายนอกเข้าพักค้างคืนโดยไม่แจ้งและไม่ได้รับอนุญาตจากผู้ให้เช่า บุคคลเข้าพักต้องลงทะเบียนที่สำนักงานก่อนทุกครั้ง</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 17</div><div class="art-body">ผู้เช่าต้องแจ้งรายชื่อผู้ร่วมพักพร้อมสำเนาบัตรประชาชนแก่ผู้ให้เช่า และแจ้งทุกครั้งที่มีการเปลี่ยนแปลง</div></div>
+    <div class="article"><div class="art-num">ข้อ 17.</div><div class="art-body">ผู้เช่าต้องแจ้งรายชื่อผู้ร่วมพักพร้อมสำเนาบัตรประชาชนแก่ผู้ให้เช่าทุกครั้งที่มีการเปลี่ยนแปลง</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 18</div><div class="art-body"><span class="warn">ห้าม</span>นำสิ่งผิดกฎหมาย อาวุธ วัตถุระเบิด สารเสพติด หรือวัสดุไวไฟเข้ามาในอาคาร</div></div>
+    <div class="article"><div class="art-num">ข้อ 18.</div><div class="art-body"><span class="warn">ห้าม</span>นำสิ่งผิดกฎหมาย อาวุธปืน วัตถุระเบิด สารเสพติด หรือวัสดุไวไฟทุกชนิดเข้ามาในอาคาร</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 19</div><div class="art-body"><span class="warn">ห้าม</span>ประกอบกิจการค้าขาย รับจ้าง หรืออาชีพใดๆ ที่กระทบผู้อื่นในห้องพัก</div></div>
+    <div class="article"><div class="art-num">ข้อ 19.</div><div class="art-body"><span class="warn">ห้าม</span>ประกอบกิจการค้าขาย รับจ้าง หรือประกอบอาชีพใดๆ ที่ก่อให้เกิดความรำคาญในห้องพัก</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 20</div><div class="art-body">ผู้เช่าต้องทิ้งขยะในจุดที่กำหนด <span class="warn">ห้าม</span>ทิ้งขยะในทางเดิน ระเบียง หรือพื้นที่ส่วนรวม</div></div>
+    <div class="article"><div class="art-num">ข้อ 20.</div><div class="art-body">ผู้เช่าต้องทิ้งขยะในจุดที่กำหนดเท่านั้น <span class="warn">ห้าม</span>ทิ้งขยะในทางเดิน ระเบียง หรือบริเวณส่วนรวมโดยเด็ดขาด</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 21</div><div class="art-body">ผู้เช่าต้องรักษาความสะอาดบริเวณหน้าห้องพักและพื้นที่ส่วนรวมให้เป็นระเบียบเรียบร้อยอยู่เสมอ</div></div>
+    <div class="article"><div class="art-num">ข้อ 21.</div><div class="art-body">ผู้เช่าต้องรักษาความสะอาดบริเวณหน้าห้องพักและพื้นที่ส่วนรวมให้เป็นระเบียบเรียบร้อยอยู่เสมอ</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 22</div><div class="art-body">การจอดยานพาหนะต้องปฏิบัติตามระเบียบที่กำหนด <span class="warn">ห้าม</span>จอดขวางทางเข้าออกหรือพื้นที่ฉุกเฉิน</div></div>
+    <div class="article"><div class="art-num">ข้อ 22.</div><div class="art-body">การจอดยานพาหนะต้องปฏิบัติตามระเบียบที่ผู้ให้เช่ากำหนด <span class="warn">ห้าม</span>จอดขวางทางเข้าออกหรือบริเวณฉุกเฉินโดยเด็ดขาด</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 23</div><div class="art-body"><span class="warn">ห้าม</span>ติดตั้งเสาอากาศ จานดาวเทียม หรืออุปกรณ์ใดๆ บนผนัง เพดาน หรือหลังคา โดยไม่ได้รับอนุญาต</div></div>
+    <div class="article"><div class="art-num">ข้อ 23.</div><div class="art-body"><span class="warn">ห้าม</span>ติดตั้งเสาอากาศ จานดาวเทียม แผงโซลาร์เซลล์ หรืออุปกรณ์ใดๆ บนผนัง เพดาน หรือหลังคาอาคาร โดยไม่ได้รับอนุญาตจากผู้ให้เช่า</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 24</div><div class="art-body">ผู้ให้เช่ามีสิทธิ์เข้าตรวจสอบห้องพักโดยแจ้งล่วงหน้า 24 ชั่วโมง ยกเว้นกรณีฉุกเฉิน</div></div>
+    <div class="article"><div class="art-num">ข้อ 24.</div><div class="art-body">ผู้ให้เช่าหรือตัวแทนมีสิทธิ์เข้าตรวจสอบห้องพักได้โดยแจ้งล่วงหน้า 24 ชั่วโมง ยกเว้นกรณีฉุกเฉินซึ่งดำเนินการได้ทันที</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 25</div><div class="art-body">ผู้เช่าต้องดูแลกุญแจและบัตรคีย์การ์ด หากสูญหายต้องแจ้งทันทีและชำระค่าทดแทนตามที่กำหนด</div></div>
+    <div class="article"><div class="art-num">ข้อ 25.</div><div class="art-body">ผู้เช่าต้องดูแลกุญแจและบัตรคีย์การ์ดไม่ให้สูญหาย หากสูญหายต้องแจ้งทันทีและชำระค่าทำบัตรใหม่ตามอัตราที่กำหนด</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 26</div><div class="art-body">หากผู้เช่าประสงค์ยกเลิกสัญญาก่อนกำหนด ต้องแจ้งล่วงหน้าไม่น้อยกว่า 30 วัน และยินยอมให้หักเงินประกันตามความเสียหาย</div></div>
+    <div class="article"><div class="art-num">ข้อ 26.</div><div class="art-body">หากผู้เช่าประสงค์ยกเลิกสัญญาก่อนกำหนด ต้องแจ้งเป็นลายลักษณ์อักษรล่วงหน้าไม่น้อยกว่า <span class="bold">30 วัน</span> และยินยอมให้ผู้ให้เช่าหักเงินประกันส่วนที่เป็นค่าเสียหาย</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 27</div><div class="art-body">ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาทันที หากผู้เช่าฝ่าฝืนข้อตกลงหรือกระทำผิดกฎระเบียบในลักษณะร้ายแรง</div></div>
+    <div class="article"><div class="art-num">ข้อ 27.</div><div class="art-body">ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาทันทีโดยไม่ต้องแจ้งล่วงหน้า หากผู้เช่าฝ่าฝืนข้อตกลงหรือกฎระเบียบในลักษณะที่ร้ายแรง</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 28</div><div class="art-body">กรณีค้างชำระติดต่อกันเกิน 2 เดือน ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาและขนย้ายทรัพย์สินออกได้โดยชอบด้วยกฎหมาย</div></div>
+    <div class="article"><div class="art-num">ข้อ 28.</div><div class="art-body">กรณีค้างชำระค่าเช่าติดต่อกันเกิน 2 เดือน ผู้ให้เช่ามีสิทธิ์บอกเลิกสัญญาและดำเนินการขนย้ายทรัพย์สินออกโดยชอบด้วยกฎหมาย</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 29</div><div class="art-body">เฉพาะผู้ร่วมพักที่ระบุในสัญญาเท่านั้นมีสิทธิ์พักอาศัย หากมีการเปลี่ยนแปลงต้องแจ้งและได้รับอนุมัติก่อน</div></div>
+    <div class="article"><div class="art-num">ข้อ 29.</div><div class="art-body">เฉพาะผู้ร่วมพักที่ระบุชื่อไว้ในสัญญาเท่านั้นมีสิทธิ์พักอาศัย หากมีการเปลี่ยนแปลงต้องแจ้งและได้รับอนุมัติจากผู้ให้เช่าก่อน</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 30</div><div class="art-body"><span class="warn">ห้าม</span>สูบบุหรี่หรือบุหรี่ไฟฟ้าในห้องพัก ลิฟต์ และพื้นที่ส่วนรวม ยกเว้นบริเวณที่กำหนด</div></div>
+    <div class="article"><div class="art-num">ข้อ 30.</div><div class="art-body"><span class="warn">ห้าม</span>สูบบุหรี่หรือบุหรี่ไฟฟ้าในห้องพัก ลิฟต์ และบริเวณส่วนรวมทุกแห่ง ยกเว้นพื้นที่ที่ผู้ให้เช่ากำหนดไว้</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 31</div><div class="art-body">กรณีเกิดเพลิงไหม้หรือภัยพิบัติ ผู้เช่าต้องปฏิบัติตามคำสั่งของเจ้าหน้าที่อาคารโดยทันที</div></div>
+    <div class="article"><div class="art-num">ข้อ 31.</div><div class="art-body">กรณีเกิดเพลิงไหม้หรือเหตุฉุกเฉิน ผู้เช่าต้องปฏิบัติตามคำสั่งของเจ้าหน้าที่อาคารทันที และห้ามใช้ลิฟต์</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 32</div><div class="art-body">ข้อพิพาทจากสัญญานี้ให้ระงับโดยการเจรจาก่อน หากไม่สำเร็จให้นำขึ้นสู่ศาลจังหวัดปทุมธานี</div></div>
+    <div class="article"><div class="art-num">ข้อ 32.</div><div class="art-body">ข้อพิพาทที่เกิดจากสัญญานี้ให้ระงับโดยการเจรจาก่อน หากตกลงกันไม่ได้ให้นำคดีขึ้นสู่ศาลจังหวัดปทุมธานี</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 33</div><div class="art-body">สัญญาฉบับนี้จัดทำ 2 ฉบับ มีข้อความตรงกัน คู่สัญญาแต่ละฝ่ายถือไว้ฝ่ายละ 1 ฉบับ</div></div>
+    <div class="article"><div class="art-num">ข้อ 33.</div><div class="art-body">สัญญาฉบับนี้จัดทำ 2 ฉบับ มีข้อความตรงกันทุกประการ คู่สัญญาแต่ละฝ่ายถือไว้ฝ่ายละ 1 ฉบับ</div></div>
 
-    <div class="article"><div class="art-num">ข้อ 34</div><div class="art-body">สัญญานี้มีผลตั้งแต่วันที่ผู้เช่าลงลายมือชื่อ ถือว่าผู้เช่าได้อ่านและเข้าใจข้อกำหนดทุกข้อแล้ว</div></div>
+    <div class="article"><div class="art-num">ข้อ 34.</div><div class="art-body">สัญญานี้มีผลบังคับตั้งแต่วันที่ผู้เช่าลงลายมือชื่อ ถือว่าผู้เช่าได้อ่านและเข้าใจข้อกำหนดทุกข้อแล้วอย่างครบถ้วน</div></div>
   </div>
 
   <!-- SIGNATURES -->
   <div class="sig-section">
-    <div class="seal-box">ประทับตรา<br>บริษัท</div>
+    <div class="seal-circle">ประทับตรา<br>บริษัท</div>
     <div class="sig-grid">
       <div class="sig-box">
-        <div class="sig-space"></div>
-        <div class="sig-name">ผู้ให้เช่า</div>
-        <div class="sig-sub">(${d.lessorSigner})</div>
-        <div class="sig-sub" style="font-size:10.5pt;color:#555">${coName}</div>
+        <div class="sig-line"></div>
+        <div class="sig-title">ผู้ให้เช่า</div>
+        <div class="sig-name">(${d.lessorSigner})</div>
+        <div class="sig-co">${coName}</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>
       <div class="sig-box">
-        <div class="sig-space"></div>
-        <div class="sig-name">ผู้เช่า</div>
-        <div class="sig-sub">(${d.tenant || '……………………………………………'})</div>
+        <div class="sig-line"></div>
+        <div class="sig-title">ผู้เช่า</div>
+        <div class="sig-name">(${d.tenant || '……………………………………………'})</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>
     </div>
@@ -4359,9 +4312,9 @@ function generateAndPrintContract(d) {
     <div class="sig-grid" style="margin-top:0">
       ${d.cotenants.map((ct, i) => `
       <div class="sig-box">
-        <div class="sig-space"></div>
-        <div class="sig-name">ผู้ร่วมพักอาศัย ${i+1}</div>
-        <div class="sig-sub">(${ct.name})</div>
+        <div class="sig-line"></div>
+        <div class="sig-title">ผู้ร่วมพักอาศัย ${i+1}</div>
+        <div class="sig-name">(${ct.name})</div>
         <div class="sig-date">วันที่ ${sigDate}</div>
       </div>`).join('')}
     </div>` : ''}
@@ -4369,29 +4322,29 @@ function generateAndPrintContract(d) {
     <div class="witness-row">
       <div class="sig-grid">
         <div class="sig-box">
-          <div class="sig-space"></div>
-          <div class="sig-name">พยาน (ฝ่ายผู้ให้เช่า)</div>
-          <div class="sig-sub">(……………………………………………)</div>
+          <div class="sig-line"></div>
+          <div class="sig-title">พยาน (ฝ่ายผู้ให้เช่า)</div>
+          <div class="sig-name">(……………………………………………)</div>
         </div>
         <div class="sig-box">
-          <div class="sig-space"></div>
-          <div class="sig-name">พยาน (ฝ่ายผู้เช่า)</div>
-          <div class="sig-sub">(……………………………………………)</div>
+          <div class="sig-line"></div>
+          <div class="sig-title">พยาน (ฝ่ายผู้เช่า)</div>
+          <div class="sig-name">(……………………………………………)</div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} | ${coName} | หน้า 2 จาก 2</div>
+  <div class="page-footer">ห้อง ${d.room} อาคาร ${d.building} &nbsp;|&nbsp; ${coName} &nbsp;|&nbsp; หน้า 2 จาก 2</div>
 </div>
 
 <!-- PRINT TOOLBAR -->
-<div class="no-print" style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to right,#1a237e,#3949ab);padding:12px 24px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 -2px 12px rgba(0,0,0,.3)">
-  <span style="color:#fff;font-size:13pt;font-family:inherit">ห้อง ${d.room} | ${d.tenant} | ${coName}</span>
-  <button onclick="window.print()" style="background:#ffca28;color:#1a237e;border:none;padding:9px 28px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:800">🖨️ พิมพ์สัญญา</button>
-  <button onclick="window.close()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);padding:9px 20px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit">✕ ปิด</button>
+<div class="no-print" style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(to right,#0d1d6e,#1e3a8a);padding:10px 24px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 -2px 12px rgba(0,0,0,.3)">
+  <span style="color:#fff;font-size:12.5pt;font-family:inherit">ห้อง ${d.room} | ${d.tenant} | ${coName}</span>
+  <button onclick="window.print()" style="background:#fbbf24;color:#0d1d6e;border:none;padding:8px 26px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit;font-weight:800">🖨️ พิมพ์สัญญา</button>
+  <button onclick="window.close()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,.5);padding:8px 18px;border-radius:20px;font-size:14px;cursor:pointer;font-family:inherit">✕ ปิด</button>
 </div>
-<div class="no-print" style="height:64px"></div>
+<div class="no-print" style="height:60px"></div>
 
 </body>
 </html>`;
@@ -4402,6 +4355,7 @@ function generateAndPrintContract(d) {
   win.document.close();
   win.focus();
 }
+
 
 // ============================================================
 // P&L REPORT (บัญชีกำไร-ขาดทุน)
