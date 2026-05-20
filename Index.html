@@ -1136,6 +1136,13 @@ function gsRun(fn, ...args) {
   });
 }
 
+function gsRunWithTimeout(fn, timeoutMs, ...args) {
+  return Promise.race([
+    gsRun(fn, ...args),
+    new Promise((_, rej) => setTimeout(() => rej(new Error(`Timeout: ${fn} ไม่ตอบสนองใน ${timeoutMs/1000} วินาที`)), timeoutMs))
+  ]);
+}
+
 // ============================================================
 // INIT
 // ============================================================
@@ -1143,50 +1150,57 @@ window.addEventListener('load', async () => {
   showLoading(true);
   let data = {};
   try {
-    data = await gsRun('getAllData');
+    data = await gsRunWithTimeout('getAllData', 30000);
   } catch(e) {
-    showAlert('เชื่อมต่อ Google Apps Script ล้มเหลว: ' + e, 'error');
+    console.error('getAllData failed:', e);
+    showAlert('เชื่อมต่อ Google Apps Script ล้มเหลว: ' + (e.message || e), 'error');
     showLoading(false);
     return;
   }
 
-  // แสดง error จาก backend ถ้ามี
-  if (data.error) {
-    showAlert('Backend error: ' + data.error, 'error');
+  try {
+    // แสดง error จาก backend ถ้ามี
+    if (data.error) {
+      showAlert('Backend error: ' + data.error, 'error');
+    }
+
+    S.rooms    = Array.isArray(data.rooms)    ? data.rooms    : [];
+    S.bills    = Array.isArray(data.bills)    ? data.bills    : [];
+    S.income   = Array.isArray(data.otherIncome) ? data.otherIncome : [];
+    S.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+    S.companies         = data.companies         || {};
+    S.incomeCategories  = data.incomeCategories  || [];
+    S.expenseCategories = data.expenseCategories || [];
+
+    // แสดง Spreadsheet URL ถ้ามี
+    if (data.ssUrl) {
+      const nav = document.querySelector('nav h1');
+      if (nav) nav.innerHTML = `🏢 TC Accounting <a href="${data.ssUrl}" target="_blank" style="font-size:11px;color:#ffca28;margin-left:8px;font-weight:400">📊 เปิด Sheet</a>`;
+    }
+
+    populateDropdowns();
+    renderRooms();
+    renderBills();
+    renderIncome();
+    renderExpenses();
+    renderOverdue();
+    updateOverdueBadge();
+    setDefaultDates();
+    _plInitYears();
+
+    // แจ้งถ้าไม่มีห้อง
+    if (S.rooms.length === 0) {
+      showAlert('ยังไม่มีข้อมูลห้อง กรุณากดปุ่ม "⚙️ โหลดข้อมูล 312 ห้อง"', 'info');
+    }
+
+    const rm = $('report-month');
+    if(rm) rm.value = currentMonth();
+  } catch(e) {
+    console.error('Init render error:', e);
+    showAlert('เกิดข้อผิดพลาดในการแสดงผล: ' + e.message, 'error');
+  } finally {
+    showLoading(false);
   }
-
-  S.rooms    = Array.isArray(data.rooms)    ? data.rooms    : [];
-  S.bills    = Array.isArray(data.bills)    ? data.bills    : [];
-  S.income   = Array.isArray(data.otherIncome) ? data.otherIncome : [];
-  S.expenses = Array.isArray(data.expenses) ? data.expenses : [];
-  S.companies         = data.companies         || {};
-  S.incomeCategories  = data.incomeCategories  || [];
-  S.expenseCategories = data.expenseCategories || [];
-
-  // แสดง Spreadsheet URL ถ้ามี
-  if (data.ssUrl) {
-    const nav = document.querySelector('nav h1');
-    if (nav) nav.innerHTML = `🏢 TC Accounting <a href="${data.ssUrl}" target="_blank" style="font-size:11px;color:#ffca28;margin-left:8px;font-weight:400">📊 เปิด Sheet</a>`;
-  }
-
-  populateDropdowns();
-  renderRooms();
-  renderBills();
-  renderIncome();
-  renderExpenses();
-  renderOverdue();
-  updateOverdueBadge();
-  setDefaultDates();
-  _plInitYears();
-
-  // แจ้งถ้าไม่มีห้อง
-  if (S.rooms.length === 0) {
-    showAlert('ยังไม่มีข้อมูลห้อง กรุณากดปุ่ม "⚙️ โหลดข้อมูล 312 ห้อง"', 'info');
-  }
-
-  showLoading(false);
-  const rm = $('report-month');
-  if(rm) rm.value = currentMonth();
 });
 
 function setDefaultDates() {
