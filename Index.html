@@ -219,6 +219,7 @@ canvas{max-width:100%;}
     <div class="card">
       <div class="card-title">📋 บิลรายห้อง
         <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-secondary btn-sm" id="btn-batch-bill">📋 สร้างบิลหมู่</button>
           <button class="btn btn-primary btn-sm" id="btn-new-bill">+ สร้างบิลใหม่</button>
         </div>
       </div>
@@ -894,6 +895,58 @@ canvas{max-width:100%;}
   </div>
 </div>
 
+<!-- Batch Bill Modal -->
+<div class="modal-overlay" id="modal-batch-bill">
+  <div class="modal" style="max-width:960px;width:96vw">
+    <div class="modal-header">
+      <span class="modal-title">📋 สร้างบิลหมู่</span>
+      <button class="modal-close" data-close="modal-batch-bill">×</button>
+    </div>
+    <div style="padding:12px 16px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;border-bottom:1px solid #e0e0e0">
+      <div class="form-group" style="margin:0;min-width:140px">
+        <label style="font-size:12px">เดือน *</label>
+        <input class="form-control" id="batch-month" type="month">
+      </div>
+      <div class="form-group" style="margin:0;min-width:120px">
+        <label style="font-size:12px">อาคาร *</label>
+        <select class="form-control" id="batch-building">
+          <option value="">-- เลือก --</option>
+          <option>V1</option><option>V2</option><option>V3</option><option>V4</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btn-batch-load">🔍 โหลดห้อง</button>
+    </div>
+    <div id="batch-bill-table-wrap" style="overflow-x:auto;max-height:55vh;overflow-y:auto;padding:0 8px">
+      <table class="data-table" style="min-width:900px;font-size:12px" id="batch-bill-table">
+        <thead>
+          <tr>
+            <th style="width:34px"><input type="checkbox" id="batch-check-all" title="เลือกทั้งหมด"></th>
+            <th>ห้อง</th>
+            <th>ผู้เช่า</th>
+            <th>ค่าห้อง</th>
+            <th>น้ำก่อน</th>
+            <th>วันจดน้ำก่อน</th>
+            <th>น้ำปัจจุบัน</th>
+            <th>วันจดน้ำ</th>
+            <th>ไฟก่อน</th>
+            <th>วันจดไฟก่อน</th>
+            <th>ไฟปัจจุบัน</th>
+            <th>วันจดไฟ</th>
+          </tr>
+        </thead>
+        <tbody id="batch-bill-tbody">
+          <tr><td colspan="12" class="text-center text-muted" style="padding:24px">เลือกเดือนและอาคาร แล้วกด "โหลดห้อง"</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div id="batch-bill-summary" style="padding:8px 16px;font-size:12px;color:#555;display:none"></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-primary" data-close="modal-batch-bill">ยกเลิก</button>
+      <button class="btn btn-success" id="btn-save-batch-bill" style="display:none">💾 สร้างบิลที่เลือก</button>
+    </div>
+  </div>
+</div>
+
 <!-- Income Modal -->
 <div class="modal-overlay" id="modal-income">
   <div class="modal">
@@ -1099,7 +1152,7 @@ canvas{max-width:100%;}
 const S = {
   rooms: [], bills: [], income: [], expenses: [],
   companies: {}, incomeCategories: [], expenseCategories: [],
-  editingRoom: null, payingBillId: null, editingBillId: null, editingExpenseId: null
+  editingRoom: null, payingBillId: null, editingBillId: null, editingExpenseId: null, editingIncomeId: null
 };
 
 // ============================================================
@@ -1503,6 +1556,129 @@ $('bills-tbody').addEventListener('click', e => {
 
 $('btn-new-bill').addEventListener('click', () => openBillModal(null, null));
 
+// ============================================================
+// BATCH BILL
+// ============================================================
+$('btn-batch-bill').addEventListener('click', () => {
+  $('batch-month').value = currentMonth();
+  $('batch-building').value = '';
+  $('batch-bill-tbody').innerHTML = '<tr><td colspan="12" class="text-center text-muted" style="padding:24px">เลือกเดือนและอาคาร แล้วกด "โหลดห้อง"</td></tr>';
+  $('batch-bill-summary').style.display = 'none';
+  $('btn-save-batch-bill').style.display = 'none';
+  openModal('modal-batch-bill');
+});
+
+
+$('btn-batch-load').addEventListener('click', () => {
+  const month = $('batch-month').value;
+  const bld   = $('batch-building').value;
+  if(!month || !bld) { showAlert('กรุณาเลือกเดือนและอาคาร','error'); return; }
+
+  const occupied = S.rooms.filter(r => r['อาคาร'] === bld && r['สถานะ'] === 'ทำสัญญา');
+  if(!occupied.length) {
+    $('batch-bill-tbody').innerHTML = '<tr><td colspan="12" class="text-center text-muted" style="padding:24px">ไม่มีห้องที่ทำสัญญาในอาคารนี้</td></tr>';
+    $('btn-save-batch-bill').style.display = 'none';
+    return;
+  }
+
+  const rows = occupied.map(r => {
+    const no = r['เลขห้อง'];
+    const last = S.bills
+      .filter(b => String(b['ห้อง']) == no && b['อาคาร'] == bld)
+      .sort((a, b) => String(b['เดือน']).localeCompare(String(a['เดือน'])))[0];
+    const wPrev = last ? (last['หน่วยน้ำปัจจุบัน'] || '') : '';
+    const wPrevDate = last ? (last['วันจดน้ำปัจจุบัน'] || '') : '';
+    const ePrev = last ? (last['หน่วยไฟปัจจุบัน'] || '') : '';
+    const ePrevDate = last ? (last['วันจดไฟปัจจุบัน'] || '') : '';
+    return `<tr>
+      <td style="text-align:center"><input type="checkbox" class="batch-row-check" data-room="${no}" checked></td>
+      <td style="font-weight:600">${no}</td>
+      <td style="font-size:11px;color:#555">${r['ชื่อผู้เช่า']||''}</td>
+      <td><input type="number" class="form-control batch-rent" data-room="${no}" value="${r['ราคา/เดือน']||''}" style="width:80px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="number" class="form-control batch-wprev" data-room="${no}" value="${wPrev}" style="width:72px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="date"   class="form-control batch-wprev-date" data-room="${no}" value="${wPrevDate}" style="width:120px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="number" class="form-control batch-wcurr" data-room="${no}" value="" style="width:72px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="date"   class="form-control batch-wcurr-date" data-room="${no}" value="${todayStr()}" style="width:120px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="number" class="form-control batch-eprev" data-room="${no}" value="${ePrev}" style="width:72px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="date"   class="form-control batch-eprev-date" data-room="${no}" value="${ePrevDate}" style="width:120px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="number" class="form-control batch-ecurr" data-room="${no}" value="" style="width:72px;font-size:11px;padding:2px 4px"></td>
+      <td><input type="date"   class="form-control batch-ecurr-date" data-room="${no}" value="${todayStr()}" style="width:120px;font-size:11px;padding:2px 4px"></td>
+    </tr>`;
+  }).join('');
+
+  $('batch-bill-tbody').innerHTML = rows;
+  const summary = $('batch-bill-summary');
+  summary.textContent = `พบ ${occupied.length} ห้องทำสัญญาในอาคาร ${bld} — กรอกมาตรน้ำ/ไฟ แล้วกด "สร้างบิลที่เลือก"`;
+  summary.style.display = 'block';
+  $('btn-save-batch-bill').style.display = '';
+});
+
+$('batch-check-all').addEventListener('change', function() {
+  document.querySelectorAll('.batch-row-check').forEach(cb => { cb.checked = this.checked; });
+});
+
+$('btn-save-batch-bill').addEventListener('click', async () => {
+  const month = $('batch-month').value;
+  const bld   = $('batch-building').value;
+  if(!month || !bld) return;
+
+  const checks = [...document.querySelectorAll('.batch-row-check:checked')];
+  if(!checks.length) { showAlert('กรุณาเลือกห้องอย่างน้อย 1 ห้อง','error'); return; }
+
+  const billsToSave = checks.map(cb => {
+    const no  = cb.dataset.room;
+    const r   = S.rooms.find(x => x['เลขห้อง'] == no && x['อาคาร'] == bld);
+    const wPrev = parseFloat(document.querySelector(`.batch-wprev[data-room="${no}"]`).value) || 0;
+    const wCurr = parseFloat(document.querySelector(`.batch-wcurr[data-room="${no}"]`).value) || 0;
+    const wRate = parseFloat(r?.['อัตราน้ำ']) || 18;
+    const ePrev = parseFloat(document.querySelector(`.batch-eprev[data-room="${no}"]`).value) || 0;
+    const eCurr = parseFloat(document.querySelector(`.batch-ecurr[data-room="${no}"]`).value) || 0;
+    const eRate = parseFloat(r?.['อัตราไฟ']) || 7;
+    const rent  = parseFloat(document.querySelector(`.batch-rent[data-room="${no}"]`).value) || 0;
+    const wUsed = Math.max(0, wCurr - wPrev);
+    const eUsed = Math.max(0, eCurr - ePrev);
+    const wTotal = wUsed * wRate;
+    const eTotal = eUsed * eRate;
+    return {
+      'เดือน':            month,
+      'ห้อง':             no,
+      'อาคาร':            bld,
+      'ผู้เช่า':           r?.['ชื่อผู้เช่า'] || '',
+      'ค่าห้อง':           rent,
+      'หน่วยน้ำก่อน':     wPrev,
+      'วันจดน้ำก่อน':     document.querySelector(`.batch-wprev-date[data-room="${no}"]`).value,
+      'หน่วยน้ำปัจจุบัน': wCurr,
+      'วันจดน้ำปัจจุบัน': document.querySelector(`.batch-wcurr-date[data-room="${no}"]`).value,
+      'อัตราน้ำ':          wRate,
+      'หน่วยน้ำใช้':       wUsed,
+      'ค่าน้ำ':            wTotal,
+      'หน่วยไฟก่อน':      ePrev,
+      'วันจดไฟก่อน':      document.querySelector(`.batch-eprev-date[data-room="${no}"]`).value,
+      'หน่วยไฟปัจจุบัน':  eCurr,
+      'วันจดไฟปัจจุบัน':  document.querySelector(`.batch-ecurr-date[data-room="${no}"]`).value,
+      'อัตราไฟ':           eRate,
+      'หน่วยไฟใช้':        eUsed,
+      'ค่าไฟ':             eTotal,
+      'ค่าอื่นๆ':          0,
+      'รวม':               rent + wTotal + eTotal,
+      'หมายเหตุบิล':       ''
+    };
+  });
+
+  showLoading(true);
+  try {
+    const res = await gsRun('saveBillBatch', billsToSave);
+    S.bills = await gsRun('getBills') || [];
+    renderBills();
+    renderOverdue();
+    updateOverdueBadge();
+    closeModal('modal-batch-bill');
+    const errMsg = res.errors?.length ? `\nข้อผิดพลาด: ${res.errors.join(', ')}` : '';
+    showAlert(`สร้างบิลสำเร็จ ${res.saved} ห้อง  |  ข้ามซ้ำ ${res.skipped} ห้อง${errMsg}`, res.errors?.length ? 'error' : 'success');
+  } catch(e) { showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
+  showLoading(false);
+});
+
 function openBillModal(roomNo, building) {
   S.editingBillId = null;
   document.querySelector('#modal-bill .modal-title').textContent = 'สร้าง/แก้ไขบิล';
@@ -1599,6 +1775,18 @@ function onBillRoomSelected() {
   $('bill-water-rate').value = r['อัตราน้ำ'] || 18;
   $('bill-elec-rate').value  = r['อัตราไฟ']  || 7;
   $('bill-info-box').style.display = 'block';
+  // Auto-fill previous meter readings from most recent bill (new bill only)
+  if (!S.editingBillId) {
+    const last = S.bills
+      .filter(b => String(b['ห้อง']) == no && b['อาคาร'] == bld)
+      .sort((a, b) => String(b['เดือน']).localeCompare(String(a['เดือน'])))[0];
+    if (last) {
+      $('bill-water-prev').value      = last['หน่วยน้ำปัจจุบัน'] || '';
+      $('bill-water-prev-date').value = last['วันจดน้ำปัจจุบัน'] || '';
+      $('bill-elec-prev').value       = last['หน่วยไฟปัจจุบัน']  || '';
+      $('bill-elec-prev-date').value  = last['วันจดไฟปัจจุบัน']  || '';
+    }
+  }
   calcBill();
 }
 
@@ -1976,7 +2164,7 @@ function renderIncome() {
       <td>${r.category}${billBadge}</td>
       <td class="text-right fw-bold" style="${r.isPaid?'color:#2e7d32':'color:#999'}">${fmt(r.amount)}</td>
       <td class="text-muted" style="${statusColor};font-size:0.85rem">${r.note}</td>
-      <td>${r.isBill ? '' : `<button class="btn btn-sm btn-danger" data-action="del-income" data-id="${r.id}">🗑</button>`}</td>
+      <td>${r.isBill ? '' : `<button class="btn btn-sm btn-secondary" data-action="edit-income" data-id="${r.id}" style="margin-right:4px">✏️</button><button class="btn btn-sm btn-danger" data-action="del-income" data-id="${r.id}">🗑</button>`}</td>
     </tr>`);
   });
   _flushBuildingSubtotal();
@@ -1999,11 +2187,21 @@ function renderIncome() {
 
 $('income-tbody').addEventListener('click', e=>{
   const btn = e.target.closest('[data-action]');
-  if(btn && btn.dataset.action==='del-income') deleteIncome(btn.dataset.id);
+  if(!btn) return;
+  if(btn.dataset.action==='del-income') deleteIncome(btn.dataset.id);
+  if(btn.dataset.action==='edit-income') openEditIncomeModal(btn.dataset.id);
 });
 
 $('btn-add-income').addEventListener('click', ()=>{
+  S.editingIncomeId = null;
+  document.querySelector('#modal-income .modal-title').textContent = 'เพิ่มรายรับ';
   $('inc-date').value = todayStr();
+  $('inc-building').value = '';
+  $('inc-room').value = '';
+  $('inc-person').value = '';
+  $('inc-cat').value = '';
+  $('inc-amount').value = '';
+  $('inc-note').value = '';
   openModal('modal-income');
 });
 
@@ -2022,16 +2220,45 @@ $('btn-save-income').addEventListener('click', async ()=>{
   }
   showLoading(true);
   try {
-    const r = await gsRun('saveOtherIncome', data);
+    let r;
+    if (S.editingIncomeId) {
+      r = await gsRun('updateOtherIncome', S.editingIncomeId, data);
+    } else {
+      r = await gsRun('saveOtherIncome', data);
+    }
     if(r.success){
       S.income = await gsRun('getOtherIncome') || [];
       renderIncome();
       closeModal('modal-income');
-      showAlert('บันทึกรายรับสำเร็จ');
+      showAlert(S.editingIncomeId ? 'แก้ไขรายรับสำเร็จ' : 'บันทึกรายรับสำเร็จ');
+      S.editingIncomeId = null;
     } else showAlert(r.message,'error');
   } catch(e){ showAlert('เกิดข้อผิดพลาด: '+e,'error'); }
   showLoading(false);
 });
+
+// Reset editing state when income modal is dismissed without saving
+document.querySelectorAll('[data-close="modal-income"]').forEach(btn => {
+  btn.addEventListener('click', () => { S.editingIncomeId = null; });
+});
+$('modal-income').addEventListener('click', e => {
+  if(e.target === $('modal-income')) S.editingIncomeId = null;
+});
+
+function openEditIncomeModal(id) {
+  const inc = S.income.find(i => String(i['ID']) === String(id));
+  if(!inc) { showAlert('ไม่พบรายรับ','error'); return; }
+  S.editingIncomeId = id;
+  document.querySelector('#modal-income .modal-title').textContent = 'แก้ไขรายรับ';
+  $('inc-date').value     = inc['วันที่'] || '';
+  $('inc-building').value = inc['อาคาร'] || '';
+  $('inc-room').value     = inc['ห้อง'] || '';
+  $('inc-person').value   = inc['ผู้เกี่ยวข้อง'] || '';
+  $('inc-cat').value      = inc['หมวดหมู่'] || '';
+  $('inc-amount').value   = inc['จำนวนเงิน'] || '';
+  $('inc-note').value     = inc['หมายเหตุ'] || '';
+  openModal('modal-income');
+}
 
 async function deleteIncome(id){
   if(!confirm('ลบรายรับนี้?')) return;

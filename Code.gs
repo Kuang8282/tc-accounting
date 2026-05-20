@@ -715,6 +715,34 @@ function saveBill(data) {
   } catch (err) { return { success: false, message: err.message }; }
 }
 
+function saveBillBatch(billsArray) {
+  const results = { saved: 0, skipped: 0, errors: [] };
+  if (!Array.isArray(billsArray) || !billsArray.length) return results;
+  const sh = getSheet(SHEETS.BILLS);
+  if (!sh) return { saved: 0, skipped: 0, errors: ['ไม่พบ Sheet'] };
+  const existing = sh.getDataRange().getValues();
+  billsArray.forEach(data => {
+    try {
+      const targetMonth = String(data['เดือน']).slice(0, 7);
+      const dup = existing.slice(1).some(r =>
+        String(cellVal_(r[1])).slice(0, 7) === targetMonth &&
+        r[2] == data['ห้อง'] && r[3] == data['อาคาร']
+      );
+      if (dup) { results.skipped++; return; }
+      const id = nextId(sh);
+      const invNo = targetMonth.replace('-','') + data['อาคาร'] + data['ห้อง'];
+      data['ID'] = id;
+      data['เลขที่ใบกำกับ'] = invNo;
+      data['สถานะ'] = 'รอชำระ';
+      const row = BILL_HEADERS.map(h => data[h] !== undefined ? data[h] : '');
+      sh.appendRow(row);
+      existing.push(row); // keep in-memory list current for dup check
+      results.saved++;
+    } catch(err) { results.errors.push(`ห้อง ${data['ห้อง']}: ${err.message}`); }
+  });
+  return results;
+}
+
 function updateBillStatus(billId, status, payDate) {
   try {
     const sh = getSheet(SHEETS.BILLS);
@@ -819,6 +847,33 @@ function deleteOtherIncome(id) {
     }
     return { success: false, message: 'ไม่พบรายการ' };
   } catch (err) { return { success: false, message: err.message }; }
+}
+
+function updateOtherIncome(id, data) {
+  try {
+    const sh = getSheet(SHEETS.OTHER_INCOME);
+    if (!sh) return { success: false, message: 'ไม่พบ Sheet' };
+    const rows = sh.getDataRange().getValues();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0] == id) {
+        data['ID'] = id;
+        const row = OTHER_INCOME_HEADERS.map(h => data[h] !== undefined ? data[h] : '');
+        sh.getRange(i + 1, 1, 1, row.length).setValues([row]);
+        return { success: true };
+      }
+    }
+    return { success: false, message: 'ไม่พบรายการ ID: ' + id };
+  } catch (err) { return { success: false, message: err.message }; }
+}
+
+// คืนข้อมูลบิลล่าสุดของห้องนั้น (สำหรับ auto-fill มาตรน้ำ/ไฟ)
+function getLastBillForRoom(roomNo, building) {
+  try {
+    const bills = getBills()
+      .filter(b => String(b['ห้อง']) === String(roomNo) && b['อาคาร'] === building)
+      .sort((a, b) => String(b['เดือน']).localeCompare(String(a['เดือน'])));
+    return bills.length ? bills[0] : null;
+  } catch (err) { return null; }
 }
 
 // ============================================================
